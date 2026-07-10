@@ -27,8 +27,7 @@ func (h *Handler) EditForm(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if r.FormValue("csrf_token") != h.csrf.Token(middleware.UserID(r).String()) {
-		http.Error(w, "invalid csrf token", http.StatusForbidden)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -81,8 +80,7 @@ func (h *Handler) AppearanceForm(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if r.FormValue("csrf_token") != h.csrf.Token(middleware.UserID(r).String()) {
-		http.Error(w, "invalid csrf token", http.StatusForbidden)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -91,6 +89,22 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	palette := r.FormValue("palette")
 	headingFont := r.FormValue("heading_font")
+
+	tmpl, _ := findTemplate(site.TemplateID)
+	paletteValid := palette == ""
+	for _, p := range tmpl.Palettes {
+		if p.ID == palette {
+			paletteValid = true
+			break
+		}
+	}
+	if !paletteValid {
+		palette = ""
+	}
+	if headingFont != "" && headingFont != "sans" && headingFont != "serif" {
+		headingFont = ""
+	}
+
 	if err := h.sites.UpdateAppearance(r.Context(), site.ID, palette, headingFont); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
@@ -110,8 +124,7 @@ func (h *Handler) SwitchTemplateForm(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if r.FormValue("csrf_token") != h.csrf.Token(middleware.UserID(r).String()) {
-		http.Error(w, "invalid csrf token", http.StatusForbidden)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -133,6 +146,9 @@ func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
 	if err := h.sites.Publish(r.Context(), site.ID); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
@@ -143,6 +159,9 @@ func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
 	if err := h.sites.Unpublish(r.Context(), site.ID); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
@@ -153,6 +172,9 @@ func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
 	if err := h.sites.Delete(r.Context(), site.ID); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
@@ -163,6 +185,9 @@ func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -181,6 +206,9 @@ func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Reques
 
 func (h *Handler) SendAnalyticsNow(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
 	if err := h.cron.SendAnalyticsReport(r.Context(), site.ID); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return

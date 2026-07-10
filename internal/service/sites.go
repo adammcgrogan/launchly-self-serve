@@ -286,8 +286,31 @@ func (s *Sites) UpdateAppearance(ctx context.Context, siteID int, palette, headi
 	return postgres.UpdateSiteAppearance(ctx, s.store.DB(), siteID, palette, headingFont)
 }
 
+// SwitchTemplate changes a site's design. The palette is reset (not carried
+// over) since palette IDs are template-specific — a palette valid for the
+// old template may not exist on the new one. Heading font is a
+// template-agnostic choice, so it's left as-is.
 func (s *Sites) SwitchTemplate(ctx context.Context, siteID int, templateID string) error {
-	return postgres.UpdateSiteTemplate(ctx, s.store.DB(), siteID, templateID)
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	current, err := postgres.GetSiteByID(ctx, tx, siteID)
+	if err != nil {
+		return fmt.Errorf("load site: %w", err)
+	}
+	if current == nil {
+		return fmt.Errorf("site %d not found", siteID)
+	}
+	if err := postgres.UpdateSiteTemplate(ctx, tx, siteID, templateID); err != nil {
+		return fmt.Errorf("update template: %w", err)
+	}
+	if err := postgres.UpdateSiteAppearance(ctx, tx, siteID, "", current.HeadingFont); err != nil {
+		return fmt.Errorf("reset palette: %w", err)
+	}
+	return tx.Commit()
 }
 
 func (s *Sites) UpdateAnalyticsFrequency(ctx context.Context, siteID int, frequency string) error {

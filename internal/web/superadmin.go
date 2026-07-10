@@ -84,8 +84,7 @@ func (h *Handler) SuperadminUnpublish(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if r.FormValue("csrf_token") != h.csrf.Token("superadmin") {
-		http.Error(w, "invalid csrf token", http.StatusForbidden)
+	if !h.checkCSRF(w, r, "superadmin") {
 		return
 	}
 	if err := h.sites.Unpublish(r.Context(), id); err != nil {
@@ -102,8 +101,7 @@ func (h *Handler) SuperadminDelete(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if r.FormValue("csrf_token") != h.csrf.Token("superadmin") {
-		http.Error(w, "invalid csrf token", http.StatusForbidden)
+	if !h.checkCSRF(w, r, "superadmin") {
 		return
 	}
 	if err := h.sites.Delete(r.Context(), id); err != nil {

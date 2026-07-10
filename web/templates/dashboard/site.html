@@ -93,6 +93,7 @@
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 class="font-semibold text-slate-900 mb-3">Analytics report</h2>
       <form method="POST" action="/dashboard/sites/{{.Site.ID}}/analytics-frequency" class="space-y-3">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <select name="analytics_frequency" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
           <option value="off" {{if eq .Site.Analytics.AnalyticsFrequency "off"}}selected{{end}}>Off</option>
           <option value="weekly" {{if eq .Site.Analytics.AnalyticsFrequency "weekly"}}selected{{end}}>Weekly</option>

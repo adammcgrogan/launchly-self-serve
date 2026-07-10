@@ -26,6 +26,11 @@
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   {{template "theme" .}}
+  {{if eq .Site.HeadingFont "sans"}}
+  <style>:root{--font-display:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;}</style>
+  {{else if eq .Site.HeadingFont "serif"}}
+  <style>:root{--font-display:Georgia,'Times New Roman',serif;}</style>
+  {{end}}
   {{if and .UmamiScriptURL .Site.Analytics.UmamiWebsiteID}}
   <script defer src="{{.UmamiScriptURL}}" data-website-id="{{.Site.Analytics.UmamiWebsiteID}}"></script>
   {{end}}

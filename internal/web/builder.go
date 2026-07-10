@@ -21,8 +21,7 @@ func (h *Handler) NewSiteForm(w http.ResponseWriter, r *http.Request) {
 // NewSiteSubmit creates the site and publishes it immediately — there is no
 // draft/review step, so the customer's site is live the moment they submit.
 func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("csrf_token") != h.csrf.Token(middleware.UserID(r).String()) {
-		http.Error(w, "invalid csrf token", http.StatusForbidden)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {

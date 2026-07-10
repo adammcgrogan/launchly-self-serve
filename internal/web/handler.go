@@ -90,6 +90,18 @@ func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
+// checkCSRF verifies the request's csrf_token form field against the token
+// derived for subject (a user ID string, or "superadmin"), using a
+// constant-time comparison. On failure it writes the 403 response itself —
+// callers should return immediately when this returns false.
+func (h *Handler) checkCSRF(w http.ResponseWriter, r *http.Request, subject string) bool {
+	if h.csrf.Verify(subject, r.FormValue("csrf_token")) {
+		return true
+	}
+	http.Error(w, "invalid csrf token", http.StatusForbidden)
+	return false
+}
+
 // baseURL returns the scheme+host for the current request.
 func (h *Handler) baseURL(reqHost string) string {
 	scheme := "https"

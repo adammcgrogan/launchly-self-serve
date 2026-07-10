@@ -15,8 +15,7 @@ import (
 // there is no admin-sent payment link.
 func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if r.FormValue("csrf_token") != h.csrf.Token(middleware.UserID(r).String()) {
-		http.Error(w, "invalid csrf token", http.StatusForbidden)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -29,7 +28,14 @@ func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutURL, err := h.billing.CreateUpgradeCheckout(r.Context(), site.ID, plan, site.Contact.Email)
+	// Bill the account owner's login email, not the site's public contact
+	// email — the two can differ (or the public one can be left blank).
+	customerEmail := site.Contact.Email
+	if profile, err := h.accounts.GetProfile(r.Context(), middleware.UserID(r)); err == nil && profile != nil && profile.Email != "" {
+		customerEmail = profile.Email
+	}
+
+	checkoutURL, err := h.billing.CreateUpgradeCheckout(r.Context(), site.ID, plan, customerEmail)
 	if err != nil {
 		slog.Error("create upgrade checkout", "site_id", site.ID, "error", err)
 		h.render.RenderError(w, http.StatusInternalServerError)
@@ -40,6 +46,9 @@ func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
 	if err := h.billing.CancelSubscription(r.Context(), site.ID); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return

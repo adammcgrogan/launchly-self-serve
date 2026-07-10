@@ -154,6 +154,19 @@ func MarkTrialReminderSent(ctx context.Context, q querier, siteID int, kind stri
 	return err
 }
 
+// IsStripeEventProcessed reports whether a webhook event ID has already been
+// recorded as processed. Checked before processing so retries of an
+// already-fully-handled event are skipped; MarkStripeEventProcessed is only
+// called after processing succeeds, so a transient failure mid-processing
+// leaves the event unmarked and eligible for Stripe's automatic retry.
+func IsStripeEventProcessed(ctx context.Context, q querier, eventID string) (bool, error) {
+	var exists bool
+	err := q.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM stripe_events WHERE event_id = $1)`, eventID,
+	).Scan(&exists)
+	return exists, err
+}
+
 // MarkStripeEventProcessed records a Stripe webhook event ID. Returns true if
 // newly inserted (first delivery), false if already processed (retry/duplicate).
 func MarkStripeEventProcessed(ctx context.Context, q querier, eventID string) (bool, error) {

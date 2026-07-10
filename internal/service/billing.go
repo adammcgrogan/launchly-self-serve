@@ -48,25 +48,39 @@ func (b *Billing) ParseWebhook(payload []byte, sigHeader string) (*payment.Webho
 }
 
 // HandleWebhookEvent processes a verified Stripe webhook event, idempotently.
+// The event is only marked processed *after* it's handled successfully — if
+// we marked it first and the handler then failed on a transient error,
+// Stripe's retry would see the event as already processed and skip it,
+// permanently losing that payment/cancellation update.
 func (b *Billing) HandleWebhookEvent(ctx context.Context, event *payment.WebhookEvent) error {
 	if event.ID != "" {
-		first, err := postgres.MarkStripeEventProcessed(ctx, b.store.DB(), event.ID)
+		processed, err := postgres.IsStripeEventProcessed(ctx, b.store.DB(), event.ID)
 		if err != nil {
 			return fmt.Errorf("check event idempotency: %w", err)
 		}
-		if !first {
+		if processed {
 			slog.Info("stripe event already processed, skipping", "event_id", event.ID)
 			return nil
 		}
 	}
 
+	var err error
 	switch event.Type {
 	case "checkout.session.completed":
-		return b.handleCheckoutCompleted(ctx, event)
+		err = b.handleCheckoutCompleted(ctx, event)
 	case "customer.subscription.deleted":
-		return b.handleSubscriptionDeleted(ctx, event)
+		err = b.handleSubscriptionDeleted(ctx, event)
 	case "invoice.payment_failed":
-		return b.handlePaymentFailed(ctx, event)
+		err = b.handlePaymentFailed(ctx, event)
+	}
+	if err != nil {
+		return err
+	}
+
+	if event.ID != "" {
+		if _, err := postgres.MarkStripeEventProcessed(ctx, b.store.DB(), event.ID); err != nil {
+			slog.Error("mark stripe event processed", "event_id", event.ID, "error", err)
+		}
 	}
 	return nil
 }
