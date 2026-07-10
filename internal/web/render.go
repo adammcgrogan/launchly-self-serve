@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
@@ -19,9 +20,13 @@ func NewRenderer() *Renderer {
 	return &Renderer{tmpl: make(map[string]*template.Template)}
 }
 
+var funcMap = template.FuncMap{
+	"add1": func(i int) int { return i + 1 },
+}
+
 func (rd *Renderer) parse(key, base string, files ...string) error {
 	all := append([]string{base}, files...)
-	t, err := template.ParseFiles(all...)
+	t, err := template.New(filepath.Base(base)).Funcs(funcMap).ParseFiles(all...)
 	if err != nil {
 		return fmt.Errorf("parse template %s: %w", key, err)
 	}

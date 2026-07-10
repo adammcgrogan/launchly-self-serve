@@ -1,0 +1,126 @@
+{{define "theme"}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-display:'Instrument Serif',serif; --font-body:'Manrope',sans-serif;
+    {{if eq .Site.Palette "sage"}}
+      --ink:#20241F; --surface:#FFFFFF; --paper:#F4F7F1; --accent:#5F7A63; --accent-ink:#FFFFFF; --muted:#5C6659; --line:#DEE7DA; --tint:#E4EEE0;
+    {{else}}
+      --ink:#2B1B1D; --surface:#FFFFFF; --paper:#FBF3F2; --accent:#B4586A; --accent-ink:#FFFFFF; --muted:#7A5B5F; --line:#F0DCDF; --tint:#F7E3E5;
+    {{end}}
+  }
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);}
+  .font-display{font-family:var(--font-display);}
+  .bloom-arch{border-radius:999px 999px 24px 24px;}
+  .bloom-blob{position:absolute;inset:0;background:var(--tint);border-radius:0 0 45% 45% / 0 0 20% 20%;z-index:-1;}
+</style>
+{{end}}
+
+{{define "site-content"}}
+<header class="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
+  <a href="#top" class="flex items-center gap-2 font-display text-2xl">
+    {{if .Site.LogoURL}}<img src="{{.Site.LogoURL}}" alt="{{.Site.BusinessName}}" class="h-9 w-9 rounded-full object-cover">{{end}}
+    {{.Site.BusinessName}}
+  </a>
+  <a href="#contact" class="hidden sm:inline-flex items-center rounded-full px-6 py-2.5 text-sm font-semibold" style="background:var(--accent);color:var(--accent-ink);">
+    {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Book now{{end}}
+  </a>
+</header>
+
+<section id="top" class="relative overflow-hidden">
+  <div class="bloom-blob"></div>
+  <div class="relative max-w-4xl mx-auto px-6 pt-12 pb-24 text-center">
+    {{if .Site.Contact.Location}}<span class="inline-block mb-6 text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full" style="background:var(--surface);color:var(--accent);">{{.Site.Contact.Location}}</span>{{end}}
+    <h1 class="font-display text-6xl sm:text-7xl leading-none">{{.Site.BusinessName}}</h1>
+    {{if .Site.Tagline}}<p class="mt-6 text-lg max-w-xl mx-auto" style="color:var(--muted);">{{.Site.Tagline}}</p>{{end}}
+    <div class="mt-10 flex justify-center gap-4">
+      <a href="#contact" class="inline-flex items-center rounded-full px-8 py-4 font-semibold" style="background:var(--accent);color:var(--accent-ink);">
+        {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Book now{{end}}
+      </a>
+      {{if .Site.Contact.Phone}}<a href="tel:{{.Site.Contact.Phone}}" class="inline-flex items-center rounded-full px-8 py-4 font-semibold border" style="border-color:var(--line);">Call us</a>{{end}}
+    </div>
+  </div>
+</section>
+
+{{if .Site.About}}
+<section class="max-w-3xl mx-auto px-6 py-16 text-center">
+  <h2 class="font-display text-3xl mb-6">Our story</h2>
+  <p class="text-lg leading-relaxed" style="color:var(--muted);">{{.Site.About}}</p>
+  {{if .Site.Certifications}}
+  <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
+    {{range .Site.Certifications}}<span class="text-sm px-3 py-1 rounded-full" style="background:var(--tint);color:var(--accent);">{{.Label}}</span>{{end}}
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+{{if .Site.Services}}
+<section id="services" class="max-w-5xl mx-auto px-6 py-16">
+  <h2 class="font-display text-3xl mb-10 text-center">Treatments</h2>
+  <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+    {{range .Site.Services}}
+    <div class="rounded-3xl p-6 text-center" style="background:var(--tint);">
+      <p class="font-display text-xl">{{.Label}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.GalleryImages}}
+<section class="max-w-5xl mx-auto px-6 py-16">
+  <h2 class="font-display text-3xl mb-10 text-center">Gallery</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {{range .Site.GalleryImages}}<img src="{{.URL}}" alt="{{.AltText}}" class="aspect-square w-full object-cover bloom-arch">{{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Testimonials}}
+<section class="max-w-5xl mx-auto px-6 py-16">
+  <h2 class="font-display text-3xl mb-10 text-center">Loved by clients</h2>
+  <div class="grid md:grid-cols-3 gap-5">
+    {{range .Site.Testimonials}}
+    <div class="rounded-3xl p-6" style="background:var(--surface);border:1px solid var(--line);">
+      <p class="leading-relaxed">“{{.Quote}}”</p>
+      <p class="mt-4 text-sm font-semibold" style="color:var(--accent);">{{.AuthorName}}{{if .AuthorRole}} · {{.AuthorRole}}{{end}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+<section id="contact" class="max-w-3xl mx-auto px-6 py-16">
+  <h2 class="font-display text-3xl mb-10 text-center">Book your visit</h2>
+  <div class="grid md:grid-cols-2 gap-10">
+    <div class="text-center md:text-left">
+      {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Phone}}</p>{{end}}
+      {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Email}}</p>{{end}}
+      {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
+      {{if .Site.BusinessHours}}
+      <div class="mt-6 rounded-3xl p-5" style="background:var(--tint);">
+        {{range .Site.BusinessHours}}<p class="text-sm"><span class="font-semibold">{{.Label}}</span> — {{.HoursText}}</p>{{end}}
+      </div>
+      {{end}}
+    </div>
+    <div>
+      {{if .LeadSent}}
+      <div class="rounded-3xl p-8 text-center" style="background:var(--tint);">
+        <p class="font-display text-2xl">Thank you!</p>
+        <p class="mt-2" style="color:var(--muted);">We'll be in touch to confirm.</p>
+      </div>
+      {{else}}
+      <form method="POST" action="{{.FormAction}}" class="rounded-3xl p-8 space-y-4" style="background:var(--tint);">
+        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+        <input type="text" name="name" placeholder="Your name" required class="w-full rounded-2xl px-4 py-3 border-0" style="background:var(--surface);">
+        <input type="email" name="email" placeholder="Email" class="w-full rounded-2xl px-4 py-3 border-0" style="background:var(--surface);">
+        <input type="tel" name="phone" placeholder="Phone" class="w-full rounded-2xl px-4 py-3 border-0" style="background:var(--surface);">
+        <textarea name="message" placeholder="What would you like to book?" rows="4" class="w-full rounded-2xl px-4 py-3 border-0" style="background:var(--surface);"></textarea>
+        <button type="submit" class="w-full rounded-2xl px-6 py-3.5 font-semibold" style="background:var(--accent);color:var(--accent-ink);">Request booking</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}

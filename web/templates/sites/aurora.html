@@ -1,0 +1,146 @@
+{{define "theme"}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif;
+    {{if eq .Site.Palette "emerald"}}
+      --ink:#0B1D17; --surface:#FFFFFF; --paper:#F4FBF8; --accent:#059669; --accent-ink:#ffffff; --muted:#4B5B55; --line:#D8E8E1;
+      --grad:linear-gradient(120deg,#047857,#22D3EE 55%,#A7F3D0);
+    {{else if eq .Site.Palette "sunset"}}
+      --ink:#241016; --surface:#FFFFFF; --paper:#FFF7F2; --accent:#E11D48; --accent-ink:#ffffff; --muted:#6B4A50; --line:#F3DCD6;
+      --grad:linear-gradient(120deg,#F97316,#E11D48 55%,#7C3AED);
+    {{else}}
+      --ink:#0F172A; --surface:#FFFFFF; --paper:#F5F6FB; --accent:#4338CA; --accent-ink:#ffffff; --muted:#565E76; --line:#DFE3F2;
+      --grad:linear-gradient(120deg,#4338CA,#7C3AED 55%,#0EA5E9);
+    {{end}}
+  }
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);}
+  .font-display{font-family:var(--font-display);}
+  .aurora-grad{background-image:var(--grad);}
+  .aurora-mesh{position:absolute;inset:0;background-image:var(--grad);filter:blur(60px);opacity:.35;}
+</style>
+{{end}}
+
+{{define "site-content"}}
+<header class="sticky top-0 z-40 backdrop-blur border-b" style="background:color-mix(in srgb, var(--surface) 88%, transparent);border-color:var(--line);">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2 font-display font-bold text-lg" style="color:var(--ink);">
+      {{if .Site.LogoURL}}<img src="{{.Site.LogoURL}}" alt="{{.Site.BusinessName}}" class="h-8 w-8 rounded-lg object-cover">{{end}}
+      {{.Site.BusinessName}}
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-sm font-medium" style="color:var(--muted);">
+      {{if .Site.About}}<a href="#about" class="hover:opacity-70">About</a>{{end}}
+      {{if .Site.Services}}<a href="#services" class="hover:opacity-70">Services</a>{{end}}
+      {{if .Site.Testimonials}}<a href="#reviews" class="hover:opacity-70">Reviews</a>{{end}}
+      <a href="#contact" class="hover:opacity-70">Contact</a>
+    </nav>
+    <a href="#contact" class="hidden sm:inline-flex items-center rounded-full px-5 py-2 text-sm font-semibold" style="background:var(--accent);color:var(--accent-ink);">
+      {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Get in touch{{end}}
+    </a>
+  </div>
+</header>
+
+<section id="top" class="relative overflow-hidden">
+  <div class="aurora-mesh"></div>
+  <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-24 md:pt-28 md:pb-32">
+    {{if .Site.Contact.Location}}<span class="inline-block mb-6 text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full" style="background:var(--surface);color:var(--accent);border:1px solid var(--line);">{{.Site.Contact.Location}}</span>{{end}}
+    <h1 class="font-display text-4xl sm:text-6xl font-bold leading-[1.05] max-w-3xl" style="color:var(--ink);">{{.Site.BusinessName}}</h1>
+    {{if .Site.Tagline}}<p class="mt-6 text-lg sm:text-xl max-w-2xl" style="color:var(--muted);">{{.Site.Tagline}}</p>{{end}}
+    <div class="mt-10 flex flex-wrap gap-4">
+      <a href="#contact" class="inline-flex items-center rounded-full px-7 py-3.5 font-semibold aurora-grad" style="color:var(--accent-ink);">
+        {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Get in touch{{end}}
+      </a>
+      {{if .Site.Contact.Phone}}<a href="tel:{{.Site.Contact.Phone}}" class="inline-flex items-center rounded-full px-7 py-3.5 font-semibold border" style="border-color:var(--line);color:var(--ink);">Call {{.Site.Contact.Phone}}</a>{{end}}
+    </div>
+    {{if .Site.Certifications}}
+    <div class="mt-14 flex flex-wrap gap-x-8 gap-y-3">
+      {{range .Site.Certifications}}<span class="text-sm font-medium" style="color:var(--muted);">✓ {{.Label}}</span>{{end}}
+    </div>
+    {{end}}
+  </div>
+</section>
+
+{{if .Site.About}}
+<section id="about" class="max-w-6xl mx-auto px-6 py-20 border-t" style="border-color:var(--line);">
+  <div class="grid md:grid-cols-[1fr_2fr] gap-10">
+    <h2 class="font-display text-2xl font-bold">About</h2>
+    <p class="text-lg leading-relaxed max-w-2xl" style="color:var(--muted);">{{.Site.About}}</p>
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Services}}
+<section id="services" class="max-w-6xl mx-auto px-6 py-20 border-t" style="border-color:var(--line);">
+  <h2 class="font-display text-2xl font-bold mb-10">What we do</h2>
+  <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+    {{range .Site.Services}}
+    <div class="rounded-2xl p-6 border" style="background:var(--surface);border-color:var(--line);">
+      <p class="font-semibold" style="color:var(--ink);">{{.Label}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.GalleryImages}}
+<section class="max-w-6xl mx-auto px-6 py-20 border-t" style="border-color:var(--line);">
+  <h2 class="font-display text-2xl font-bold mb-10">Gallery</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {{range .Site.GalleryImages}}
+    <img src="{{.URL}}" alt="{{.AltText}}" class="aspect-square w-full object-cover rounded-xl">
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Testimonials}}
+<section id="reviews" class="max-w-6xl mx-auto px-6 py-20 border-t" style="border-color:var(--line);">
+  <h2 class="font-display text-2xl font-bold mb-10">What people say</h2>
+  <div class="grid md:grid-cols-3 gap-5">
+    {{range .Site.Testimonials}}
+    <div class="rounded-2xl p-6 border" style="background:var(--surface);border-color:var(--line);">
+      <p class="leading-relaxed" style="color:var(--ink);">“{{.Quote}}”</p>
+      <p class="mt-4 text-sm font-semibold" style="color:var(--muted);">{{.AuthorName}}{{if .AuthorRole}} · {{.AuthorRole}}{{end}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+<section id="contact" class="max-w-6xl mx-auto px-6 py-20 border-t" style="border-color:var(--line);">
+  <div class="grid md:grid-cols-2 gap-12">
+    <div>
+      <h2 class="font-display text-2xl font-bold mb-6">Get in touch</h2>
+      {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">Phone: <a href="tel:{{.Site.Contact.Phone}}" class="font-medium" style="color:var(--ink);">{{.Site.Contact.Phone}}</a></p>{{end}}
+      {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">Email: <a href="mailto:{{.Site.Contact.Email}}" class="font-medium" style="color:var(--ink);">{{.Site.Contact.Email}}</a></p>{{end}}
+      {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
+      {{if .Site.BusinessHours}}
+      <div class="mt-6">
+        {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);"><span class="font-medium" style="color:var(--ink);">{{.Label}}:</span> {{.HoursText}}</p>{{end}}
+      </div>
+      {{end}}
+      {{if .Site.Contact.MapEmbedURL}}
+      <iframe src="{{.Site.Contact.MapEmbedURL}}" class="mt-6 w-full h-56 rounded-xl border-0" style="border:1px solid var(--line);" loading="lazy"></iframe>
+      {{end}}
+    </div>
+    <div>
+      {{if .LeadSent}}
+      <div class="rounded-2xl p-8 border text-center" style="background:var(--surface);border-color:var(--line);">
+        <p class="font-display text-xl font-bold" style="color:var(--ink);">Thanks — message sent!</p>
+        <p class="mt-2" style="color:var(--muted);">We'll be in touch shortly.</p>
+      </div>
+      {{else}}
+      <form method="POST" action="{{.FormAction}}" class="rounded-2xl p-8 border space-y-4" style="background:var(--surface);border-color:var(--line);">
+        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+        <input type="text" name="name" placeholder="Your name" required class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <input type="email" name="email" placeholder="Email" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <input type="tel" name="phone" placeholder="Phone" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <textarea name="message" placeholder="Message" rows="4" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);"></textarea>
+        <button type="submit" class="w-full rounded-lg px-6 py-3 font-semibold" style="background:var(--accent);color:var(--accent-ink);">Send message</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}

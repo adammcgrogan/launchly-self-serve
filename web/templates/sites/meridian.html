@@ -1,0 +1,124 @@
+{{define "theme"}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-display:'Fraunces',serif; --font-body:'Inter',sans-serif;
+    {{if eq .Site.Palette "forest"}}
+      --ink:#152019; --surface:#FFFFFF; --paper:#F4F6F2; --accent:#1F3A2E; --brass:#9C7A45; --accent-ink:#FFFFFF; --muted:#5C6960; --line:#DCE3DA;
+    {{else}}
+      --ink:#171A1E; --surface:#FFFFFF; --paper:#F4F5F3; --accent:#26364A; --brass:#A9895A; --accent-ink:#FFFFFF; --muted:#5B626C; --line:#DDE0DC;
+    {{end}}
+  }
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);}
+  .font-display{font-family:var(--font-display);font-optical-sizing:auto;}
+  .meridian-line{height:1px;background:var(--brass);}
+</style>
+{{end}}
+
+{{define "site-content"}}
+<header class="max-w-5xl mx-auto px-6 h-24 flex items-center justify-between">
+  <a href="#top" class="flex items-center gap-3 font-display text-lg italic">
+    {{if .Site.LogoURL}}<img src="{{.Site.LogoURL}}" alt="{{.Site.BusinessName}}" class="h-9 w-9 rounded-full object-cover">{{end}}
+    {{.Site.BusinessName}}
+  </a>
+  <nav class="hidden md:flex items-center gap-10 text-sm tracking-wide" style="color:var(--muted);">
+    {{if .Site.About}}<a href="#about" class="hover:opacity-70">About</a>{{end}}
+    {{if .Site.Services}}<a href="#services" class="hover:opacity-70">Services</a>{{end}}
+    <a href="#contact" class="hover:opacity-70">Contact</a>
+  </nav>
+</header>
+
+<section id="top" class="max-w-5xl mx-auto px-6 pt-8 pb-24 text-center">
+  {{if .Site.Contact.Location}}<p class="text-xs tracking-[0.3em] uppercase mb-6" style="color:var(--brass);">{{.Site.Contact.Location}}</p>{{end}}
+  <h1 class="font-display text-5xl sm:text-6xl italic leading-tight">{{.Site.BusinessName}}</h1>
+  <div class="meridian-line w-24 mx-auto my-8"></div>
+  {{if .Site.Tagline}}<p class="text-lg max-w-xl mx-auto" style="color:var(--muted);">{{.Site.Tagline}}</p>{{end}}
+  <div class="mt-10 flex justify-center gap-4">
+    <a href="#contact" class="inline-flex items-center px-8 py-3.5 text-sm tracking-wide" style="background:var(--accent);color:var(--accent-ink);">
+      {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Enquire{{end}}
+    </a>
+  </div>
+</section>
+
+{{if .Site.About}}
+<section id="about" class="max-w-3xl mx-auto px-6 py-16 border-t text-center" style="border-color:var(--line);">
+  <h2 class="font-display italic text-2xl mb-6">About</h2>
+  <p class="text-lg leading-relaxed" style="color:var(--muted);">{{.Site.About}}</p>
+  {{if .Site.Certifications}}
+  <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2">
+    {{range .Site.Certifications}}<span class="text-sm" style="color:var(--brass);">{{.Label}}</span>{{end}}
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+{{if .Site.Services}}
+<section id="services" class="max-w-3xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display italic text-2xl mb-10 text-center">Services</h2>
+  <div class="divide-y" style="border-color:var(--line);">
+    {{range .Site.Services}}
+    <div class="py-4 flex items-center justify-between">
+      <span class="text-lg">{{.Label}}</span>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.GalleryImages}}
+<section class="max-w-5xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display italic text-2xl mb-10 text-center">Gallery</h2>
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+    {{range .Site.GalleryImages}}<img src="{{.URL}}" alt="{{.AltText}}" class="aspect-[4/5] w-full object-cover">{{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Testimonials}}
+<section class="max-w-3xl mx-auto px-6 py-16 border-t text-center" style="border-color:var(--line);">
+  <h2 class="font-display italic text-2xl mb-10">Words from clients</h2>
+  <div class="space-y-10">
+    {{range .Site.Testimonials}}
+    <div>
+      <p class="font-display italic text-xl leading-relaxed">“{{.Quote}}”</p>
+      <p class="mt-3 text-sm tracking-wide" style="color:var(--brass);">{{.AuthorName}}{{if .AuthorRole}}, {{.AuthorRole}}{{end}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+<section id="contact" class="max-w-3xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display italic text-2xl mb-10 text-center">Contact</h2>
+  <div class="grid md:grid-cols-2 gap-12">
+    <div class="text-center md:text-left">
+      {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Phone}}</p>{{end}}
+      {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Email}}</p>{{end}}
+      {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
+      {{if .Site.BusinessHours}}
+      <div class="mt-6">
+        {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);">{{.Label}} — {{.HoursText}}</p>{{end}}
+      </div>
+      {{end}}
+    </div>
+    <div>
+      {{if .LeadSent}}
+      <div class="p-8 border text-center" style="border-color:var(--line);">
+        <p class="font-display italic text-xl">Thank you — message sent.</p>
+        <p class="mt-2" style="color:var(--muted);">We'll reply shortly.</p>
+      </div>
+      {{else}}
+      <form method="POST" action="{{.FormAction}}" class="space-y-4">
+        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+        <input type="text" name="name" placeholder="Name" required class="w-full px-4 py-3 border bg-transparent" style="border-color:var(--line);">
+        <input type="email" name="email" placeholder="Email" class="w-full px-4 py-3 border bg-transparent" style="border-color:var(--line);">
+        <input type="tel" name="phone" placeholder="Phone" class="w-full px-4 py-3 border bg-transparent" style="border-color:var(--line);">
+        <textarea name="message" placeholder="Message" rows="4" class="w-full px-4 py-3 border bg-transparent" style="border-color:var(--line);"></textarea>
+        <button type="submit" class="w-full px-6 py-3.5 text-sm tracking-wide" style="background:var(--accent);color:var(--accent-ink);">Send</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}
