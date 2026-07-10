@@ -38,6 +38,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 		return h.auth.RequireUser(h.ownership.RequireSiteOwner(next))
 	}
 	mux.HandleFunc("GET /dashboard", h.auth.RequireUser(h.Dashboard))
+	mux.HandleFunc("GET /dashboard/account", h.auth.RequireUser(h.Account))
 	mux.HandleFunc("GET /dashboard/sites/new", h.auth.RequireUser(h.NewSiteForm))
 	mux.HandleFunc("POST /dashboard/sites/new", h.auth.RequireUser(h.NewSiteSubmit))
 	mux.HandleFunc("GET /dashboard/sites/{id}", owned(h.SiteOverview))

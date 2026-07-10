@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/adammcgrogan/launchly-self-serve/internal/supabase"
+	"github.com/google/uuid"
 )
 
 // Accounts handles signup, login, and session lifecycle. Credential storage
@@ -79,4 +81,8 @@ func (a *Accounts) ResendVerificationEmail(ctx context.Context, emailAddr string
 // recovery-scoped token from the link Supabase emailed the user.
 func (a *Accounts) UpdatePassword(ctx context.Context, accessToken, newPassword string) error {
 	return a.supa.UpdatePassword(ctx, accessToken, newPassword)
+}
+
+func (a *Accounts) GetProfile(ctx context.Context, userID uuid.UUID) (*domain.Profile, error) {
+	return postgres.GetProfile(ctx, a.store.DB(), userID)
 }

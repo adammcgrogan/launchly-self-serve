@@ -1,0 +1,83 @@
+{{define "content"}}
+
+<section class="relative overflow-hidden">
+  <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-gradient-to-br from-indigo-200 via-violet-100 to-amber-100 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+  <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16 md:pt-28 text-center">
+    <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-600 mb-8">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span> No approval. No waiting. It's live the moment you finish.
+    </span>
+    <h1 class="font-display text-5xl sm:text-7xl font-bold leading-[1.02] text-slate-900 max-w-4xl mx-auto">
+      Build your business a home online — <span class="text-brand">today</span>.
+    </h1>
+    <p class="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto">
+      Sign up, pick a design, add your details, and your site is live on the internet in minutes. No one reviews it. No one approves it. It's yours.
+    </p>
+    <div class="mt-10 flex flex-wrap justify-center gap-4">
+      <a href="/signup" class="inline-flex items-center rounded-full bg-brand px-8 py-4 text-base font-semibold text-white hover:bg-brand-dark transition">Start free — no card required</a>
+      <a href="/templates" class="inline-flex items-center rounded-full border border-slate-200 px-8 py-4 text-base font-semibold text-slate-700 hover:border-slate-300 transition">Browse designs</a>
+    </div>
+  </div>
+
+  <div class="relative max-w-4xl mx-auto px-6 pb-24">
+    <div class="rounded-2xl border border-slate-200 shadow-2xl shadow-slate-200/60 overflow-hidden bg-white">
+      <div class="flex items-center gap-1.5 px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <span class="w-3 h-3 rounded-full bg-red-300"></span>
+        <span class="w-3 h-3 rounded-full bg-amber-300"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-300"></span>
+        <span class="ml-4 text-xs font-medium text-slate-400">yourbusiness.launchly.ltd</span>
+      </div>
+      <div class="p-10 sm:p-16 text-center bg-gradient-to-br from-indigo-50 via-white to-amber-50">
+        <p class="font-display text-3xl sm:text-4xl font-bold text-slate-900">Your Business Name</p>
+        <p class="mt-3 text-slate-500">Quality work, done right — serving your area since day one.</p>
+        <span class="mt-6 inline-flex items-center rounded-full bg-brand px-6 py-2.5 text-sm font-semibold text-white">Get a Quote</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="border-t border-slate-100 bg-slate-50">
+  <div class="max-w-6xl mx-auto px-6 py-20">
+    <h2 class="font-display text-3xl font-bold text-center text-slate-900">How it works</h2>
+    <p class="mt-3 text-center text-slate-500">Three steps. No one in between.</p>
+    <div class="mt-14 grid md:grid-cols-3 gap-8">
+      <div>
+        <p class="font-display text-4xl font-bold text-brand">1</p>
+        <h3 class="mt-3 font-semibold text-lg text-slate-900">Create your account</h3>
+        <p class="mt-2 text-slate-600">Sign up with your email — takes ten seconds, no card needed.</p>
+      </div>
+      <div>
+        <p class="font-display text-4xl font-bold text-brand">2</p>
+        <h3 class="mt-3 font-semibold text-lg text-slate-900">Build your site</h3>
+        <p class="mt-2 text-slate-600">Pick a design, fill in your business details, services, and photos.</p>
+      </div>
+      <div>
+        <p class="font-display text-4xl font-bold text-brand">3</p>
+        <h3 class="mt-3 font-semibold text-lg text-slate-900">You're live</h3>
+        <p class="mt-2 text-slate-600">Your site publishes instantly. Edit anything, anytime, from your dashboard.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="max-w-6xl mx-auto px-6 py-20">
+  <h2 class="font-display text-3xl font-bold text-center text-slate-900">A design for every business</h2>
+  <p class="mt-3 text-center text-slate-500">Switch designs any time — your content carries over.</p>
+  <div class="mt-14 grid sm:grid-cols-2 md:grid-cols-4 gap-5">
+    {{range .Templates}}
+    <div class="rounded-2xl border border-slate-200 p-6">
+      <p class="font-display text-lg font-semibold text-slate-900">{{.Name}}</p>
+      <p class="mt-2 text-sm text-slate-500">{{.Description}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+
+<section class="border-t border-slate-100 bg-slate-950 text-white">
+  <div class="max-w-4xl mx-auto px-6 py-24 text-center">
+    <h2 class="font-display text-3xl sm:text-4xl font-bold">Your competitors already have a website.</h2>
+    <p class="mt-4 text-lg text-slate-300">Start free — your site goes live the moment you finish building it.</p>
+    <a href="/signup" class="mt-8 inline-flex items-center rounded-full bg-white px-8 py-4 text-base font-semibold text-slate-900 hover:bg-slate-100 transition">Start free</a>
+  </div>
+</section>
+
+{{end}}

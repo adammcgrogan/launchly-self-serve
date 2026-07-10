@@ -3,7 +3,7 @@ package web
 import "net/http"
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "home", map[string]any{})
+	h.render.Render(w, "home", map[string]any{"Templates": siteTemplates})
 }
 
 func (h *Handler) Pricing(w http.ResponseWriter, r *http.Request) {

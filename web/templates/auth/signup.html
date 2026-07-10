@@ -1,0 +1,24 @@
+{{define "content"}}
+<div class="bg-white rounded-2xl border border-slate-200 p-8">
+  <h1 class="font-display text-2xl font-bold text-slate-900">Create your account</h1>
+  <p class="mt-2 text-sm text-slate-500">Free to start — no card required.</p>
+
+  {{if .Error}}<p class="mt-4 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3">{{.Error}}</p>{{end}}
+
+  <form method="POST" action="/signup" class="mt-6 space-y-4">
+    {{if .Next}}<input type="hidden" name="next" value="{{.Next}}">{{end}}
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+      <input type="email" name="email" value="{{.Email}}" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+      <input type="password" name="password" required minlength="8" class="w-full rounded-lg border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand">
+      <p class="mt-1 text-xs text-slate-400">At least 8 characters.</p>
+    </div>
+    <button type="submit" class="w-full rounded-lg bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Create account</button>
+  </form>
+
+  <p class="mt-6 text-center text-sm text-slate-500">Already have an account? <a href="/login" class="text-brand font-medium">Log in</a></p>
+</div>
+{{end}}

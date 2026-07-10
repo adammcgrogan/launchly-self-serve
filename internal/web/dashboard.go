@@ -46,6 +46,20 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Account shows the logged-in user's email and account-level actions
+// (password reset goes through Supabase's own recovery email flow).
+func (h *Handler) Account(w http.ResponseWriter, r *http.Request) {
+	profile, err := h.accounts.GetProfile(r.Context(), middleware.UserID(r))
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	h.render.Render(w, "dashboard:account", map[string]any{
+		"Profile": profile,
+		"Flash":   middleware.GetFlash(w, r),
+	})
+}
+
 func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	leads, err := h.leads.ListBySite(r.Context(), site.ID)

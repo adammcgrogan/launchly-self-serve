@@ -1,0 +1,47 @@
+{{define "content"}}
+<a href="/superadmin" class="text-sm text-slate-400 hover:text-slate-200">← All sites</a>
+<h1 class="text-xl font-bold mt-2">{{.Site.BusinessName}}</h1>
+<a href="{{.SiteURL}}" target="_blank" class="text-indigo-400 text-sm">{{.SiteURL}} ↗</a>
+
+<div class="mt-8 grid md:grid-cols-2 gap-6">
+  <div class="rounded-2xl border border-slate-800 p-6">
+    <h2 class="font-semibold mb-3">Details</h2>
+    <p class="text-sm text-slate-400">Owner: {{.Site.OwnerUserID}}</p>
+    <p class="text-sm text-slate-400 mt-1">Status: {{.Site.Status}}</p>
+    <p class="text-sm text-slate-400 mt-1">Plan: {{.Site.Billing.Plan}} — {{.Site.Billing.PaymentStatus}}</p>
+    <p class="text-sm text-slate-400 mt-1">Created: {{.Site.CreatedAt.Format "2 Jan 2006"}}</p>
+    {{if .Site.Contact.Email}}<p class="text-sm text-slate-400 mt-1">Contact: {{.Site.Contact.Email}}</p>{{end}}
+  </div>
+
+  <div class="rounded-2xl border border-slate-800 p-6">
+    <h2 class="font-semibold mb-3">Emergency actions</h2>
+    <p class="text-xs text-slate-500 mb-4">Only use this if a site needs to come down for abuse reasons — it isn't part of the normal flow.</p>
+    <div class="flex flex-wrap gap-3">
+      <form method="POST" action="/superadmin/sites/{{.Site.ID}}/unpublish">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="rounded-full border border-slate-700 px-4 py-2 text-sm">Unpublish</button>
+      </form>
+      <form method="POST" action="/superadmin/sites/{{.Site.ID}}/delete" onsubmit="return confirm('Delete this site permanently?');">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="rounded-full border border-red-900 text-red-400 px-4 py-2 text-sm">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="mt-6 rounded-2xl border border-slate-800 p-6">
+  <h2 class="font-semibold mb-3">Leads ({{len .Leads}})</h2>
+  {{if not .Leads}}
+  <p class="text-sm text-slate-500">None yet.</p>
+  {{else}}
+  <div class="divide-y divide-slate-800">
+    {{range .Leads}}
+    <div class="py-3 text-sm">
+      <p class="font-medium">{{.Name}}{{if .Email}} · {{.Email}}{{end}}</p>
+      {{if .Message}}<p class="text-slate-400 mt-1">{{.Message}}</p>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+{{end}}

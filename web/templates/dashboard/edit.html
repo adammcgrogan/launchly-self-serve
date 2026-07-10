@@ -1,0 +1,99 @@
+{{define "content"}}
+<a href="/dashboard/sites/{{.Site.ID}}" class="text-sm text-slate-500 hover:text-slate-800">← Back</a>
+<h1 class="font-display text-2xl font-bold text-slate-900 mt-2">Edit {{.Site.BusinessName}}</h1>
+<p class="mt-2 text-slate-500">Changes go live immediately when you save.</p>
+
+<form method="POST" action="/dashboard/sites/{{.Site.ID}}/edit" class="mt-8 space-y-10">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+  <section class="space-y-4">
+    <h2 class="font-semibold text-slate-900">Business details</h2>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
+      <input type="text" name="business_name" value="{{.Site.BusinessName}}" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
+      <input type="text" name="tagline" value="{{.Site.Tagline}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
+      <textarea name="about" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.About}}</textarea>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
+        <input type="url" name="logo_url" value="{{.Site.LogoURL}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
+        <input type="text" name="cta_text" value="{{.Site.CTAText}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="font-semibold text-slate-900">Contact</h2>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+        <input type="tel" name="phone" value="{{.Site.Contact.Phone}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
+        <input type="email" name="email" value="{{.Site.Contact.Email}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+        <input type="text" name="address" value="{{.Site.Contact.Address}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Location badge</label>
+        <input type="text" name="location" value="{{.Site.Contact.Location}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL (optional)</label>
+      <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="font-semibold text-slate-900">Content</h2>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Services — one per line</label>
+      <textarea name="services" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.ServicesText}}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Certifications / trust badges — one per line</label>
+      <textarea name="certifications" rows="2" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.CertsText}}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials — one per line, "Name|Role|Quote"</label>
+      <textarea name="testimonials" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.TestimonialsText}}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Gallery image URLs — one per line</label>
+      <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.GalleryText}}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours — one per line, "Label|Hours"</label>
+      <textarea name="hours" rows="2" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.HoursText}}</textarea>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="font-semibold text-slate-900">Social links</h2>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <input type="url" name="whatsapp_url" value="{{index .Socials "whatsapp"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <input type="url" name="twitter_url" value="{{index .Socials "twitter"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <input type="url" name="tiktok_url" value="{{index .Socials "tiktok"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <input type="url" name="linkedin_url" value="{{index .Socials "linkedin"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+    </div>
+  </section>
+
+  <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save changes</button>
+</form>
+{{end}}

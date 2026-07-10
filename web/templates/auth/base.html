@@ -1,0 +1,27 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Launchly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans:['Inter','sans-serif'], display:['Fraunces','serif'] }, colors: { brand:{DEFAULT:'#4F46E5',dark:'#3730A3'} } } } }
+  </script>
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
+  <header class="px-6 py-6">
+    <a href="/" class="font-display text-xl font-bold text-slate-900">Launchly</a>
+  </header>
+  <main class="flex-1 flex items-center justify-center px-6 pb-16">
+    <div class="w-full max-w-sm">
+      {{template "content" .}}
+    </div>
+  </main>
+</body>
+</html>
+{{end}}

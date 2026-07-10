@@ -1,0 +1,27 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superadmin — Launchly</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen font-sans">
+  <header class="border-b border-slate-800">
+    <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="/superadmin" class="font-bold text-slate-100">Launchly · Superadmin</a>
+      <a href="/superadmin/logout" class="text-sm text-slate-400 hover:text-slate-200">Log out</a>
+    </div>
+  </header>
+  {{if .Flash}}
+  <div class="max-w-5xl mx-auto px-6 mt-6">
+    <p class="rounded-lg bg-emerald-900/40 text-emerald-300 text-sm px-4 py-3">{{.Flash}}</p>
+  </div>
+  {{end}}
+  <main class="max-w-5xl mx-auto px-6 py-10">
+    {{template "content" .}}
+  </main>
+</body>
+</html>
+{{end}}

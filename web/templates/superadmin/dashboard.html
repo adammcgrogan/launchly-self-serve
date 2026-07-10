@@ -1,0 +1,14 @@
+{{define "content"}}
+<h1 class="text-xl font-bold mb-6">All sites ({{len .Sites}})</h1>
+<div class="divide-y divide-slate-800 border border-slate-800 rounded-2xl overflow-hidden">
+  {{range .Sites}}
+  <a href="/superadmin/sites/{{.ID}}" class="flex items-center justify-between px-6 py-4 hover:bg-slate-900">
+    <div>
+      <p class="font-medium">{{.BusinessName}}</p>
+      <p class="text-sm text-slate-400">{{.Slug}}.launchly.ltd</p>
+    </div>
+    <span class="text-xs uppercase tracking-wide px-3 py-1 rounded-full {{if eq (print .Status) "live"}}bg-emerald-900/40 text-emerald-300{{else}}bg-slate-800 text-slate-400{{end}}">{{.Status}}</span>
+  </a>
+  {{end}}
+</div>
+{{end}}

@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="bg-white rounded-2xl border border-slate-200 p-8">
+  <h1 class="font-display text-2xl font-bold text-slate-900">Log in</h1>
+
+  {{if .Info}}<p class="mt-4 rounded-lg bg-emerald-50 text-emerald-700 text-sm px-4 py-3">{{.Info}}</p>{{end}}
+  {{if .Error}}<p class="mt-4 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3">{{.Error}}</p>{{end}}
+
+  <form method="POST" action="/login" class="mt-6 space-y-4">
+    {{if .Next}}<input type="hidden" name="next" value="{{.Next}}">{{end}}
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+      <input type="email" name="email" value="{{.Email}}" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand">
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="block text-sm font-medium text-slate-700">Password</label>
+        <a href="/forgot-password" class="text-xs text-brand font-medium">Forgot?</a>
+      </div>
+      <input type="password" name="password" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand">
+    </div>
+    <button type="submit" class="w-full rounded-lg bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Log in</button>
+  </form>
+
+  <p class="mt-6 text-center text-sm text-slate-500">New here? <a href="/signup" class="text-brand font-medium">Create an account</a></p>
+</div>
+{{end}}

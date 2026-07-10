@@ -1,0 +1,11 @@
+{{define "content"}}
+<div class="max-w-sm mx-auto mt-20 bg-slate-900 border border-slate-800 rounded-2xl p-8">
+  <h1 class="text-xl font-bold">Superadmin</h1>
+  {{if .Error}}<p class="mt-4 rounded-lg bg-red-900/40 text-red-300 text-sm px-4 py-3">{{.Error}}</p>{{end}}
+  <form method="POST" action="/superadmin/login" class="mt-6 space-y-4">
+    {{if .Next}}<input type="hidden" name="next" value="{{.Next}}">{{end}}
+    <input type="password" name="password" placeholder="Password" required class="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-2.5 text-slate-100">
+    <button type="submit" class="w-full rounded-lg bg-indigo-600 px-6 py-3 font-semibold">Log in</button>
+  </form>
+</div>
+{{end}}

@@ -1,0 +1,109 @@
+{{define "content"}}
+{{if .Upgraded}}<p class="mb-6 rounded-lg bg-emerald-50 text-emerald-700 text-sm px-4 py-3">Payment received — thanks for upgrading!</p>{{end}}
+
+<div class="flex flex-wrap items-start justify-between gap-4 mb-8">
+  <div>
+    <h1 class="font-display text-2xl font-bold text-slate-900">{{.Site.BusinessName}}</h1>
+    <a href="{{.SiteURL}}" target="_blank" class="text-brand text-sm font-medium">{{.SiteURL}} ↗</a>
+  </div>
+  <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Site.Status}}</span>
+</div>
+
+<div class="grid md:grid-cols-3 gap-6">
+  <div class="md:col-span-2 space-y-6">
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-4">Manage</h2>
+      <div class="flex flex-wrap gap-3">
+        <a href="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Edit content</a>
+        <a href="/dashboard/sites/{{.Site.ID}}/appearance" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Appearance</a>
+        <a href="/dashboard/sites/{{.Site.ID}}/switch-template" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Switch design</a>
+        <a href="/dashboard/sites/{{.Site.ID}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
+        {{if eq (print .Site.Status) "live"}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Unpublish</button>
+        </form>
+        {{else}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/publish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Publish</button>
+        </form>
+        {{end}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/delete" onsubmit="return confirm('Delete this site? This cannot be undone.');">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Delete</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-4">Last 7 days</h2>
+      {{if .Stats}}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <p class="text-3xl font-bold text-slate-900">{{.Stats.TotalViews}}</p>
+          <p class="text-sm text-slate-500">Page views</p>
+        </div>
+        <div>
+          <p class="text-3xl font-bold text-slate-900">{{.Stats.UniqueVisitors}}</p>
+          <p class="text-sm text-slate-500">Unique visitors</p>
+        </div>
+      </div>
+      {{else}}
+      <p class="text-sm text-slate-500">No data yet.</p>
+      {{end}}
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-4">Recent leads</h2>
+      {{if not .Leads}}
+      <p class="text-sm text-slate-500">No enquiries yet — they'll show up here as visitors contact you.</p>
+      {{else}}
+      <div class="divide-y divide-slate-100">
+        {{range .Leads}}
+        <div class="py-3">
+          <p class="font-medium text-slate-900">{{.Name}}{{if .Email}} · {{.Email}}{{end}}{{if .Phone}} · {{.Phone}}{{end}}</p>
+          {{if .Message}}<p class="text-sm text-slate-500 mt-1">{{.Message}}</p>{{end}}
+          <p class="text-xs text-slate-400 mt-1">{{.CreatedAt.Format "2 Jan 2006, 15:04"}}</p>
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-3">Plan</h2>
+      <p class="text-sm text-slate-500 capitalize">{{.Site.Billing.Plan}} — <span class="capitalize">{{.Site.Billing.PaymentStatus}}</span></p>
+      {{if eq (print .Site.Billing.PaymentStatus) "trialing"}}
+        {{if .Site.Billing.TrialEndsAt}}<p class="text-xs text-slate-400 mt-1">Trial ends {{.Site.Billing.TrialEndsAt.Format "2 Jan 2006"}}</p>{{end}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/upgrade" class="mt-4 space-y-2">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button type="submit" name="plan" value="starter" class="w-full rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white">Upgrade to Starter — £14/mo</button>
+          <button type="submit" name="plan" value="pro" class="w-full rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-800">Upgrade to Pro — £34/mo</button>
+        </form>
+      {{else if eq (print .Site.Billing.PaymentStatus) "paid"}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/cancel-subscription" class="mt-4" onsubmit="return confirm('Cancel your subscription?');">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="w-full rounded-full border border-red-200 text-red-600 px-4 py-2.5 text-sm font-semibold">Cancel subscription</button>
+        </form>
+      {{end}}
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-3">Analytics report</h2>
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/analytics-frequency" class="space-y-3">
+        <select name="analytics_frequency" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="off" {{if eq .Site.Analytics.AnalyticsFrequency "off"}}selected{{end}}>Off</option>
+          <option value="weekly" {{if eq .Site.Analytics.AnalyticsFrequency "weekly"}}selected{{end}}>Weekly</option>
+          <option value="monthly" {{if eq .Site.Analytics.AnalyticsFrequency "monthly"}}selected{{end}}>Monthly</option>
+        </select>
+      </form>
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/send-analytics" class="mt-3">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Send report now</button>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}
