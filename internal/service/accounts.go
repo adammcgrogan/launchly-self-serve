@@ -74,3 +74,9 @@ func (a *Accounts) RequestPasswordReset(ctx context.Context, emailAddr string) e
 func (a *Accounts) ResendVerificationEmail(ctx context.Context, emailAddr string) error {
 	return a.supa.ResendVerificationEmail(ctx, emailAddr)
 }
+
+// UpdatePassword completes a password-reset flow: accessToken is the
+// recovery-scoped token from the link Supabase emailed the user.
+func (a *Accounts) UpdatePassword(ctx context.Context, accessToken, newPassword string) error {
+	return a.supa.UpdatePassword(ctx, accessToken, newPassword)
+}

@@ -205,6 +205,24 @@ func (c *Client) SignOut(ctx context.Context, accessToken string) error {
 	return nil
 }
 
+// UpdatePassword sets a new password for the user identified by accessToken
+// — used to complete the password-reset flow after the user follows the
+// recovery link Supabase emailed them.
+func (c *Client) UpdatePassword(ctx context.Context, accessToken, newPassword string) error {
+	respBody, status, err := c.do(ctx, http.MethodPut, "/auth/v1/user", map[string]string{
+		"password": newPassword,
+	}, accessToken)
+	if err != nil {
+		return err
+	}
+	if status >= 400 {
+		var gErr gotrueError
+		json.Unmarshal(respBody, &gErr)
+		return fmt.Errorf("supabase password update failed: %s", gErr.String())
+	}
+	return nil
+}
+
 // SendPasswordReset triggers Supabase's own password-reset email flow.
 func (c *Client) SendPasswordReset(ctx context.Context, email string) error {
 	respBody, status, err := c.do(ctx, http.MethodPost, "/auth/v1/recover", map[string]string{

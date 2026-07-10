@@ -41,6 +41,12 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, plan do
 	return checkoutURL, nil
 }
 
+// ParseWebhook verifies the Stripe webhook signature and returns a parsed
+// event, keeping the payment package's types out of the web layer.
+func (b *Billing) ParseWebhook(payload []byte, sigHeader string) (*payment.WebhookEvent, error) {
+	return b.pay.ParseWebhook(payload, sigHeader)
+}
+
 // HandleWebhookEvent processes a verified Stripe webhook event, idempotently.
 func (b *Billing) HandleWebhookEvent(ctx context.Context, event *payment.WebhookEvent) error {
 	if event.ID != "" {
