@@ -39,6 +39,8 @@ type CreateSiteInput struct {
 	BusinessName string
 	Tagline      string
 	About        string
+	LogoURL      string
+	CTAText      string
 	TemplateID   string
 	Palette      string
 	HeadingFont  string
@@ -73,6 +75,8 @@ func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.Sit
 		BusinessName: in.BusinessName,
 		Tagline:      in.Tagline,
 		About:        in.About,
+		LogoURL:      in.LogoURL,
+		CTAText:      in.CTAText,
 		TemplateID:   in.TemplateID,
 		Palette:      in.Palette,
 		HeadingFont:  in.HeadingFont,
@@ -229,6 +233,8 @@ type UpdateContentInput struct {
 	BusinessName   string
 	Tagline        string
 	About          string
+	LogoURL        string
+	CTAText        string
 	Contact        domain.SiteContact
 	SocialLinks    []domain.SocialLink
 	Services       []domain.Service
@@ -246,7 +252,7 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 	defer tx.Rollback()
 
-	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About}
+	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText}
 	if err := postgres.UpdateSiteContent(ctx, tx, site); err != nil {
 		return fmt.Errorf("update site: %w", err)
 	}

@@ -51,6 +51,8 @@ type Site struct {
 	BusinessName string
 	Tagline      string
 	About        string
+	LogoURL      string
+	CTAText      string
 	TemplateID   string
 	Palette      string
 	HeadingFont  string

@@ -41,6 +41,8 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		BusinessName: strings.TrimSpace(r.FormValue("business_name")),
 		Tagline:      strings.TrimSpace(r.FormValue("tagline")),
 		About:        strings.TrimSpace(r.FormValue("about")),
+		LogoURL:      strings.TrimSpace(r.FormValue("logo_url")),
+		CTAText:      strings.TrimSpace(r.FormValue("cta_text")),
 		Contact: domain.SiteContact{
 			SiteID:      site.ID,
 			Phone:       strings.TrimSpace(r.FormValue("phone")),

@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS sites (
     business_name TEXT NOT NULL,
     tagline       TEXT NOT NULL DEFAULT '',
     about         TEXT NOT NULL DEFAULT '',
+    logo_url      TEXT NOT NULL DEFAULT '',
+    cta_text      TEXT NOT NULL DEFAULT '',
     template_id   TEXT NOT NULL,
     palette       TEXT NOT NULL DEFAULT '',
     heading_font  TEXT NOT NULL DEFAULT '',

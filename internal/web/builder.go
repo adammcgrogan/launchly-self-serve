@@ -48,6 +48,8 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		BusinessName: businessName,
 		Tagline:      strings.TrimSpace(r.FormValue("tagline")),
 		About:        strings.TrimSpace(r.FormValue("about")),
+		LogoURL:      strings.TrimSpace(r.FormValue("logo_url")),
+		CTAText:      strings.TrimSpace(r.FormValue("cta_text")),
 		TemplateID:   templateID,
 		Contact: domain.SiteContact{
 			Phone:       strings.TrimSpace(r.FormValue("phone")),

@@ -9,13 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
-const siteColumns = `id, owner_user_id, slug, business_name, tagline, about,
+const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
 	template_id, palette, heading_font, status, created_at, published_at, updated_at`
 
 func scanSite(row *sql.Row) (*domain.Site, error) {
 	var s domain.Site
 	err := row.Scan(
-		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About,
+		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -30,7 +30,7 @@ func scanSite(row *sql.Row) (*domain.Site, error) {
 func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 	var s domain.Site
 	err := rows.Scan(
-		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About,
+		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt,
 	)
 	return &s, err
@@ -42,11 +42,11 @@ func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 func CreateSite(ctx context.Context, q querier, site *domain.Site) (int, error) {
 	now := time.Now().UTC()
 	err := q.QueryRowContext(ctx, `
-		INSERT INTO sites (owner_user_id, slug, business_name, tagline, about,
+		INSERT INTO sites (owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
 		                   template_id, palette, heading_font, status, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'live', $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'live', $11)
 		RETURNING id
-	`, site.OwnerUserID, site.Slug, site.BusinessName, site.Tagline, site.About,
+	`, site.OwnerUserID, site.Slug, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText,
 		site.TemplateID, site.Palette, site.HeadingFont, now,
 	).Scan(&site.ID)
 	return site.ID, err
@@ -98,9 +98,9 @@ func ListAllSites(ctx context.Context, q querier) ([]domain.Site, error) {
 // UpdateSiteContent saves the editable core fields (not appearance/template/status).
 func UpdateSiteContent(ctx context.Context, q querier, site *domain.Site) error {
 	_, err := q.ExecContext(ctx, `
-		UPDATE sites SET business_name = $1, tagline = $2, about = $3, updated_at = now()
-		WHERE id = $4
-	`, site.BusinessName, site.Tagline, site.About, site.ID)
+		UPDATE sites SET business_name = $1, tagline = $2, about = $3, logo_url = $4, cta_text = $5, updated_at = now()
+		WHERE id = $6
+	`, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText, site.ID)
 	return err
 }
 
