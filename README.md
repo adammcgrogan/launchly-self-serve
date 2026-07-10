@@ -22,11 +22,9 @@ Self-serve website builder for local businesses. Sign up, build a site, and it's
 
 A read-mostly superadmin view (`/superadmin`, shared password) exists for cross-account visibility and an emergency unpublish/delete backstop — nothing in the customer-facing flow depends on it.
 
-## Local development
+## Deployment
 
-1. Create a Supabase project (or run the Supabase CLI locally) for Postgres + Auth.
-2. Copy `.env.example` to `.env` and fill in the values.
-3. `go run ./cmd/server`
+Runs on Railway. Set these as env vars in the Railway dashboard (see `internal/config` for the full list): `DATABASE_URL`, `DOMAIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_STARTER_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `RESEND_API_KEY`, `EMAIL_FROM`, `SUPERADMIN_PASSWORD`, `COOKIE_SIGNING_KEY`.
 
 Migrations apply automatically on startup — there's no separate migration command to run.
 
