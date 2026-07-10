@@ -1,0 +1,6 @@
+.env
+.git
+.gitignore
+.claude
+*.md
+reference-old-launchly/
