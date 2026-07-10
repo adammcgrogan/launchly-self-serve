@@ -1,0 +1,89 @@
+// Package config loads application configuration from environment variables.
+package config
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/joho/godotenv"
+)
+
+// Config holds all runtime configuration for the server.
+type Config struct {
+	Addr   string
+	Domain string // e.g. "launchly.ltd"
+
+	DatabaseURL string // Supabase Postgres connection string
+
+	SupabaseURL            string
+	SupabaseAnonKey        string
+	SupabaseServiceRoleKey string
+	SupabaseJWTSecret      string
+
+	StripeSecretKey      string
+	StripeWebhookSecret  string
+	StripeStarterPriceID string
+	StripeProPriceID     string
+
+	ResendAPIKey string
+	EmailFrom    string
+
+	SuperadminPassword string
+	CookieSigningKey   string // HMAC key for CSRF/flash cookies (not auth — auth uses Supabase JWTs)
+
+	UmamiScriptURL string
+}
+
+// Load reads configuration from the environment, loading a local .env file
+// first if present (no-op in production where env vars are set by the platform).
+func Load() (*Config, error) {
+	_ = godotenv.Load()
+
+	cfg := &Config{
+		Addr:   getEnv("ADDR", ":8080"),
+		Domain: getEnv("DOMAIN", "launchly.ltd"),
+
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+
+		SupabaseURL:            os.Getenv("SUPABASE_URL"),
+		SupabaseAnonKey:        os.Getenv("SUPABASE_ANON_KEY"),
+		SupabaseServiceRoleKey: os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
+		SupabaseJWTSecret:      os.Getenv("SUPABASE_JWT_SECRET"),
+
+		StripeSecretKey:      getEnv("STRIPE_SECRET_KEY", ""),
+		StripeWebhookSecret:  getEnv("STRIPE_WEBHOOK_SECRET", ""),
+		StripeStarterPriceID: getEnv("STRIPE_STARTER_PRICE_ID", ""),
+		StripeProPriceID:     getEnv("STRIPE_PRO_PRICE_ID", ""),
+
+		ResendAPIKey: getEnv("RESEND_API_KEY", ""),
+		EmailFrom:    getEnv("EMAIL_FROM", "noreply@launchly.ltd"),
+
+		SuperadminPassword: os.Getenv("SUPERADMIN_PASSWORD"),
+		CookieSigningKey:   os.Getenv("COOKIE_SIGNING_KEY"),
+
+		UmamiScriptURL: getEnv("UMAMI_SCRIPT_URL", ""),
+	}
+
+	required := map[string]string{
+		"DATABASE_URL":        cfg.DatabaseURL,
+		"SUPABASE_URL":        cfg.SupabaseURL,
+		"SUPABASE_ANON_KEY":   cfg.SupabaseAnonKey,
+		"SUPABASE_JWT_SECRET": cfg.SupabaseJWTSecret,
+		"SUPERADMIN_PASSWORD": cfg.SuperadminPassword,
+		"COOKIE_SIGNING_KEY":  cfg.CookieSigningKey,
+	}
+	for key, val := range required {
+		if val == "" {
+			return nil, fmt.Errorf("required env var %s not set", key)
+		}
+	}
+
+	return cfg, nil
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}

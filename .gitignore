@@ -1,0 +1,17 @@
+# local env / secrets
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+
+# local claude code tooling — not part of the project itself
+.claude/
+
+# build output
+/bin/
+*.exe
+
+# old repo kept on disk for reference only — not part of this project's history
+/reference-old-launchly/
