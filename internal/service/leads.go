@@ -31,10 +31,18 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 		return err
 	}
 	contact, err := postgres.GetSiteContact(ctx, l.store.DB(), siteID)
-	if err != nil || contact == nil || contact.Email == "" {
+	if err != nil {
 		return err
 	}
-	if err := l.mailer.SendLeadNotification(contact.Email, site.BusinessName, name, emailAddr, phone, message); err != nil {
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	to := notifyEmail(ctx, l.store, site.OwnerUserID, contactEmail)
+	if to == "" {
+		return nil
+	}
+	if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message); err != nil {
 		slog.Error("send lead notification", "error", err)
 	}
 	return nil

@@ -52,7 +52,15 @@ func (c *Cron) sendDueTrialReminders() {
 				continue
 			}
 			contact, err := postgres.GetSiteContact(ctx, c.store.DB(), id)
-			if err != nil || contact == nil || contact.Email == "" {
+			if err != nil {
+				continue
+			}
+			contactEmail := ""
+			if contact != nil {
+				contactEmail = contact.Email
+			}
+			to := notifyEmail(ctx, c.store, site.OwnerUserID, contactEmail)
+			if to == "" {
 				continue
 			}
 			daysLeft := 3
@@ -60,7 +68,7 @@ func (c *Cron) sendDueTrialReminders() {
 				daysLeft = 1
 			}
 			dashboardURL := fmt.Sprintf("%s/dashboard/sites/%d", c.baseURL, id)
-			if err := c.mailer.SendTrialWarning(contact.Email, site.BusinessName, dashboardURL, daysLeft); err != nil {
+			if err := c.mailer.SendTrialWarning(to, site.BusinessName, dashboardURL, daysLeft); err != nil {
 				slog.Error("trial cron: send reminder", "slug", site.Slug, "kind", kind, "error", err)
 				continue
 			}
@@ -95,8 +103,16 @@ func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 		return err
 	}
 	contact, err := postgres.GetSiteContact(ctx, c.store.DB(), siteID)
-	if err != nil || contact == nil || contact.Email == "" {
+	if err != nil {
 		return err
+	}
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	to := notifyEmail(ctx, c.store, site.OwnerUserID, contactEmail)
+	if to == "" {
+		return fmt.Errorf("no notification email on file for site %d", siteID)
 	}
 	settings, err := postgres.GetSiteAnalyticsSettings(ctx, c.store.DB(), siteID)
 	if err != nil {
@@ -116,7 +132,7 @@ func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 	if freq == "" || freq == "off" {
 		freq = "weekly"
 	}
-	if err := c.mailer.SendAnalyticsDigest(contact.Email, site.BusinessName, freq, stats, siteURL); err != nil {
+	if err := c.mailer.SendAnalyticsDigest(to, site.BusinessName, freq, stats, siteURL); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}
 	return postgres.UpdateAnalyticsLastSent(ctx, c.store.DB(), siteID)

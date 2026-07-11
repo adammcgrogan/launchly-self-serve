@@ -107,10 +107,18 @@ func (b *Billing) handleCheckoutCompleted(ctx context.Context, event *payment.We
 		return err
 	}
 	contact, err := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
-	if err != nil || contact == nil || contact.Email == "" {
+	if err != nil {
 		return err
 	}
-	if err := b.mailer.SendPaymentConfirmation(contact.Email, site.BusinessName, billing.Plan); err != nil {
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail)
+	if to == "" {
+		return nil
+	}
+	if err := b.mailer.SendPaymentConfirmation(to, site.BusinessName, billing.Plan); err != nil {
 		slog.Error("send payment confirmation email", "error", err)
 	}
 	return nil
@@ -130,11 +138,15 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 	}
 	site, _ := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
 	contact, _ := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
-	if site == nil || contact == nil {
+	if site == nil {
 		return nil
 	}
-	if contact.Email != "" {
-		if err := b.mailer.SendCancellationConfirmation(contact.Email, site.BusinessName); err != nil {
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	if to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail); to != "" {
+		if err := b.mailer.SendCancellationConfirmation(to, site.BusinessName); err != nil {
 			slog.Error("send cancellation confirmation email", "error", err)
 		}
 	}
@@ -157,18 +169,23 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 	}
 	site, _ := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
 	contact, _ := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
-	if site == nil || contact == nil {
+	if site == nil {
 		return nil
 	}
-	if contact.Email != "" {
-		if err := b.mailer.SendPaymentFailed(contact.Email, site.BusinessName); err != nil {
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail)
+	if to != "" {
+		if err := b.mailer.SendPaymentFailed(to, site.BusinessName); err != nil {
 			slog.Error("send payment failed email", "error", err)
 		}
 	}
 	b.mailer.SendAdminAlert(
 		"hello@launchly.ltd",
 		fmt.Sprintf("Payment failed - %s", site.BusinessName),
-		fmt.Sprintf("A monthly payment has failed for <strong>%s</strong> (%s). Stripe will retry automatically.", site.BusinessName, contact.Email),
+		fmt.Sprintf("A monthly payment has failed for <strong>%s</strong> (%s). Stripe will retry automatically.", site.BusinessName, to),
 	)
 	return nil
 }
