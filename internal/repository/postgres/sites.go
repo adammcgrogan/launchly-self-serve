@@ -95,6 +95,24 @@ func ListAllSites(ctx context.Context, q querier) ([]domain.Site, error) {
 	return sites, rows.Err()
 }
 
+// ListLiveSites returns every published site, for the public sitemap.
+func ListLiveSites(ctx context.Context, q querier) ([]domain.Site, error) {
+	rows, err := q.QueryContext(ctx, `SELECT `+siteColumns+` FROM sites WHERE status = 'live' ORDER BY published_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sites []domain.Site
+	for rows.Next() {
+		s, err := scanSiteRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		sites = append(sites, *s)
+	}
+	return sites, rows.Err()
+}
+
 // UpdateSiteContent saves the editable core fields (not appearance/template/status).
 func UpdateSiteContent(ctx context.Context, q querier, site *domain.Site) error {
 	_, err := q.ExecContext(ctx, `

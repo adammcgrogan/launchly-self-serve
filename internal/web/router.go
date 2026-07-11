@@ -16,6 +16,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /templates", h.TemplatesPage)
 	mux.HandleFunc("GET /privacy", h.Privacy)
 	mux.HandleFunc("GET /terms", h.Terms)
+	mux.HandleFunc("GET /robots.txt", h.Robots)
+	mux.HandleFunc("GET /sitemap.xml", h.Sitemap)
 
 	// Auth — no auth required to reach these, obviously.
 	mux.HandleFunc("GET /signup", h.SignupForm)

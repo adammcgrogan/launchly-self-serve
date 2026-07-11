@@ -227,6 +227,11 @@ func (s *Sites) ListAllSites(ctx context.Context) ([]domain.Site, error) {
 	return postgres.ListAllSites(ctx, s.store.DB())
 }
 
+// ListLiveSites is used by the public sitemap.
+func (s *Sites) ListLiveSites(ctx context.Context) ([]domain.Site, error) {
+	return postgres.ListLiveSites(ctx, s.store.DB())
+}
+
 // UpdateContentInput is the full editable content form for an existing site.
 type UpdateContentInput struct {
 	SiteID         int
