@@ -36,6 +36,11 @@
   {{end}}
 </head>
 <body class="antialiased">
+  {{if .Site.Announcement.Active}}
+  <div class="text-center text-sm font-medium px-4 py-2.5" style="background:var(--accent);color:var(--accent-ink);">
+    {{.Site.Announcement.Text}}
+  </div>
+  {{end}}
   {{template "site-content" .}}
 
   {{if or .Site.Contact.Phone (index .Socials "whatsapp")}}

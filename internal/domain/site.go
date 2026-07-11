@@ -96,6 +96,25 @@ type SiteAnalyticsSettings struct {
 	AnalyticsLastSentAt *time.Time
 }
 
+// SiteAnnouncement is a temporary banner an owner can set from the
+// dashboard (e.g. "Closed for holidays until 4 Aug"), shown on every page
+// until it's cleared or ExpiresAt passes. 1:1 with Site.
+type SiteAnnouncement struct {
+	SiteID    int
+	Text      string
+	ExpiresAt *time.Time
+}
+
+// Active reports whether the announcement should currently be shown.
+// ExpiresAt is a calendar date (midnight UTC) and is inclusive of that
+// whole day, e.g. an expiry of "4 Aug" keeps the banner up through 4 Aug.
+func (a SiteAnnouncement) Active() bool {
+	if a.Text == "" {
+		return false
+	}
+	return a.ExpiresAt == nil || time.Now().Before(a.ExpiresAt.Add(24*time.Hour))
+}
+
 // SocialLink is one social platform URL for a site. Many-to-one with Site.
 type SocialLink struct {
 	ID       int
@@ -156,6 +175,7 @@ type SiteAggregate struct {
 	Contact        SiteContact
 	Billing        SiteBilling
 	Analytics      SiteAnalyticsSettings
+	Announcement   SiteAnnouncement
 	SocialLinks    []SocialLink
 	Services       []Service
 	Certifications []Certification

@@ -195,6 +195,10 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 	if err != nil {
 		return nil, err
 	}
+	announcement, err := postgres.GetSiteAnnouncement(ctx, q, id)
+	if err != nil {
+		return nil, err
+	}
 	socialLinks, err := postgres.GetSiteSocialLinks(ctx, q, id)
 	if err != nil {
 		return nil, err
@@ -225,6 +229,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		Contact:        *contact,
 		Billing:        *billing,
 		Analytics:      *analytics,
+		Announcement:   *announcement,
 		SocialLinks:    socialLinks,
 		Services:       services,
 		Certifications: certifications,
@@ -408,6 +413,14 @@ func (s *Sites) ResolveSlugRedirect(ctx context.Context, oldSlug string) (string
 		return "", false, err
 	}
 	return site.Slug, true, nil
+}
+
+// UpdateAnnouncement sets or clears a site's temporary banner. An empty
+// text clears it regardless of expiresAt.
+func (s *Sites) UpdateAnnouncement(ctx context.Context, siteID int, text string, expiresAt *time.Time) error {
+	return postgres.UpsertSiteAnnouncement(ctx, s.store.DB(), &domain.SiteAnnouncement{
+		SiteID: siteID, Text: text, ExpiresAt: expiresAt,
+	})
 }
 
 func (s *Sites) UpdateAnalyticsFrequency(ctx context.Context, siteID int, frequency string) error {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
@@ -219,6 +220,38 @@ func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 	}
 	middleware.SetFlash(w, "Site deleted.")
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	text := strings.TrimSpace(r.FormValue("announcement_text"))
+	var expiresAt *time.Time
+	if raw := strings.TrimSpace(r.FormValue("announcement_expires_at")); raw != "" {
+		d, err := time.Parse("2006-01-02", raw)
+		if err != nil {
+			http.Error(w, "invalid date", http.StatusBadRequest)
+			return
+		}
+		expiresAt = &d
+	}
+
+	if err := h.sites.UpdateAnnouncement(r.Context(), site.ID, text, expiresAt); err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	if text == "" {
+		middleware.SetFlash(w, "Announcement cleared.")
+	} else {
+		middleware.SetFlash(w, "Announcement saved.")
+	}
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
 func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Request) {
