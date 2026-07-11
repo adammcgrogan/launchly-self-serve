@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"strings"
 	"time"
@@ -149,14 +150,14 @@ func (c *Client) SendLeadNotification(to, businessName, visitorName, visitorEmai
 <tr>
   <td style="padding:10px 14px;font-size:13px;font-weight:600;color:#6b7280;white-space:nowrap;width:80px;">%s</td>
   <td style="padding:10px 14px;font-size:14px;color:#111827;">%s</td>
-</tr>`, f[0], f[1])
+</tr>`, f[0], html.EscapeString(f[1]))
 	}
 	if strings.TrimSpace(message) != "" {
 		rows += fmt.Sprintf(`
 <tr>
   <td style="padding:10px 14px;font-size:13px;font-weight:600;color:#6b7280;vertical-align:top;">Message</td>
   <td style="padding:10px 14px;font-size:14px;color:#111827;">%s</td>
-</tr>`, message)
+</tr>`, html.EscapeString(message))
 	}
 	table := fmt.Sprintf(`
 <table width="100%%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;border-collapse:separate;border-spacing:0;overflow:hidden;margin:0 0 24px;">%s</table>`, rows)
@@ -267,7 +268,7 @@ func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *
 			rows += fmt.Sprintf(`<tr>
   <td style="padding:7px 14px;font-size:13px;color:#374151;border-bottom:1px solid #f3f4f6;">%s</td>
   <td style="padding:7px 14px;font-size:13px;font-weight:700;color:#111827;border-bottom:1px solid #f3f4f6;text-align:right;">%d</td>
-</tr>`, label, ref.Count)
+</tr>`, html.EscapeString(label), ref.Count)
 		}
 		refTable = fmt.Sprintf(`<p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.07em;">Where visitors came from</p>
 <table width="100%%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:0 0 24px;border-collapse:separate;border-spacing:0;">%s</table>`, rows)
