@@ -70,7 +70,7 @@ func (a *Accounts) Logout(ctx context.Context, accessToken string) error {
 }
 
 func (a *Accounts) RequestPasswordReset(ctx context.Context, emailAddr string) error {
-	return a.supa.SendPasswordReset(ctx, emailAddr)
+	return a.supa.SendPasswordReset(ctx, emailAddr, a.baseURL+"/reset-password")
 }
 
 func (a *Accounts) ResendVerificationEmail(ctx context.Context, emailAddr string) error {

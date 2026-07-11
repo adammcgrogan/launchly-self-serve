@@ -224,9 +224,13 @@ func (c *Client) UpdatePassword(ctx context.Context, accessToken, newPassword st
 }
 
 // SendPasswordReset triggers Supabase's own password-reset email flow.
-func (c *Client) SendPasswordReset(ctx context.Context, email string) error {
+// redirectTo tells Supabase where the recovery link should land — without
+// it, Supabase falls back to its project-level default, which may not be
+// our /reset-password page.
+func (c *Client) SendPasswordReset(ctx context.Context, email, redirectTo string) error {
 	respBody, status, err := c.do(ctx, http.MethodPost, "/auth/v1/recover", map[string]string{
-		"email": email,
+		"email":       email,
+		"redirect_to": redirectTo,
 	}, "")
 	if err != nil {
 		return err
