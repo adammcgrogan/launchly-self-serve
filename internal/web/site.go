@@ -14,23 +14,33 @@ import (
 // ServeSite handles subdomain requests: slug.launchly.ltd.
 func (h *Handler) ServeSite(w http.ResponseWriter, r *http.Request) {
 	slug := extractSlug(r, h.cfg.Domain)
-	h.serveSiteBySlug(w, r, slug, "/contact")
+	h.serveSiteBySlug(w, r, slug, "/contact", func(newSlug string) string {
+		return "https://" + newSlug + "." + h.cfg.Domain + r.URL.Path
+	})
 }
 
 // ServeSitePath handles path-based requests (/sites/{slug}) — works
 // everywhere including local dev, where wildcard subdomains aren't set up.
 func (h *Handler) ServeSitePath(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
-	h.serveSiteBySlug(w, r, slug, "/sites/"+slug+"/contact")
+	h.serveSiteBySlug(w, r, slug, "/sites/"+slug+"/contact", func(newSlug string) string {
+		return "/sites/" + newSlug
+	})
 }
 
-func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, formAction string) {
+// serveSiteBySlug renders the site for slug, or — if it was renamed away
+// from — 301s to redirectURL(newSlug) so old links keep working.
+func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, formAction string, redirectURL func(newSlug string) string) {
 	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), slug)
 	if err != nil {
 		h.render.RenderError(w, http.StatusNotFound)
 		return
 	}
 	if site == nil {
+		if newSlug, ok, err := h.sites.ResolveSlugRedirect(r.Context(), slug); err == nil && ok {
+			http.Redirect(w, r, redirectURL(newSlug), http.StatusMovedPermanently)
+			return
+		}
 		h.renderClaimOrError(w, slug)
 		return
 	}

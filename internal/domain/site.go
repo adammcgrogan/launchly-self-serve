@@ -45,21 +45,22 @@ const (
 // belongs to a site (contact info, billing, social links, etc.) lives in
 // its own table/struct and is loaded alongside it as a SiteAggregate.
 type Site struct {
-	ID           int
-	OwnerUserID  uuid.UUID
-	Slug         string
-	BusinessName string
-	Tagline      string
-	About        string
-	LogoURL      string
-	CTAText      string
-	TemplateID   string
-	Palette      string
-	HeadingFont  string
-	Status       SiteStatus
-	CreatedAt    time.Time
-	PublishedAt  *time.Time
-	UpdatedAt    time.Time
+	ID            int
+	OwnerUserID   uuid.UUID
+	Slug          string
+	BusinessName  string
+	Tagline       string
+	About         string
+	LogoURL       string
+	CTAText       string
+	TemplateID    string
+	Palette       string
+	HeadingFont   string
+	Status        SiteStatus
+	CreatedAt     time.Time
+	PublishedAt   *time.Time
+	UpdatedAt     time.Time
+	SlugChangedAt *time.Time
 }
 
 // SiteContact holds a site's public contact details. 1:1 with Site.

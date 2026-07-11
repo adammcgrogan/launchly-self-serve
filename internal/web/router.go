@@ -50,6 +50,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/{id}/appearance", owned(h.AppearanceSubmit))
 	mux.HandleFunc("GET /dashboard/sites/{id}/switch-template", owned(h.SwitchTemplateForm))
 	mux.HandleFunc("POST /dashboard/sites/{id}/switch-template", owned(h.SwitchTemplateSubmit))
+	mux.HandleFunc("GET /dashboard/sites/{id}/address", owned(h.AddressForm))
+	mux.HandleFunc("POST /dashboard/sites/{id}/address", owned(h.AddressSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{id}/publish", owned(h.PublishSite))
 	mux.HandleFunc("POST /dashboard/sites/{id}/unpublish", owned(h.UnpublishSite))
 	mux.HandleFunc("POST /dashboard/sites/{id}/delete", owned(h.DeleteSite))

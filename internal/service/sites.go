@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
@@ -25,6 +27,25 @@ var (
 	slugStripRe = regexp.MustCompile(`['\x60]`)
 	slugCharsRe = regexp.MustCompile(`[^a-z0-9]+`)
 )
+
+// Errors returned by RenameSlug — web handlers show these directly to the
+// site owner, so their text is user-facing.
+var (
+	ErrSlugInvalid     = errors.New("enter a valid address.")
+	ErrSlugReserved    = errors.New("that address is reserved.")
+	ErrSlugTaken       = errors.New("that address is already taken.")
+	ErrSlugRateLimited = errors.New("you can only change your address once per day.")
+)
+
+// reservedSlugs can't be claimed as a site's address — they're platform
+// routes or would be confusing as a subdomain.
+var reservedSlugs = map[string]bool{
+	"www": true, "api": true, "dashboard": true, "superadmin": true, "static": true,
+}
+
+// slugRenameCooldown limits how often an owner can rename their site's
+// slug, to discourage squatting/churn on desirable addresses.
+const slugRenameCooldown = 24 * time.Hour
 
 func toSlug(s string) string {
 	s = strings.ToLower(s)
@@ -323,6 +344,70 @@ func (s *Sites) SwitchTemplate(ctx context.Context, siteID int, templateID strin
 		return fmt.Errorf("reset palette: %w", err)
 	}
 	return tx.Commit()
+}
+
+// RenameSlug changes a site's subdomain, recording the old slug in
+// slug_redirects (next to sites.slug, in one transaction) so links to it
+// keep working via a 301 in serveSiteBySlug. Limited to once per day per
+// site to stop slug squatting/churn.
+func (s *Sites) RenameSlug(ctx context.Context, siteID int, newSlugRaw string) error {
+	newSlug := toSlug(newSlugRaw)
+	if newSlug == "" {
+		return ErrSlugInvalid
+	}
+	if reservedSlugs[newSlug] {
+		return ErrSlugReserved
+	}
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	current, err := postgres.GetSiteByID(ctx, tx, siteID)
+	if err != nil {
+		return fmt.Errorf("load site: %w", err)
+	}
+	if current == nil {
+		return fmt.Errorf("site %d not found", siteID)
+	}
+	if current.Slug == newSlug {
+		return nil
+	}
+	if current.SlugChangedAt != nil && time.Since(*current.SlugChangedAt) < slugRenameCooldown {
+		return ErrSlugRateLimited
+	}
+
+	taken, err := postgres.SlugInUse(ctx, tx, newSlug)
+	if err != nil {
+		return fmt.Errorf("check slug: %w", err)
+	}
+	if taken {
+		return ErrSlugTaken
+	}
+
+	if err := postgres.CreateSlugRedirect(ctx, tx, current.Slug, siteID); err != nil {
+		return fmt.Errorf("save redirect: %w", err)
+	}
+	if err := postgres.RenameSiteSlug(ctx, tx, siteID, newSlug); err != nil {
+		return fmt.Errorf("rename slug: %w", err)
+	}
+	return tx.Commit()
+}
+
+// ResolveSlugRedirect looks up the current slug an old, renamed-away-from
+// slug now points to. Used by the public site handler to 301 stale links.
+func (s *Sites) ResolveSlugRedirect(ctx context.Context, oldSlug string) (string, bool, error) {
+	siteID, ok, err := postgres.GetSlugRedirectSiteID(ctx, s.store.DB(), oldSlug)
+	if err != nil || !ok {
+		return "", false, err
+	}
+	site, err := postgres.GetSiteByID(ctx, s.store.DB(), siteID)
+	if err != nil || site == nil {
+		return "", false, err
+	}
+	return site.Slug, true, nil
 }
 
 func (s *Sites) UpdateAnalyticsFrequency(ctx context.Context, siteID int, frequency string) error {

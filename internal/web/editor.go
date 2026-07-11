@@ -10,6 +10,44 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
+func (h *Handler) AddressForm(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	h.render.Render(w, "dashboard:address", map[string]any{
+		"Site":      site,
+		"SiteURL":   h.siteURL(site.Slug),
+		"Domain":    h.cfg.Domain,
+		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
+		"Flash":     middleware.GetFlash(w, r),
+	})
+}
+
+func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	slug := strings.TrimSpace(r.FormValue("slug"))
+
+	if err := h.sites.RenameSlug(r.Context(), site.ID, slug); err != nil {
+		h.render.Render(w, "dashboard:address", map[string]any{
+			"Site":      site,
+			"SiteURL":   h.siteURL(site.Slug),
+			"Domain":    h.cfg.Domain,
+			"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
+			"Error":     err.Error(),
+			"Slug":      slug,
+		})
+		return
+	}
+
+	middleware.SetFlash(w, "Address updated. Your old link will keep working.")
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d/address", site.ID), http.StatusSeeOther)
+}
+
 func (h *Handler) EditForm(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	socials := socialLinksMap(site.SocialLinks)

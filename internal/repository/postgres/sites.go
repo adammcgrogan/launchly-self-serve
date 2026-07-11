@@ -10,13 +10,13 @@ import (
 )
 
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
-	template_id, palette, heading_font, status, created_at, published_at, updated_at`
+	template_id, palette, heading_font, status, created_at, published_at, updated_at, slug_changed_at`
 
 func scanSite(row *sql.Row) (*domain.Site, error) {
 	var s domain.Site
 	err := row.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
-		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt,
+		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -31,7 +31,7 @@ func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 	var s domain.Site
 	err := rows.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
-		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt,
+		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 	)
 	return &s, err
 }
@@ -130,6 +130,24 @@ func UpdateSiteAppearance(ctx context.Context, q querier, id int, palette, headi
 func UpdateSiteTemplate(ctx context.Context, q querier, id int, templateID string) error {
 	_, err := q.ExecContext(ctx, `UPDATE sites SET template_id = $1, updated_at = now() WHERE id = $2`, templateID, id)
 	return err
+}
+
+// RenameSiteSlug updates a site's live slug and stamps slug_changed_at, used
+// to enforce the once-per-day rename limit.
+func RenameSiteSlug(ctx context.Context, q querier, id int, slug string) error {
+	_, err := q.ExecContext(ctx, `UPDATE sites SET slug = $1, slug_changed_at = now(), updated_at = now() WHERE id = $2`, slug, id)
+	return err
+}
+
+// SlugInUse reports whether slug is already a live site's slug or a
+// redirect's old slug, so renames can't collide with either.
+func SlugInUse(ctx context.Context, q querier, slug string) (bool, error) {
+	var inUse bool
+	err := q.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM sites WHERE slug = $1)
+		OR EXISTS(SELECT 1 FROM slug_redirects WHERE old_slug = $1)
+	`, slug).Scan(&inUse)
+	return inUse, err
 }
 
 func SetSiteStatus(ctx context.Context, q querier, id int, status domain.SiteStatus) error {
