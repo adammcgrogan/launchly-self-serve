@@ -27,6 +27,16 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 // into the request context.
 func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
+
+	if r.URL.Query().Get("launched") == "1" {
+		siteURL := h.siteURL(site.Slug)
+		h.render.Render(w, "dashboard:launched", map[string]any{
+			"Site":    site,
+			"SiteURL": siteURL,
+		})
+		return
+	}
+
 	leads, err := h.leads.ListBySite(r.Context(), site.ID)
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)

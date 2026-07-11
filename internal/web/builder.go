@@ -81,6 +81,5 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	middleware.SetFlash(w, "Your site is live!")
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d?launched=1", site.ID), http.StatusSeeOther)
 }

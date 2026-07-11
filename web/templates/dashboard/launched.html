@@ -1,0 +1,43 @@
+{{define "content"}}
+<div class="max-w-2xl mx-auto text-center py-6">
+  <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold uppercase tracking-wide px-3 py-1.5">Your site is live</span>
+  <h1 class="font-display text-3xl font-bold text-slate-900 mt-4">{{.Site.BusinessName}} is on the internet</h1>
+  <p class="mt-2 text-slate-500">No review, no waiting — it's already live at your address below.</p>
+
+  <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+    <p id="site-url" class="font-display text-xl font-semibold text-brand break-all">{{.SiteURL}}</p>
+    <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+      <a href="{{.SiteURL}}" target="_blank" class="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark transition">Visit your site</a>
+      <button type="button" onclick="copySiteURL(this)" class="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-medium hover:border-slate-300">Copy link</button>
+    </div>
+    <div class="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm">
+      <a href="https://wa.me/?text={{.SiteURL}} — check out my new website!" target="_blank" class="text-slate-500 hover:text-slate-700 font-medium">Share on WhatsApp</a>
+      <span class="text-slate-300">·</span>
+      <a href="https://www.facebook.com/sharer/sharer.php?u={{.SiteURL}}" target="_blank" class="text-slate-500 hover:text-slate-700 font-medium">Share on Facebook</a>
+    </div>
+  </div>
+
+  <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-left">
+    <h2 class="font-semibold text-slate-900 mb-3">Make it even better</h2>
+    <ul class="space-y-2 text-sm text-slate-600">
+      <li>→ <a href="/dashboard/sites/{{.Site.ID}}/edit" class="text-brand font-medium">Add photos and fill in your details</a></li>
+      <li>→ <a href="/dashboard/sites/{{.Site.ID}}/appearance" class="text-brand font-medium">Pick your colours and fonts</a></li>
+      <li>→ <a href="/dashboard/sites/{{.Site.ID}}/switch-template" class="text-brand font-medium">Try a different design</a></li>
+    </ul>
+  </div>
+
+  <p class="mt-6 text-sm text-slate-500">Free for 14 days, no card taken. You can upgrade any time from your dashboard.</p>
+  <a href="/dashboard/sites/{{.Site.ID}}" class="mt-4 inline-block text-sm font-medium text-slate-500 hover:text-slate-700">Go to your dashboard →</a>
+</div>
+
+<script>
+  function copySiteURL(btn) {
+    var url = document.getElementById('site-url').textContent.trim();
+    navigator.clipboard.writeText(url).then(function () {
+      var original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = original; }, 1500);
+    });
+  }
+</script>
+{{end}}
