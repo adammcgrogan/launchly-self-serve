@@ -33,6 +33,13 @@ func toSlug(s string) string {
 	return strings.Trim(s, "-")
 }
 
+// ToSlug exposes the slug normalization used when generating site slugs, so
+// callers can check whether an arbitrary string (e.g. a request host) is
+// already a well-formed slug.
+func ToSlug(s string) string {
+	return toSlug(s)
+}
+
 // CreateSiteInput is the fully-filled-in builder wizard form.
 type CreateSiteInput struct {
 	OwnerUserID  uuid.UUID

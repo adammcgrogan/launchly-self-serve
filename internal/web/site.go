@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
+	"github.com/adammcgrogan/launchly-self-serve/internal/service"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
@@ -25,7 +26,15 @@ func (h *Handler) ServeSitePath(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, formAction string) {
 	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), slug)
-	if err != nil || site == nil || site.Status != domain.SiteStatusLive {
+	if err != nil {
+		h.render.RenderError(w, http.StatusNotFound)
+		return
+	}
+	if site == nil {
+		h.renderClaimOrError(w, slug)
+		return
+	}
+	if site.Status != domain.SiteStatusLive {
 		h.render.RenderError(w, http.StatusNotFound)
 		return
 	}
@@ -39,6 +48,23 @@ func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, 
 		"FormAction":     formAction,
 		"Socials":        socialLinksMap(site.SocialLinks),
 		"UmamiScriptURL": h.cfg.UmamiScriptURL,
+	})
+}
+
+// renderClaimOrError shows the "this subdomain is available" claim page for
+// slugs that pass through slug normalization unchanged, pitching signup to
+// warm, business-name-typing traffic. Anything that doesn't round-trip
+// (junk hosts, IPs, etc.) falls back to the generic 404 so we never reflect
+// arbitrary input into the page.
+func (h *Handler) renderClaimOrError(w http.ResponseWriter, slug string) {
+	if slug == "" || service.ToSlug(slug) != slug {
+		h.render.RenderError(w, http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNotFound)
+	h.render.Render(w, "claim", map[string]any{
+		"Slug":      slug,
+		"SignupURL": "https://" + h.cfg.Domain + "/signup",
 	})
 }
 
