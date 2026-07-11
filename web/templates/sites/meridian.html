@@ -98,14 +98,14 @@
       {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
       {{if .Site.BusinessHours}}
       <div class="mt-6">
-        {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);">{{.Label}} — {{.HoursText}}</p>{{end}}
+        {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);">{{.Label}}: {{.HoursText}}</p>{{end}}
       </div>
       {{end}}
     </div>
     <div>
       {{if .LeadSent}}
       <div class="p-8 border text-center" style="border-color:var(--line);">
-        <p class="font-display italic text-xl">Thank you — message sent.</p>
+        <p class="font-display italic text-xl">Thank you! Message sent.</p>
         <p class="mt-2" style="color:var(--muted);">We'll reply shortly.</p>
       </div>
       {{else}}

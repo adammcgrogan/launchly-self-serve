@@ -8,14 +8,14 @@
     <h2 class="font-semibold mb-3">Details</h2>
     <p class="text-sm text-slate-400">Owner: {{.Site.OwnerUserID}}</p>
     <p class="text-sm text-slate-400 mt-1">Status: {{.Site.Status}}</p>
-    <p class="text-sm text-slate-400 mt-1">Plan: {{.Site.Billing.Plan}} — {{.Site.Billing.PaymentStatus}}</p>
+    <p class="text-sm text-slate-400 mt-1">Plan: {{.Site.Billing.Plan}} · {{.Site.Billing.PaymentStatus}}</p>
     <p class="text-sm text-slate-400 mt-1">Created: {{.Site.CreatedAt.Format "2 Jan 2006"}}</p>
     {{if .Site.Contact.Email}}<p class="text-sm text-slate-400 mt-1">Contact: {{.Site.Contact.Email}}</p>{{end}}
   </div>
 
   <div class="rounded-2xl border border-slate-800 p-6">
     <h2 class="font-semibold mb-3">Emergency actions</h2>
-    <p class="text-xs text-slate-500 mb-4">Only use this if a site needs to come down for abuse reasons — it isn't part of the normal flow.</p>
+    <p class="text-xs text-slate-500 mb-4">Only use this if a site needs to come down for abuse reasons. It isn't part of the normal flow.</p>
     <div class="flex flex-wrap gap-3">
       <form method="POST" action="/superadmin/sites/{{.Site.ID}}/unpublish">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

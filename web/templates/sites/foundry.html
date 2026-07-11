@@ -88,7 +88,7 @@
     {{range .Site.Testimonials}}
     <div class="p-6" style="background:var(--paper);">
       <p class="leading-relaxed">“{{.Quote}}”</p>
-      <p class="mt-4 font-display text-sm font-semibold" style="color:var(--safety);">{{.AuthorName}}{{if .AuthorRole}} — {{.AuthorRole}}{{end}}</p>
+      <p class="mt-4 font-display text-sm font-semibold" style="color:var(--safety);">{{.AuthorName}}{{if .AuthorRole}}, {{.AuthorRole}}{{end}}</p>
     </div>
     {{end}}
   </div>
@@ -111,7 +111,7 @@
     <div>
       {{if .LeadSent}}
       <div class="p-8 border-2 text-center" style="border-color:var(--line);">
-        <p class="font-display text-xl font-bold">Thanks — request sent!</p>
+        <p class="font-display text-xl font-bold">Thanks! Request sent.</p>
         <p class="mt-2" style="color:var(--muted);">We'll be in touch shortly.</p>
       </div>
       {{else}}

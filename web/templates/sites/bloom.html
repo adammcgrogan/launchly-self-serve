@@ -100,7 +100,7 @@
       {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
       {{if .Site.BusinessHours}}
       <div class="mt-6 rounded-3xl p-5" style="background:var(--tint);">
-        {{range .Site.BusinessHours}}<p class="text-sm"><span class="font-semibold">{{.Label}}</span> — {{.HoursText}}</p>{{end}}
+        {{range .Site.BusinessHours}}<p class="text-sm"><span class="font-semibold">{{.Label}}</span>: {{.HoursText}}</p>{{end}}
       </div>
       {{end}}
     </div>

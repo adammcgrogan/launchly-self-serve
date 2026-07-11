@@ -131,7 +131,7 @@ func divider() string {
 // instead of) Supabase's own verification email.
 func (c *Client) SendWelcomeEmail(to, dashboardURL string) error {
 	content := h1("Welcome to Launchly") +
-		p("Your account is ready. Build your first site and it'll go live immediately — no waiting, no approval.") +
+		p("Your account is ready. Build your first site and it'll go live immediately, no waiting, no approval.") +
 		button(dashboardURL, "Go to Your Dashboard", "#4f46e5") +
 		divider() +
 		p(`<span style="color:#6b7280;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4f46e5;">hello@launchly.ltd</a></span>`)
@@ -212,11 +212,11 @@ func (c *Client) SendTrialWarning(to, businessName, dashboardURL string, daysLef
 	}
 	content := h1(fmt.Sprintf("Your free trial ends in %s", urgency)) +
 		p(fmt.Sprintf("Your <strong>%s</strong> website's 14-day free trial ends in <strong>%s</strong>.", businessName, urgency)) +
-		p("To keep your site online, upgrade from your dashboard — it only takes a minute.") +
+		p("To keep your site online, upgrade from your dashboard. It only takes a minute.") +
 		button(dashboardURL, "Upgrade Now", "#4f46e5") +
 		divider() +
 		p(`<span style="color:#6b7280;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4f46e5;">hello@launchly.ltd</a></span>`)
-	subject := fmt.Sprintf("Your free trial ends in %s — %s", urgency, businessName)
+	subject := fmt.Sprintf("Your free trial ends in %s - %s", urgency, businessName)
 	return c.Send(to, subject, wrap(content))
 }
 
