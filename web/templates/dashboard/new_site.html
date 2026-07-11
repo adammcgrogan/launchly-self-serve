@@ -1,6 +1,6 @@
 {{define "content"}}
 <h1 class="font-display text-2xl font-bold text-slate-900">Build your site</h1>
-<p class="mt-2 text-slate-500">Fill this in and your site goes live immediately — no review, no waiting.</p>
+<p class="mt-2 text-slate-500">Only your business name is required. Fill in what you have, hit publish, and your site is live. You can add or change everything else later.</p>
 
 {{if .Error}}<p class="mt-4 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3">{{.Error}}</p>{{end}}
 
@@ -10,9 +10,10 @@
   <section>
     <h2 class="font-semibold text-slate-900 mb-4">Choose a design</h2>
     <div class="grid sm:grid-cols-2 gap-4">
+      {{$sel := .Values.Get "template_id"}}
       {{range $i, $t := .Templates}}
       <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
-        <input type="radio" name="template_id" value="{{$t.ID}}" {{if eq $i 0}}checked{{end}} class="mt-1">
+        <input type="radio" name="template_id" value="{{$t.ID}}" {{if or (eq $t.ID $sel) (and (not $sel) (eq $i 0))}}checked{{end}} class="mt-1">
         <span>
           <span class="block font-semibold text-slate-900">{{$t.Name}}</span>
           <span class="block text-sm text-slate-500 mt-1">{{$t.Description}}</span>
@@ -23,93 +24,133 @@
   </section>
 
   <section class="space-y-4">
-    <h2 class="font-semibold text-slate-900">Business details</h2>
+    <h2 class="font-semibold text-slate-900">The essentials</h2>
     <div>
       <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
-      <input type="text" name="business_name" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <input type="text" name="business_name" required value="{{.Values.Get "business_name"}}" placeholder="e.g. McGrogan Plumbing &amp; Heating" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <p class="mt-1.5 text-sm text-slate-500">Your site will be live at <span class="font-semibold text-slate-700"><span id="slug-preview">yourbusiness</span>.launchly.ltd</span></p>
     </div>
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
-      <input type="text" name="tagline" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Where are you based?</label>
+      <input type="text" name="location" value="{{.Values.Get "location"}}" placeholder="e.g. Belfast, NI" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
     </div>
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
-      <textarea name="about" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5"></textarea>
+      <label class="block text-sm font-medium text-slate-700 mb-1">What do you do? One service per line</label>
+      <textarea name="services" rows="4" placeholder="Boiler repair&#10;Central heating installs&#10;Landlord safety certificates" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "services"}}</textarea>
     </div>
-    <div class="grid sm:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
-        <input type="url" name="logo_url" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
-        <input type="text" name="cta_text" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      </div>
-    </div>
-  </section>
-
-  <section class="space-y-4">
-    <h2 class="font-semibold text-slate-900">Contact</h2>
     <div class="grid sm:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-        <input type="tel" name="phone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="tel" name="phone" value="{{.Values.Get "phone"}}" placeholder="e.g. 07700 900123" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
       </div>
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
-        <input type="email" name="email" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
-        <input type="text" name="address" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Location badge</label>
-        <input type="text" name="location" placeholder="e.g. Belfast, NI" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="email" name="email" value="{{.Values.Get "email"}}" placeholder="e.g. hello@yourbusiness.co.uk" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
       </div>
     </div>
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL (optional)</label>
-      <input type="url" name="map_embed_url" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
+      <input type="text" name="tagline" value="{{.Values.Get "tagline"}}" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
     </div>
   </section>
 
-  <section class="space-y-4">
-    <h2 class="font-semibold text-slate-900">Content</h2>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Services — one per line</label>
-      <textarea name="services" rows="4" placeholder="Boiler repair&#10;Central heating installs&#10;Landlord safety certificates" class="w-full rounded-lg border border-slate-200 px-4 py-2.5"></textarea>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Certifications / trust badges — one per line</label>
-      <textarea name="certifications" rows="2" class="w-full rounded-lg border border-slate-200 px-4 py-2.5"></textarea>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials — one per line, "Name|Role|Quote"</label>
-      <textarea name="testimonials" rows="3" placeholder="Jane Doe|Homeowner|Brilliant service, highly recommend." class="w-full rounded-lg border border-slate-200 px-4 py-2.5"></textarea>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Gallery image URLs — one per line</label>
-      <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5"></textarea>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours — one per line, "Label|Hours"</label>
-      <textarea name="hours" rows="2" placeholder="Mon-Fri|9am-5pm" class="w-full rounded-lg border border-slate-200 px-4 py-2.5"></textarea>
-    </div>
+  <section class="space-y-3">
+    <h2 class="font-semibold text-slate-900">Optional extras</h2>
+    <p class="text-sm text-slate-500">Skip these for now if you like. They all live in the editor too.</p>
+
+    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "about") (.Values.Get "cta_text") (.Values.Get "logo_url")}}open{{end}}>
+      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">About &amp; branding <span class="text-xs text-slate-400">optional</span></summary>
+      <div class="px-5 pb-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
+          <textarea name="about" rows="4" placeholder="A few sentences about who you are, how long you've been going, and why customers pick you." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "about"}}</textarea>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
+            <input type="text" name="cta_text" value="{{.Values.Get "cta_text"}}" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
+            <input type="url" name="logo_url" value="{{.Values.Get "logo_url"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "testimonials") (.Values.Get "certifications")}}open{{end}}>
+      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Reviews &amp; trust badges <span class="text-xs text-slate-400">optional</span></summary>
+      <div class="px-5 pb-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials, one per line as Name|Role|Quote (role is optional)</label>
+          <textarea name="testimonials" rows="3" placeholder="Jane Doe|Homeowner|Brilliant service, highly recommend." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "testimonials"}}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Certifications or trust badges, one per line</label>
+          <textarea name="certifications" rows="2" placeholder="Gas Safe registered&#10;Fully insured" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "certifications"}}</textarea>
+        </div>
+      </div>
+    </details>
+
+    <details class="rounded-2xl border border-slate-200 bg-white" {{if .Values.Get "gallery"}}open{{end}}>
+      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Photos <span class="text-xs text-slate-400">optional</span></summary>
+      <div class="px-5 pb-5">
+        <label class="block text-sm font-medium text-slate-700 mb-1">Gallery image URLs, one per line</label>
+        <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "gallery"}}</textarea>
+      </div>
+    </details>
+
+    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "address") (.Values.Get "map_embed_url") (.Values.Get "hours")}}open{{end}}>
+      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Address &amp; opening hours <span class="text-xs text-slate-400">optional</span></summary>
+      <div class="px-5 pb-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+          <input type="text" name="address" value="{{.Values.Get "address"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL</label>
+          <input type="url" name="map_embed_url" value="{{.Values.Get "map_embed_url"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours, one per line as Label|Hours</label>
+          <textarea name="hours" rows="2" placeholder="Mon-Fri|9am-5pm" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "hours"}}</textarea>
+        </div>
+      </div>
+    </details>
+
+    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "facebook_url") (.Values.Get "instagram_url") (.Values.Get "whatsapp_url") (.Values.Get "twitter_url") (.Values.Get "tiktok_url") (.Values.Get "linkedin_url") (.Values.Get "youtube_url")}}open{{end}}>
+      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Social links <span class="text-xs text-slate-400">optional</span></summary>
+      <div class="px-5 pb-5 grid sm:grid-cols-2 gap-4">
+        <input type="url" name="facebook_url" value="{{.Values.Get "facebook_url"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="instagram_url" value="{{.Values.Get "instagram_url"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="whatsapp_url" value="{{.Values.Get "whatsapp_url"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="twitter_url" value="{{.Values.Get "twitter_url"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="tiktok_url" value="{{.Values.Get "tiktok_url"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="linkedin_url" value="{{.Values.Get "linkedin_url"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="youtube_url" value="{{.Values.Get "youtube_url"}}" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+    </details>
   </section>
 
-  <section class="space-y-4">
-    <h2 class="font-semibold text-slate-900">Social links</h2>
-    <div class="grid sm:grid-cols-2 gap-4">
-      <input type="url" name="facebook_url" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      <input type="url" name="instagram_url" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      <input type="url" name="whatsapp_url" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      <input type="url" name="twitter_url" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      <input type="url" name="tiktok_url" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      <input type="url" name="linkedin_url" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-    </div>
-  </section>
-
-  <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Publish my site</button>
+  <div class="pt-2">
+    <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Publish my site</button>
+    <p class="mt-3 text-center text-sm text-slate-400">Your site goes live the moment you publish, and everything on this page can be changed afterwards.</p>
+  </div>
 </form>
+
+<script>
+  (function () {
+    var nameInput = document.querySelector('input[name="business_name"]');
+    var preview = document.getElementById('slug-preview');
+    if (!nameInput || !preview) return;
+    function slugify(s) {
+      return s.toLowerCase().replace(/['`]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+    function update() {
+      preview.textContent = slugify(nameInput.value) || 'yourbusiness';
+    }
+    nameInput.addEventListener('input', update);
+    update();
+  })();
+</script>
 {{end}}

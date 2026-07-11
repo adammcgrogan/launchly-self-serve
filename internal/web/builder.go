@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
@@ -10,12 +11,23 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
-// NewSiteForm renders the builder wizard: pick a template, fill in content.
-func (h *Handler) NewSiteForm(w http.ResponseWriter, r *http.Request) {
+// renderNewSite renders the builder wizard. values carries the user's input
+// back across a failed submit so nothing they typed is lost.
+func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg string, values url.Values) {
+	if values == nil {
+		values = url.Values{}
+	}
 	h.render.Render(w, "dashboard:new_site", map[string]any{
 		"Templates": siteTemplates,
+		"Error":     errMsg,
+		"Values":    values,
 		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
 	})
+}
+
+// NewSiteForm renders the builder wizard: pick a template, fill in content.
+func (h *Handler) NewSiteForm(w http.ResponseWriter, r *http.Request) {
+	h.renderNewSite(w, r, "", nil)
 }
 
 // NewSiteSubmit creates the site and publishes it immediately — there is no
@@ -32,10 +44,7 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 	businessName := strings.TrimSpace(r.FormValue("business_name"))
 	templateID := r.FormValue("template_id")
 	if businessName == "" {
-		h.render.Render(w, "dashboard:new_site", map[string]any{
-			"Templates": siteTemplates, "Error": "Business name is required.",
-			"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-		})
+		h.renderNewSite(w, r, "Business name is required.", r.Form)
 		return
 	}
 	if _, ok := findTemplate(templateID); !ok {
@@ -68,10 +77,7 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 
 	site, err := h.sites.CreateSite(r.Context(), in)
 	if err != nil {
-		h.render.Render(w, "dashboard:new_site", map[string]any{
-			"Templates": siteTemplates, "Error": "Something went wrong creating your site — please try again.",
-			"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-		})
+		h.renderNewSite(w, r, "Something went wrong creating your site. Please try again.", r.Form)
 		return
 	}
 
