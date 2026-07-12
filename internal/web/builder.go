@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -81,6 +82,11 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 
 	site, err := h.sites.CreateSite(r.Context(), in)
 	if err != nil {
+		var verr *service.ValidationError
+		if errors.As(err, &verr) {
+			h.renderNewSite(w, r, verr.Message, r.Form)
+			return
+		}
 		h.renderNewSite(w, r, "Something went wrong creating your site. Please try again.", r.Form)
 		return
 	}

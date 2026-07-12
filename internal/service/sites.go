@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
@@ -29,7 +31,109 @@ var (
 	slugStripRe = regexp.MustCompile(`['\x60]`)
 	slugCharsRe = regexp.MustCompile(`[^a-z0-9]+`)
 	e164Re      = regexp.MustCompile(`^\+[1-9]\d{6,14}$`)
+	emailRe     = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+	phoneRe     = regexp.MustCompile(`^[0-9+()\-.\s]{7,25}$`)
 )
+
+// Server-side max lengths for site content fields, generous enough for real
+// business content but bounded so a pasted wall of text can't bloat a row or
+// break layout on the public site page.
+const (
+	maxShortField  = 200  // names, labels, single-line fields
+	maxMediumField = 500  // taglines, addresses, URLs
+	maxLongField   = 5000 // about text, testimonial quotes
+)
+
+// ValidationError is returned by CreateSite/UpdateContent when submitted
+// content fails format or length validation. Message is safe to show the
+// user directly.
+type ValidationError struct{ Message string }
+
+func (e *ValidationError) Error() string { return e.Message }
+
+func checkLen(field, value string, max int) error {
+	if utf8.RuneCountInString(value) > max {
+		return &ValidationError{Message: fmt.Sprintf("%s is too long (max %d characters).", field, max)}
+	}
+	return nil
+}
+
+// checkURL requires an absolute http(s) URL — empty is allowed since these
+// fields are optional.
+func checkURL(field, value string) error {
+	if value == "" {
+		return nil
+	}
+	u, err := url.Parse(value)
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field)}
+	}
+	return nil
+}
+
+func checkEmail(field, value string) error {
+	if value == "" || emailRe.MatchString(value) {
+		return nil
+	}
+	return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field)}
+}
+
+func checkPhone(field, value string) error {
+	if value == "" || phoneRe.MatchString(value) {
+		return nil
+	}
+	return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field)}
+}
+
+// validateSiteContent checks format (email/phone/logo/map/gallery URLs) and
+// length limits across every editable content field, shared by CreateSite
+// and UpdateContent so the builder and editor enforce the same rules.
+func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, contact domain.SiteContact, social []domain.SocialLink, services []domain.Service, certs []domain.Certification, testimonials []domain.Testimonial, gallery []domain.GalleryImage) error {
+	checks := []error{
+		checkLen("business name", businessName, maxShortField),
+		checkLen("tagline", tagline, maxMediumField),
+		checkLen("about", about, maxLongField),
+		checkLen("CTA text", ctaText, maxShortField),
+		checkLen("logo URL", logoURL, maxMediumField),
+		checkURL("logo URL", logoURL),
+		checkEmail("contact email", contact.Email),
+		checkPhone("contact phone", contact.Phone),
+		checkLen("address", contact.Address, maxMediumField),
+		checkLen("location", contact.Location, maxShortField),
+		checkLen("map URL", contact.MapURL, maxMediumField),
+		checkURL("map URL", contact.MapURL),
+		checkLen("map embed URL", contact.MapEmbedURL, maxMediumField),
+	}
+	for _, sl := range social {
+		checks = append(checks, checkLen(string(sl.Platform)+" link", sl.URL, maxMediumField))
+	}
+	for _, sv := range services {
+		checks = append(checks, checkLen("service", sv.Label, maxShortField))
+	}
+	for _, c := range certs {
+		checks = append(checks, checkLen("certification", c.Label, maxShortField))
+	}
+	for _, t := range testimonials {
+		checks = append(checks,
+			checkLen("testimonial author name", t.AuthorName, maxShortField),
+			checkLen("testimonial author role", t.AuthorRole, maxShortField),
+			checkLen("testimonial quote", t.Quote, maxLongField),
+		)
+	}
+	for _, g := range gallery {
+		checks = append(checks,
+			checkLen("gallery image URL", g.URL, maxMediumField),
+			checkURL("gallery image URL", g.URL),
+			checkLen("gallery image alt text", g.AltText, maxMediumField),
+		)
+	}
+	for _, err := range checks {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // Errors returned by RenameSlug — web handlers show these directly to the
 // site owner, so their text is user-facing.
@@ -102,6 +206,10 @@ type CreateSiteInput struct {
 // in one transaction, and sets it live immediately with a 14-day trial —
 // there is no draft/review step.
 func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.SiteAggregate, error) {
+	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages); err != nil {
+		return nil, err
+	}
+
 	slug, err := s.uniqueSlug(ctx, in.BusinessName)
 	if err != nil {
 		return nil, fmt.Errorf("generate slug: %w", err)
@@ -306,6 +414,10 @@ type UpdateContentInput struct {
 
 // UpdateContent saves every editable content field for a site in one transaction.
 func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error {
+	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages); err != nil {
+		return err
+	}
+
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
 		return err

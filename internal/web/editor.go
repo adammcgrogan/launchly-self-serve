@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -70,6 +71,12 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.sites.UpdateContent(r.Context(), in); err != nil {
+		var verr *service.ValidationError
+		if errors.As(err, &verr) {
+			middleware.SetFlash(w, verr.Message)
+			http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+			return
+		}
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
