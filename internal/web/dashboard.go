@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -124,7 +125,83 @@ func (h *Handler) Account(w http.ResponseWriter, r *http.Request) {
 		"Profile":       profile,
 		"Flash":         middleware.GetFlash(w, r),
 		"EmailVerified": profile.EmailVerified,
+		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
 	})
+}
+
+// accountExportSite bundles a site's full aggregate with its leads for the
+// account data export — leads aren't part of SiteAggregate since most
+// callers (e.g. the site editor) don't need them alongside every field.
+type accountExportSite struct {
+	*domain.SiteAggregate
+	Leads []domain.Lead `json:"leads"`
+}
+
+// ExportAccountData downloads everything this app stores about the logged-in
+// user — their profile, every site they own, and each site's leads — as JSON.
+func (h *Handler) ExportAccountData(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserID(r)
+	profile, err := h.accounts.GetProfile(r.Context(), userID)
+	if err != nil || profile == nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	sites, err := h.sites.ListSitesByOwner(r.Context(), userID)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	export := struct {
+		Profile *domain.Profile     `json:"profile"`
+		Sites   []accountExportSite `json:"sites"`
+	}{Profile: profile, Sites: []accountExportSite{}}
+	for _, site := range sites {
+		agg, err := h.sites.GetSiteAggregate(r.Context(), site.ID)
+		if err != nil || agg == nil {
+			h.render.RenderError(w, http.StatusInternalServerError)
+			return
+		}
+		leads, err := h.leads.ListBySite(r.Context(), site.ID)
+		if err != nil {
+			h.render.RenderError(w, http.StatusInternalServerError)
+			return
+		}
+		export.Sites = append(export.Sites, accountExportSite{SiteAggregate: agg, Leads: leads})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", `attachment; filename="launchly-account-data.json"`)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	enc.Encode(export)
+}
+
+// DeleteAccount permanently deletes the logged-in user's account: any Stripe
+// subscriptions on their sites are cancelled first (Stripe isn't reachable
+// via the DB's cascading deletes), then the Supabase auth user is deleted,
+// which cascades away the profile, sites, and everything hanging off them.
+func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserID(r)
+	if !h.checkCSRF(w, r, userID.String()) {
+		return
+	}
+	sites, err := h.sites.ListSitesByOwner(r.Context(), userID)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	for _, site := range sites {
+		if err := h.billing.CancelSubscriptionIfActive(r.Context(), site.ID); err != nil {
+			h.render.RenderError(w, http.StatusInternalServerError)
+			return
+		}
+	}
+	if err := h.accounts.DeleteAccount(r.Context(), userID); err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	h.auth.ClearSessionCookies(w)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {

@@ -86,3 +86,11 @@ func (a *Accounts) UpdatePassword(ctx context.Context, accessToken, newPassword 
 func (a *Accounts) GetProfile(ctx context.Context, userID uuid.UUID) (*domain.Profile, error) {
 	return postgres.GetProfile(ctx, a.store.DB(), userID)
 }
+
+// DeleteAccount permanently deletes the user's Supabase auth account. Every
+// row this app stores about them — profile, sites, leads, and everything
+// hanging off those sites — cascades away via ON DELETE CASCADE once the
+// auth.users row is gone, so there's nothing further to clean up locally.
+func (a *Accounts) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
+	return a.supa.DeleteUser(ctx, userID)
+}

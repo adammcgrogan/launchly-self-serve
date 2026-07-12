@@ -19,16 +19,18 @@ import (
 
 // Client talks to the Supabase Auth REST API for a single project.
 type Client struct {
-	baseURL string // e.g. https://xyzcompany.supabase.co
-	anonKey string
-	http    *http.Client
+	baseURL        string // e.g. https://xyzcompany.supabase.co
+	anonKey        string
+	serviceRoleKey string // only needed for admin endpoints, e.g. DeleteUser
+	http           *http.Client
 }
 
-func NewClient(baseURL, anonKey string) *Client {
+func NewClient(baseURL, anonKey, serviceRoleKey string) *Client {
 	return &Client{
-		baseURL: baseURL,
-		anonKey: anonKey,
-		http:    &http.Client{Timeout: 10 * time.Second},
+		baseURL:        baseURL,
+		anonKey:        anonKey,
+		serviceRoleKey: serviceRoleKey,
+		http:           &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -239,6 +241,32 @@ func (c *Client) SendPasswordReset(ctx context.Context, email, redirectTo string
 		var gErr gotrueError
 		json.Unmarshal(respBody, &gErr)
 		return fmt.Errorf("supabase password reset failed: %s", gErr.String())
+	}
+	return nil
+}
+
+// DeleteUser permanently deletes a user from Supabase Auth, using the
+// project's service-role key rather than the anon key or a user access
+// token — this is an admin-only GoTrue endpoint.
+func (c *Client) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/auth/v1/admin/users/"+userID.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("apikey", c.serviceRoleKey)
+	req.Header.Set("Authorization", "Bearer "+c.serviceRoleKey)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		var gErr gotrueError
+		json.Unmarshal(respBody, &gErr)
+		return fmt.Errorf("supabase delete user failed: %s", gErr.String())
 	}
 	return nil
 }

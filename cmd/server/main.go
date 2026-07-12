@@ -43,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	supa := supabase.NewClient(cfg.SupabaseURL, cfg.SupabaseAnonKey)
+	supa := supabase.NewClient(cfg.SupabaseURL, cfg.SupabaseAnonKey, cfg.SupabaseServiceRoleKey)
 	mailer := email.New(cfg.ResendAPIKey, cfg.EmailFrom)
 	sms := notify.NewSMSClient(cfg.TwilioAccountSID, cfg.TwilioAuthToken, cfg.TwilioFromNumber)
 	pay := payment.New(cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripeStarterPriceID, cfg.StripeProPriceID)

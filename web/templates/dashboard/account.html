@@ -11,7 +11,19 @@
   </div>
 
   <div class="mt-6 pt-6 border-t border-slate-100">
+    <a href="/dashboard/account/export" class="inline-flex text-sm font-medium text-brand">Download my data</a>
+  </div>
+
+  <div class="mt-6 pt-6 border-t border-slate-100">
     <a href="/logout" class="inline-flex rounded-full border border-slate-200 px-5 py-2.5 text-sm font-medium hover:border-slate-300">Log out</a>
+  </div>
+
+  <div class="mt-6 pt-6 border-t border-slate-100">
+    <p class="text-sm text-slate-500 mb-2">Deleting your account permanently removes your profile, all sites, and all leads. This cannot be undone.</p>
+    <form method="POST" action="/dashboard/account/delete" onsubmit="return confirm('Delete your account? This permanently removes your profile, all sites, and all leads, and cannot be undone.');">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button class="rounded-full border border-red-200 text-red-600 px-5 py-2.5 text-sm font-medium hover:border-red-300">Delete my account</button>
+    </form>
   </div>
 </div>
 {{end}}
