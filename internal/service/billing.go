@@ -133,7 +133,15 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 	if event.SubscriptionID == "" {
 		return nil
 	}
-	billing, _ := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	billing, err := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	if err != nil {
+		slog.Error("lookup site billing by subscription id", "subscription_id", event.SubscriptionID, "error", err)
+		b.mailer.SendAdminAlert(
+			"hello@launchly.ltd",
+			"Subscription cancellation lookup failed",
+			fmt.Sprintf("Looking up site billing for subscription <strong>%s</strong> failed: %v. The subscription was still marked cancelled, but the owner may not have been notified.", event.SubscriptionID, err),
+		)
+	}
 	if err := postgres.SetSiteCancelled(ctx, b.store.DB(), event.SubscriptionID); err != nil {
 		return fmt.Errorf("set site cancelled: %w", err)
 	}
@@ -167,7 +175,15 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 	if event.SubscriptionID == "" {
 		return nil
 	}
-	billing, _ := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	billing, err := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	if err != nil {
+		slog.Error("lookup site billing by subscription id", "subscription_id", event.SubscriptionID, "error", err)
+		b.mailer.SendAdminAlert(
+			"hello@launchly.ltd",
+			"Payment failure lookup failed",
+			fmt.Sprintf("Looking up site billing for subscription <strong>%s</strong> failed after a payment failure event: %v. The owner may not have been notified.", event.SubscriptionID, err),
+		)
+	}
 	slog.Warn("payment failed", "subscription_id", event.SubscriptionID)
 	if billing == nil {
 		return nil
