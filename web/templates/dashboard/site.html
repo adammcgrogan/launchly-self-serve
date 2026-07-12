@@ -54,6 +54,15 @@
           <p class="text-sm text-slate-500">Unique visitors</p>
         </div>
       </div>
+      <div class="mt-5 pt-4 border-t border-slate-100">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Conversions</p>
+        <ul class="space-y-1.5 text-sm text-slate-600">
+          <li class="flex justify-between"><span>Call taps</span><span class="text-slate-900 font-medium">{{.Stats.CallTaps}}</span></li>
+          <li class="flex justify-between"><span>WhatsApp taps</span><span class="text-slate-900 font-medium">{{.Stats.WhatsAppTaps}}</span></li>
+          <li class="flex justify-between"><span>Directions clicks</span><span class="text-slate-900 font-medium">{{.Stats.DirectionsClicks}}</span></li>
+          <li class="flex justify-between"><span>Leads</span><span class="text-slate-900 font-medium">{{.Stats.Leads}}</span></li>
+        </ul>
+      </div>
       {{if .Stats.TopReferrers}}
       <div class="mt-5 pt-4 border-t border-slate-100">
         <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Top referrers</p>

@@ -14,6 +14,13 @@ func RecordPageView(ctx context.Context, q querier, pv *domain.PageView) error {
 	return err
 }
 
+func RecordSiteEvent(ctx context.Context, q querier, e *domain.SiteEvent) error {
+	_, err := q.ExecContext(ctx,
+		`INSERT INTO site_events (site_id, kind, visitor_hash) VALUES ($1, $2, $3)`,
+		e.SiteID, string(e.Kind), e.VisitorHash)
+	return err
+}
+
 func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time) (*domain.SiteStats, error) {
 	stats := &domain.SiteStats{
 		PeriodDays: int(time.Since(since).Hours()/24) + 1,
@@ -67,5 +74,35 @@ func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time) (
 		}
 		stats.ViewsByDay = append(stats.ViewsByDay, dc)
 	}
-	return stats, dayRows.Err()
+	if err := dayRows.Err(); err != nil {
+		return nil, err
+	}
+
+	eventRows, err := q.QueryContext(ctx, `
+		SELECT kind, COUNT(*) FROM site_events
+		WHERE site_id = $1 AND created_at > $2
+		GROUP BY kind
+	`, siteID, since)
+	if err != nil {
+		return nil, err
+	}
+	defer eventRows.Close()
+	for eventRows.Next() {
+		var kind string
+		var count int
+		if err := eventRows.Scan(&kind, &count); err != nil {
+			return nil, err
+		}
+		switch domain.EventKind(kind) {
+		case domain.EventKindCall:
+			stats.CallTaps = count
+		case domain.EventKindWhatsApp:
+			stats.WhatsAppTaps = count
+		case domain.EventKindDirections:
+			stats.DirectionsClicks = count
+		case domain.EventKindLead:
+			stats.Leads = count
+		}
+	}
+	return stats, eventRows.Err()
 }

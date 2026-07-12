@@ -12,6 +12,27 @@ type PageView struct {
 	CreatedAt   time.Time
 }
 
+// EventKind identifies the type of conversion a SiteEvent records.
+type EventKind string
+
+const (
+	EventKindCall       EventKind = "call"
+	EventKindWhatsApp   EventKind = "whatsapp"
+	EventKindDirections EventKind = "directions"
+	EventKindLead       EventKind = "lead"
+)
+
+// SiteEvent is a single recorded conversion — a tel:/WhatsApp/directions
+// tap or a contact-form submission — the actions that actually matter to a
+// local business, as opposed to a raw page view.
+type SiteEvent struct {
+	ID          int
+	SiteID      int
+	Kind        EventKind
+	VisitorHash string
+	CreatedAt   time.Time
+}
+
 // ReferrerCount is a referrer hostname with its visit count.
 type ReferrerCount struct {
 	Referrer string
@@ -31,4 +52,15 @@ type SiteStats struct {
 	TopReferrers   []ReferrerCount
 	ViewsByDay     []DayCount
 	PeriodDays     int
+
+	CallTaps         int
+	WhatsAppTaps     int
+	DirectionsClicks int
+	Leads            int
+}
+
+// TotalConversions sums every conversion kind — the number that proves the
+// site pays for itself, as opposed to raw page views.
+func (s SiteStats) TotalConversions() int {
+	return s.CallTaps + s.WhatsAppTaps + s.DirectionsClicks + s.Leads
 }

@@ -30,6 +30,9 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 	if err := postgres.CreateLead(ctx, l.store.DB(), lead); err != nil {
 		return err
 	}
+	if err := postgres.RecordSiteEvent(ctx, l.store.DB(), &domain.SiteEvent{SiteID: siteID, Kind: domain.EventKindLead}); err != nil {
+		slog.Error("record lead conversion event", "site_id", siteID, "error", err)
+	}
 
 	site, err := postgres.GetSiteByID(ctx, l.store.DB(), siteID)
 	if err != nil || site == nil {

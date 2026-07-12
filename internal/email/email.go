@@ -367,6 +367,16 @@ func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *
 		statTile(fmt.Sprintf("%d", stats.TotalViews), "Total visits"),
 		statTile(fmt.Sprintf("%d", stats.UniqueVisitors), "Unique visitors"))
 
+	var conversionsNote string
+	if stats.TotalConversions() > 0 {
+		rows := statRow("Call taps", stats.CallTaps, true) +
+			statRow("WhatsApp taps", stats.WhatsAppTaps, false) +
+			statRow("Directions clicks", stats.DirectionsClicks, false) +
+			statRow("Leads", stats.Leads, false)
+		conversionsNote = p(fmt.Sprintf("<strong>%d people</strong> took action to contact you this period — that's the number that proves your site pays for itself.", stats.TotalConversions())) +
+			sectionLabel("Conversions") + infoCard(rows)
+	}
+
 	var daysTable string
 	if len(stats.ViewsByDay) > 0 {
 		rows := ""
@@ -396,7 +406,7 @@ func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *
 
 	content := h1(fmt.Sprintf("Your %s website report", period)) +
 		p(fmt.Sprintf("Here's how <strong>%s</strong> performed over the last %s.", businessName, days)) +
-		statsRow + noDataNote + daysTable + refTable +
+		statsRow + noDataNote + conversionsNote + daysTable + refTable +
 		button(siteURL, "View your website") +
 		divider() +
 		p(`<span style="color:#94a3b8;font-size:13px;">You're receiving this report because analytics is enabled for your site. Change the frequency any time from your dashboard.</span>`)

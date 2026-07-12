@@ -35,6 +35,14 @@ func (a *Analytics) RecordPageView(ctx context.Context, siteID int, path, referr
 	return postgres.RecordPageView(ctx, a.store.DB(), pv)
 }
 
+// RecordEvent records a conversion (call tap, WhatsApp tap, directions
+// click) fired via the sendBeacon endpoint. Lead conversions are recorded
+// separately, server-side, by Leads.SubmitLead.
+func (a *Analytics) RecordEvent(ctx context.Context, siteID int, kind domain.EventKind, ip string) error {
+	e := &domain.SiteEvent{SiteID: siteID, Kind: kind, VisitorHash: a.hashVisitor(ip)}
+	return postgres.RecordSiteEvent(ctx, a.store.DB(), e)
+}
+
 func (a *Analytics) GetSiteStats(ctx context.Context, siteID int, since time.Time) (*domain.SiteStats, error) {
 	return postgres.GetSiteStats(ctx, a.store.DB(), siteID, since)
 }

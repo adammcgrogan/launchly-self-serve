@@ -77,6 +77,7 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		"Site":           site,
 		"LeadSent":       r.URL.Query().Get("lead") == "1",
 		"FormAction":     formAction,
+		"EventAction":    strings.TrimSuffix(formAction, "/contact") + "/e",
 		"Socials":        socialLinksMap(site.SocialLinks),
 		"UmamiScriptURL": h.cfg.UmamiScriptURL,
 		"Open":           open,
@@ -234,6 +235,65 @@ func isBot(ua string) bool {
 		}
 	}
 	return ua == ""
+}
+
+// siteEventKinds are the conversion kinds the beacon endpoint accepts —
+// "lead" is deliberately excluded since that's recorded server-side by
+// Leads.SubmitLead, not via a client-side tap.
+var siteEventKinds = map[string]domain.EventKind{
+	"call":       domain.EventKindCall,
+	"whatsapp":   domain.EventKindWhatsApp,
+	"directions": domain.EventKindDirections,
+}
+
+// RecordSiteEvent handles the navigator.sendBeacon conversion ping fired
+// from tel:/WhatsApp/directions taps on subdomain-routed sites, and falls
+// back to a Pro site's connected custom domain.
+func (h *Handler) RecordSiteEvent(w http.ResponseWriter, r *http.Request) {
+	slug := extractSlug(r, h.cfg.Domain)
+	if slug == "" {
+		site, err := h.sites.GetSiteAggregateByCustomDomain(r.Context(), effectiveHost(r))
+		if err == nil && site != nil {
+			h.recordSiteEvent(r, site)
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), slug)
+	if err == nil && site != nil {
+		h.recordSiteEvent(r, site)
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// RecordSiteEventPath handles the beacon on path-routed sites.
+func (h *Handler) RecordSiteEventPath(w http.ResponseWriter, r *http.Request) {
+	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), r.PathValue("slug"))
+	if err == nil && site != nil {
+		h.recordSiteEvent(r, site)
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// recordSiteEvent validates and records a conversion beacon for an
+// already-resolved site. Always responds 204 regardless of outcome —
+// sendBeacon ignores the response, and there's nothing useful to tell a
+// caller that isn't already filtered out server-side (bot, rate-limited,
+// unknown kind).
+func (h *Handler) recordSiteEvent(r *http.Request, site *domain.SiteAggregate) {
+	if site.Status != domain.SiteStatusLive {
+		return
+	}
+	if isBot(r.Header.Get("User-Agent")) || !h.contactLimiter.Allow(middleware.ClientIP(r)) {
+		return
+	}
+	kind, ok := siteEventKinds[r.URL.Query().Get("kind")]
+	if !ok {
+		return
+	}
+	if err := h.analytics.RecordEvent(r.Context(), site.ID, kind, middleware.ClientIP(r)); err != nil {
+		slog.Error("record site event", "site_id", site.ID, "error", err)
+	}
 }
 
 // SubmitLead handles the contact form POST on subdomain-routed sites, and
