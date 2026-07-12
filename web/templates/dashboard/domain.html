@@ -1,0 +1,75 @@
+{{define "content"}}
+<a href="/dashboard/sites/{{.Site.ID}}" class="text-sm text-slate-500 hover:text-slate-800">← Back</a>
+<h1 class="font-display text-2xl font-bold text-slate-900 mt-2">Custom domain</h1>
+
+{{if .Flash}}<p class="mt-4 rounded-lg bg-emerald-50 text-emerald-700 text-sm px-4 py-3">{{.Flash}}</p>{{end}}
+{{if .Error}}<p class="mt-4 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3">{{.Error}}</p>{{end}}
+
+{{if not .IsPro}}
+<div class="mt-8 max-w-md rounded-2xl border border-slate-200 bg-white p-6">
+  <p class="text-slate-600">Connecting your own domain is a Pro-plan feature.</p>
+  <a href="/dashboard/sites/{{.Site.ID}}" class="mt-4 inline-block rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Upgrade to Pro</a>
+</div>
+{{else}}
+
+{{if not .Site.CustomDomain}}
+<p class="mt-2 text-slate-500">Connect a domain you own, e.g. <span class="font-mono text-sm">yourbusiness.com</span>.</p>
+<form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain" class="mt-8 space-y-4 max-w-md">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Domain</label>
+    <input type="text" name="domain" value="{{.DomainInput}}" placeholder="yourbusiness.com" required
+           class="w-full rounded-lg border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand">
+  </div>
+  <button type="submit" class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Connect domain</button>
+</form>
+{{else}}
+
+<div class="mt-8 max-w-xl space-y-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-6">
+    <div class="flex items-center justify-between">
+      <p class="font-medium text-slate-900">{{.Site.CustomDomain}}</p>
+      <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full
+        {{if eq (print .Site.CustomDomainStatus) "active"}}bg-emerald-50 text-emerald-700
+        {{else if eq (print .Site.CustomDomainStatus) "failed"}}bg-red-50 text-red-600
+        {{else}}bg-amber-50 text-amber-700{{end}}">{{.Site.CustomDomainStatus}}</span>
+    </div>
+
+    {{if ne (print .Site.CustomDomainStatus) "active"}}
+    <div class="mt-4 text-sm text-slate-600 space-y-2">
+      <p>Add these DNS records at your domain's registrar:</p>
+      <div class="overflow-x-auto rounded-lg border border-slate-200">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500"><tr><th class="px-3 py-2">Type</th><th class="px-3 py-2">Name</th><th class="px-3 py-2">Value</th></tr></thead>
+          <tbody class="divide-y divide-slate-100 font-mono">
+            <tr><td class="px-3 py-2">CNAME</td><td class="px-3 py-2">{{.Site.CustomDomain}}</td><td class="px-3 py-2">{{.FallbackOrigin}}</td></tr>
+            {{if .Hostname}}
+            {{if .Hostname.OwnershipVerification}}
+            <tr><td class="px-3 py-2">{{.Hostname.OwnershipVerification.Type}}</td><td class="px-3 py-2 break-all">{{.Hostname.OwnershipVerification.Name}}</td><td class="px-3 py-2 break-all">{{.Hostname.OwnershipVerification.Value}}</td></tr>
+            {{end}}
+            {{range .Hostname.SSLValidationRecords}}
+            <tr><td class="px-3 py-2">{{.Type}}</td><td class="px-3 py-2 break-all">{{.Name}}</td><td class="px-3 py-2 break-all">{{.Value}}</td></tr>
+            {{end}}
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-slate-400">DNS changes can take anywhere from a few minutes to a few hours to take effect.</p>
+    </div>
+    {{end}}
+
+    <div class="mt-4 flex flex-wrap gap-3">
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain/check">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Check status</button>
+      </form>
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain/remove" onsubmit="return confirm('Remove this custom domain?');">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Remove domain</button>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}
+{{end}}
+{{end}}

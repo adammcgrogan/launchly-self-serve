@@ -11,9 +11,17 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
-// ServeSite handles subdomain requests: slug.launchly.ltd.
+// ServeSite handles subdomain requests (slug.launchly.ltd) and, when the
+// host doesn't match that pattern, falls back to a Pro site's connected
+// custom domain.
 func (h *Handler) ServeSite(w http.ResponseWriter, r *http.Request) {
 	slug := extractSlug(r, h.cfg.Domain)
+	if slug == "" {
+		if site, err := h.sites.GetSiteAggregateByCustomDomain(r.Context(), effectiveHost(r)); err == nil && site != nil {
+			h.renderSite(w, r, site, "/contact")
+			return
+		}
+	}
 	h.serveSiteBySlug(w, r, slug, "/contact", func(newSlug string) string {
 		return "https://" + newSlug + "." + h.cfg.Domain + r.URL.Path
 	})
@@ -44,6 +52,11 @@ func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, 
 		h.renderClaimOrError(w, slug)
 		return
 	}
+	h.renderSite(w, r, site, formAction)
+}
+
+// renderSite renders an already-resolved site (by slug or custom domain).
+func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, formAction string) {
 	if site.Status == domain.SiteStatusPaused {
 		h.render.Render(w, "paused", map[string]any{"BusinessName": site.BusinessName})
 		return
@@ -110,9 +123,14 @@ func isBot(ua string) bool {
 	return ua == ""
 }
 
-// SubmitLead handles the contact form POST on subdomain-routed sites.
+// SubmitLead handles the contact form POST on subdomain-routed sites, and
+// falls back to a Pro site's connected custom domain.
 func (h *Handler) SubmitLead(w http.ResponseWriter, r *http.Request) {
 	slug := extractSlug(r, h.cfg.Domain)
+	if slug == "" {
+		h.submitLeadForCustomDomain(w, r)
+		return
+	}
 	h.submitLeadForSlug(w, r, slug, "/?lead=1")
 }
 
@@ -127,13 +145,30 @@ func (h *Handler) submitLeadForSlug(w http.ResponseWriter, r *http.Request, slug
 		http.Error(w, "Too many requests — please wait a moment and try again.", http.StatusTooManyRequests)
 		return
 	}
-
 	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), slug)
 	if err != nil || site == nil || site.Status != domain.SiteStatusLive {
 		http.NotFound(w, r)
 		return
 	}
+	h.submitLeadForSite(w, r, site, redirectURL)
+}
 
+func (h *Handler) submitLeadForCustomDomain(w http.ResponseWriter, r *http.Request) {
+	if !h.contactLimiter.Allow(middleware.ClientIP(r)) {
+		http.Error(w, "Too many requests — please wait a moment and try again.", http.StatusTooManyRequests)
+		return
+	}
+	site, err := h.sites.GetSiteAggregateByCustomDomain(r.Context(), effectiveHost(r))
+	if err != nil || site == nil || site.Status != domain.SiteStatusLive {
+		http.NotFound(w, r)
+		return
+	}
+	h.submitLeadForSite(w, r, site, "/?lead=1")
+}
+
+// submitLeadForSite validates and saves a contact-form submission for an
+// already-resolved, live site (by slug or custom domain).
+func (h *Handler) submitLeadForSite(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, redirectURL string) {
 	r.Body = http.MaxBytesReader(w, r.Body, 64*1024)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -155,7 +190,7 @@ func (h *Handler) submitLeadForSlug(w http.ResponseWriter, r *http.Request, slug
 	if err := h.leads.SubmitLead(r.Context(), site.ID,
 		name, strings.TrimSpace(r.FormValue("email")), strings.TrimSpace(r.FormValue("phone")), strings.TrimSpace(r.FormValue("message")),
 	); err != nil {
-		slog.Error("submit lead", "slug", slug, "error", err)
+		slog.Error("submit lead", "site_id", site.ID, "error", err)
 		http.Error(w, "could not save lead", http.StatusInternalServerError)
 		return
 	}

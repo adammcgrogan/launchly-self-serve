@@ -30,6 +30,7 @@ type Handler struct {
 	leads     *service.Leads
 	analytics *service.Analytics
 	cron      *service.Cron
+	domains   *service.Domains
 
 	loginLimiter   *middleware.RateLimiter
 	signupLimiter  *middleware.RateLimiter
@@ -48,6 +49,7 @@ type Deps struct {
 	Leads     *service.Leads
 	Analytics *service.Analytics
 	Cron      *service.Cron
+	Domains   *service.Domains
 
 	Auth       *middleware.Auth
 	Superadmin *middleware.Superadmin
@@ -67,6 +69,7 @@ func New(d Deps) (*Handler, error) {
 		leads:          d.Leads,
 		analytics:      d.Analytics,
 		cron:           d.Cron,
+		domains:        d.Domains,
 		loginLimiter:   middleware.NewRateLimiter(10, 15*time.Minute),
 		signupLimiter:  middleware.NewRateLimiter(5, 15*time.Minute),
 		contactLimiter: middleware.NewRateLimiter(5, time.Minute),

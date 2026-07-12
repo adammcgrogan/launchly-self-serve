@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/cloudflare"
 	"github.com/adammcgrogan/launchly-self-serve/internal/config"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/payment"
@@ -57,13 +58,16 @@ func main() {
 	leads := service.NewLeads(store, mailer)
 	cron := service.NewCron(store, mailer, analytics, baseURL)
 
+	cf := cloudflare.New(cfg.CloudflareAPIToken, cfg.CloudflareZoneID)
+	domains := service.NewDomains(store, cf, cfg.CloudflareFallbackOrigin, cfg.Domain)
+
 	secureCookies := !strings.Contains(cfg.Domain, "localhost")
 	auth := middleware.NewAuth(cfg.SupabaseJWTSecret, supa, secureCookies)
 	superadmin := middleware.NewSuperadmin(cfg.SuperadminPassword, cfg.CookieSigningKey, secureCookies)
 
 	h, err := web.New(web.Deps{
 		Cfg: cfg, Store: store,
-		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron,
+		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains,
 		Auth: auth, Superadmin: superadmin,
 	})
 	if err != nil {

@@ -21,6 +21,15 @@ const (
 	PlanPro     Plan = "pro"
 )
 
+type CustomDomainStatus string
+
+const (
+	CustomDomainNone    CustomDomainStatus = "none"
+	CustomDomainPending CustomDomainStatus = "pending"
+	CustomDomainActive  CustomDomainStatus = "active"
+	CustomDomainFailed  CustomDomainStatus = "failed"
+)
+
 type PaymentStatus string
 
 const (
@@ -62,6 +71,11 @@ type Site struct {
 	PublishedAt   *time.Time
 	UpdatedAt     time.Time
 	SlugChangedAt *time.Time
+
+	CustomDomain        string
+	CustomDomainStatus  CustomDomainStatus
+	CustomDomainCFID    string
+	CustomDomainAddedAt *time.Time
 }
 
 // SiteContact holds a site's public contact details. 1:1 with Site.

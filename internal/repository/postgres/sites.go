@@ -10,13 +10,16 @@ import (
 )
 
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
-	template_id, palette, heading_font, status, created_at, published_at, updated_at, slug_changed_at`
+	template_id, palette, heading_font, status, created_at, published_at, updated_at, slug_changed_at,
+	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at`
 
 func scanSite(row *sql.Row) (*domain.Site, error) {
 	var s domain.Site
+	var customDomain, customDomainCFID sql.NullString
 	err := row.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
+		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -24,15 +27,21 @@ func scanSite(row *sql.Row) (*domain.Site, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.CustomDomain = customDomain.String
+	s.CustomDomainCFID = customDomainCFID.String
 	return &s, nil
 }
 
 func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 	var s domain.Site
+	var customDomain, customDomainCFID sql.NullString
 	err := rows.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
+		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt,
 	)
+	s.CustomDomain = customDomain.String
+	s.CustomDomainCFID = customDomainCFID.String
 	return &s, err
 }
 
@@ -166,5 +175,47 @@ func SetSiteStatus(ctx context.Context, q querier, id int, status domain.SiteSta
 
 func DeleteSite(ctx context.Context, q querier, id int) error {
 	_, err := q.ExecContext(ctx, `DELETE FROM sites WHERE id = $1`, id)
+	return err
+}
+
+// GetSiteByCustomDomain looks up the site that owns an active custom
+// domain, for routing requests whose Host isn't a *.DOMAIN subdomain.
+func GetSiteByCustomDomain(ctx context.Context, q querier, host string) (*domain.Site, error) {
+	return scanSite(q.QueryRowContext(ctx,
+		`SELECT `+siteColumns+` FROM sites WHERE custom_domain = $1 AND custom_domain_status = 'active'`, host))
+}
+
+// CustomDomainInUse reports whether customDomain is already attached to any site.
+func CustomDomainInUse(ctx context.Context, q querier, customDomain string) (bool, error) {
+	var inUse bool
+	err := q.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM sites WHERE custom_domain = $1)`, customDomain).Scan(&inUse)
+	return inUse, err
+}
+
+// SetCustomDomain attaches a pending custom domain to a site.
+func SetCustomDomain(ctx context.Context, q querier, id int, customDomain, cfID string) error {
+	_, err := q.ExecContext(ctx, `
+		UPDATE sites
+		SET custom_domain = $1, custom_domain_status = 'pending', custom_domain_cf_id = $2,
+		    custom_domain_added_at = now(), updated_at = now()
+		WHERE id = $3
+	`, customDomain, cfID, id)
+	return err
+}
+
+// UpdateCustomDomainStatus updates a site's custom domain verification status.
+func UpdateCustomDomainStatus(ctx context.Context, q querier, id int, status domain.CustomDomainStatus) error {
+	_, err := q.ExecContext(ctx, `UPDATE sites SET custom_domain_status = $1, updated_at = now() WHERE id = $2`, status, id)
+	return err
+}
+
+// ClearCustomDomain removes a site's custom domain entirely.
+func ClearCustomDomain(ctx context.Context, q querier, id int) error {
+	_, err := q.ExecContext(ctx, `
+		UPDATE sites
+		SET custom_domain = NULL, custom_domain_status = 'none', custom_domain_cf_id = NULL,
+		    custom_domain_added_at = NULL, updated_at = now()
+		WHERE id = $1
+	`, id)
 	return err
 }

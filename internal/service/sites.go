@@ -257,6 +257,19 @@ func (s *Sites) GetSiteAggregateBySlug(ctx context.Context, slug string) (*domai
 	return s.GetSiteAggregate(ctx, site.ID)
 }
 
+// GetSiteAggregateByCustomDomain is used by the public site renderer to
+// resolve a Pro site's connected custom domain.
+func (s *Sites) GetSiteAggregateByCustomDomain(ctx context.Context, host string) (*domain.SiteAggregate, error) {
+	site, err := postgres.GetSiteByCustomDomain(ctx, s.store.DB(), host)
+	if err != nil {
+		return nil, err
+	}
+	if site == nil {
+		return nil, nil
+	}
+	return s.GetSiteAggregate(ctx, site.ID)
+}
+
 func (s *Sites) ListSitesByOwner(ctx context.Context, ownerID uuid.UUID) ([]domain.Site, error) {
 	return postgres.ListSitesByOwner(ctx, s.store.DB(), ownerID)
 }

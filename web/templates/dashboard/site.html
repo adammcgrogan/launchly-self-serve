@@ -19,6 +19,7 @@
         <a href="/dashboard/sites/{{.Site.ID}}/appearance" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Appearance</a>
         <a href="/dashboard/sites/{{.Site.ID}}/switch-template" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Switch design</a>
         <a href="/dashboard/sites/{{.Site.ID}}/address" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Address</a>
+        <a href="/dashboard/sites/{{.Site.ID}}/domain" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Custom domain{{if ne (print .Site.Billing.Plan) "pro"}} (Pro){{end}}</a>
         <a href="/dashboard/sites/{{.Site.ID}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
         {{if eq (print .Site.Status) "live"}}
         <form method="POST" action="/dashboard/sites/{{.Site.ID}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

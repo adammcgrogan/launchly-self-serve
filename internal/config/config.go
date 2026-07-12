@@ -32,6 +32,10 @@ type Config struct {
 	CookieSigningKey   string // HMAC key for CSRF/flash cookies (not auth — auth uses Supabase JWTs)
 
 	UmamiScriptURL string
+
+	CloudflareAPIToken       string
+	CloudflareZoneID         string
+	CloudflareFallbackOrigin string // fixed hostname customer domains are CNAME'd to, e.g. "origin.launchly.ltd"
 }
 
 // Load reads configuration from the environment, loading a local .env file
@@ -62,6 +66,10 @@ func Load() (*Config, error) {
 		CookieSigningKey:   os.Getenv("COOKIE_SIGNING_KEY"),
 
 		UmamiScriptURL: getEnv("UMAMI_SCRIPT_URL", ""),
+
+		CloudflareAPIToken:       getEnv("CLOUDFLARE_API_TOKEN", ""),
+		CloudflareZoneID:         getEnv("CLOUDFLARE_ZONE_ID", ""),
+		CloudflareFallbackOrigin: getEnv("CLOUDFLARE_FALLBACK_ORIGIN", ""),
 	}
 
 	required := map[string]string{
