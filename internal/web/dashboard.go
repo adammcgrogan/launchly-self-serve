@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	qrcode "github.com/skip2/go-qrcode"
@@ -129,8 +130,13 @@ func (h *Handler) Account(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	initial := "?"
+	if profile.Email != "" {
+		initial = strings.ToUpper(profile.Email[:1])
+	}
 	h.render.Render(w, "dashboard:account", map[string]any{
 		"Profile":       profile,
+		"Initial":       initial,
 		"Sites":         sites,
 		"Flash":         middleware.GetFlash(w, r),
 		"EmailVerified": profile.EmailVerified,
