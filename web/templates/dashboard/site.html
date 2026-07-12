@@ -107,7 +107,7 @@
         </div>
         <form method="POST" action="/dashboard/sites/{{$.Site.ID}}/leads/{{.ID}}/status" class="shrink-0">
           <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-          <select name="status" onchange="this.form.submit()" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600">
+          <select name="status" onchange="this.form.submit()" class="appearance-none cursor-pointer rounded-full pl-3 pr-7 py-1.5 text-xs font-semibold bg-[right_0.5rem_center] bg-no-repeat bg-[length:0.6rem] focus:outline-none focus:ring-2 focus:ring-offset-1 {{if eq (print .Status) "contacted"}}bg-amber-50 text-amber-700 focus:ring-amber-300{{else if eq (print .Status) "won"}}bg-emerald-50 text-emerald-700 focus:ring-emerald-300{{else if eq (print .Status) "lost"}}bg-red-50 text-red-600 focus:ring-red-300{{else}}bg-slate-100 text-slate-600 focus:ring-slate-300{{end}}" style="background-image:url('data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 12 12%22 fill=%22none%22&gt;&lt;path d=%22M2.5 4.5L6 8l3.5-3.5%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/&gt;&lt;/svg&gt;')">
             <option value="new" {{if eq (print .Status) "new"}}selected{{end}}>New</option>
             <option value="contacted" {{if eq (print .Status) "contacted"}}selected{{end}}>Contacted</option>
             <option value="won" {{if eq (print .Status) "won"}}selected{{end}}>Won</option>
