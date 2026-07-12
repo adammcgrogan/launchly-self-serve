@@ -57,3 +57,19 @@ func findTemplate(id string) (domain.Template, bool) {
 	}
 	return domain.Template{}, false
 }
+
+// paletteSwatchColors gives each palette a representative hex colour for the
+// small preview dots in the builder wizard — cosmetic only, independent of
+// Palette.CSS (which drives the actual rendered site and isn't populated
+// per-palette yet).
+var paletteSwatchColors = map[string]string{
+	"indigo":   "#4F46E5",
+	"emerald":  "#059669",
+	"sunset":   "#F97316",
+	"charcoal": "#1E293B",
+	"rust":     "#B45309",
+	"ivory":    "#CA8A04",
+	"forest":   "#166534",
+	"blush":    "#EC4899",
+	"sage":     "#5F8D6E",
+}

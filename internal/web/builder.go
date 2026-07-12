@@ -20,16 +20,16 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 	}
 	h.render.Render(w, "dashboard:new_site", map[string]any{
 		"Templates":     siteTemplates,
+		"PaletteColors": paletteSwatchColors,
 		"Error":         errMsg,
 		"Values":        values,
-		"Weekdays":      weekdays,
-		"Timezones":     timezones,
 		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
 		"EmailVerified": h.emailVerified(r),
 	})
 }
 
-// NewSiteForm renders the builder wizard: pick a template, fill in content.
+// NewSiteForm renders the builder wizard: a three-step flow (business
+// basics, design, contact) that ends in an instant publish.
 func (h *Handler) NewSiteForm(w http.ResponseWriter, r *http.Request) {
 	h.renderNewSite(w, r, "", nil)
 }
@@ -51,33 +51,42 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		h.renderNewSite(w, r, "Business name is required.", r.Form)
 		return
 	}
-	if _, ok := findTemplate(templateID); !ok {
-		templateID = siteTemplates[0].ID
+	tmpl, ok := findTemplate(templateID)
+	if !ok {
+		tmpl = siteTemplates[0]
+		templateID = tmpl.ID
+	}
+
+	palette := r.FormValue("palette")
+	paletteValid := palette == ""
+	for _, p := range tmpl.Palettes {
+		if p.ID == palette {
+			paletteValid = true
+			break
+		}
+	}
+	if !paletteValid {
+		palette = ""
+	}
+	headingFont := r.FormValue("heading_font")
+	if headingFont != "sans" && headingFont != "serif" {
+		headingFont = ""
 	}
 
 	in := service.CreateSiteInput{
 		OwnerUserID:  middleware.UserID(r),
 		BusinessName: businessName,
 		Tagline:      strings.TrimSpace(r.FormValue("tagline")),
-		About:        strings.TrimSpace(r.FormValue("about")),
-		LogoURL:      strings.TrimSpace(r.FormValue("logo_url")),
-		CTAText:      strings.TrimSpace(r.FormValue("cta_text")),
 		TemplateID:   templateID,
+		Palette:      palette,
+		HeadingFont:  headingFont,
 		Timezone:     resolveTimezone(r.FormValue("timezone")),
 		Contact: domain.SiteContact{
-			Phone:       strings.TrimSpace(r.FormValue("phone")),
-			Email:       strings.TrimSpace(r.FormValue("email")),
-			Address:     strings.TrimSpace(r.FormValue("address")),
-			Location:    strings.TrimSpace(r.FormValue("location")),
-			MapURL:      strings.TrimSpace(r.FormValue("map_url")),
-			MapEmbedURL: strings.TrimSpace(r.FormValue("map_embed_url")),
+			Phone:    strings.TrimSpace(r.FormValue("phone")),
+			Email:    strings.TrimSpace(r.FormValue("email")),
+			Location: strings.TrimSpace(r.FormValue("location")),
 		},
-		SocialLinks:    parseSocialLinks(r),
-		Services:       parseServices(r.FormValue("services")),
-		Certifications: parseCertifications(r.FormValue("certifications")),
-		Testimonials:   parseTestimonials(r.FormValue("testimonials")),
-		GalleryImages:  parseGallery(r.FormValue("gallery")),
-		BusinessHours:  parseBusinessHours(r),
+		Services: parseServices(r.FormValue("services")),
 	}
 
 	site, err := h.sites.CreateSite(r.Context(), in)

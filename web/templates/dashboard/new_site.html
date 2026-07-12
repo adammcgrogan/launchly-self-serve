@@ -1,176 +1,326 @@
 {{define "content"}}
-<h1 class="font-display text-2xl font-bold text-slate-900">Build your site</h1>
-<p class="mt-2 text-slate-500">Only your business name is required. Fill in what you have, hit publish, and your site is live. You can add or change everything else later.</p>
+<style>
+  @keyframes wizard-step-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .wizard-step-active { animation: wizard-step-in .35s ease both; }
+  @media (prefers-reduced-motion: reduce) { .wizard-step-active { animation: none; } }
+</style>
 
-{{if .Error}}<p class="mt-4 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3">{{.Error}}</p>{{end}}
+<div class="grid lg:grid-cols-[1fr_360px] gap-10 items-start">
+  <div>
+    <p class="text-sm font-semibold text-brand uppercase tracking-wide">Create your site</p>
+    <h1 class="font-display text-3xl font-bold text-slate-900 mt-1">Let's get you online</h1>
+    <p class="mt-2 text-slate-500">Three quick steps, then publish. Everything here can be changed later.</p>
 
-<form method="POST" action="/dashboard/sites/new" class="mt-8 space-y-10">
-  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <ol class="flex items-center mt-8 mb-8">
+      <li class="flex items-center flex-1" data-step-dot="1">
+        <span class="step-num shrink-0 flex items-center justify-center w-8 h-8 rounded-full border-2 border-slate-200 text-sm font-semibold text-slate-400">1</span>
+        <span class="ml-2 text-sm font-medium text-slate-400 step-label hidden sm:inline">Business</span>
+        <span class="flex-1 h-px bg-slate-200 mx-3"></span>
+      </li>
+      <li class="flex items-center flex-1" data-step-dot="2">
+        <span class="step-num shrink-0 flex items-center justify-center w-8 h-8 rounded-full border-2 border-slate-200 text-sm font-semibold text-slate-400">2</span>
+        <span class="ml-2 text-sm font-medium text-slate-400 step-label hidden sm:inline">Design</span>
+        <span class="flex-1 h-px bg-slate-200 mx-3"></span>
+      </li>
+      <li class="flex items-center" data-step-dot="3">
+        <span class="step-num shrink-0 flex items-center justify-center w-8 h-8 rounded-full border-2 border-slate-200 text-sm font-semibold text-slate-400">3</span>
+        <span class="ml-2 text-sm font-medium text-slate-400 step-label hidden sm:inline">Contact</span>
+      </li>
+    </ol>
 
-  <section>
-    <h2 class="font-semibold text-slate-900 mb-4">Choose a design</h2>
-    <div class="grid sm:grid-cols-2 gap-4">
-      {{$sel := .Values.Get "template_id"}}
-      {{range $i, $t := .Templates}}
-      <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
-        <input type="radio" name="template_id" value="{{$t.ID}}" {{if or (eq $t.ID $sel) (and (not $sel) (eq $i 0))}}checked{{end}} class="mt-1">
-        <span>
-          <span class="block font-semibold text-slate-900">{{$t.Name}}</span>
-          <span class="block text-sm text-slate-500 mt-1">{{$t.Description}}</span>
-        </span>
-      </label>
-      {{end}}
-    </div>
-  </section>
+    {{if .Error}}<p class="mb-6 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3">{{.Error}}</p>{{end}}
 
-  <section class="space-y-4">
-    <h2 class="font-semibold text-slate-900">The essentials</h2>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
-      <input type="text" name="business_name" required value="{{.Values.Get "business_name"}}" placeholder="e.g. McGrogan Plumbing &amp; Heating" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      <p class="mt-1.5 text-sm text-slate-500">Your site will be live at <span class="font-semibold text-slate-700"><span id="slug-preview">yourbusiness</span>.launchly.ltd</span></p>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Where are you based?</label>
-      <input type="text" name="location" value="{{.Values.Get "location"}}" placeholder="e.g. Belfast, NI" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">What do you do? One service per line</label>
-      <textarea name="services" rows="4" placeholder="Boiler repair&#10;Central heating installs&#10;Landlord safety certificates" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "services"}}</textarea>
-    </div>
-    <div class="grid sm:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-        <input type="tel" name="phone" value="{{.Values.Get "phone"}}" placeholder="e.g. 07700 900123" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
-        <input type="email" name="email" value="{{.Values.Get "email"}}" placeholder="e.g. hello@yourbusiness.co.uk" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      </div>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
-      <input type="text" name="tagline" value="{{.Values.Get "tagline"}}" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-    </div>
-  </section>
+    {{$selTemplate := .Values.Get "template_id"}}
+    {{$selPalette := .Values.Get "palette"}}
+    {{$selFont := .Values.Get "heading_font"}}
 
-  <section class="space-y-3">
-    <h2 class="font-semibold text-slate-900">Optional extras</h2>
-    <p class="text-sm text-slate-500">Skip these for now if you like. They all live in the editor too.</p>
+    <form method="POST" action="/dashboard/sites/new" id="wizard-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="hidden" name="palette" id="field-palette" value="{{$selPalette}}">
+      <input type="hidden" name="heading_font" id="field-heading_font" value="{{$selFont}}">
 
-    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "about") (.Values.Get "cta_text") (.Values.Get "logo_url")}}open{{end}}>
-      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">About &amp; branding <span class="text-xs text-slate-400">optional</span></summary>
-      <div class="px-5 pb-5 space-y-4">
+      <section data-step="1" class="wizard-step wizard-step-active space-y-5">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
-          <textarea name="about" rows="4" placeholder="A few sentences about who you are, how long you've been going, and why customers pick you." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "about"}}</textarea>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
-            <input type="text" name="cta_text" value="{{.Values.Get "cta_text"}}" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
-            <input type="url" name="logo_url" value="{{.Values.Get "logo_url"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          </div>
-        </div>
-      </div>
-    </details>
-
-    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "testimonials") (.Values.Get "certifications")}}open{{end}}>
-      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Reviews &amp; trust badges <span class="text-xs text-slate-400">optional</span></summary>
-      <div class="px-5 pb-5 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials, one per line as Name|Role|Quote (role is optional)</label>
-          <textarea name="testimonials" rows="3" placeholder="Jane Doe|Homeowner|Brilliant service, highly recommend." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "testimonials"}}</textarea>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
+          <input type="text" name="business_name" required value="{{.Values.Get "business_name"}}" placeholder="e.g. McGrogan Plumbing &amp; Heating" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-slug-source data-preview-heading-source>
+          <p class="mt-1.5 text-sm text-slate-500">Your site will be live at <span class="font-semibold text-slate-700"><span data-slug-preview>yourbusiness</span>.launchly.ltd</span></p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Certifications or trust badges, one per line</label>
-          <textarea name="certifications" rows="2" placeholder="Gas Safe registered&#10;Fully insured" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "certifications"}}</textarea>
-        </div>
-      </div>
-    </details>
-
-    <details class="rounded-2xl border border-slate-200 bg-white" {{if .Values.Get "gallery"}}open{{end}}>
-      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Photos <span class="text-xs text-slate-400">optional</span></summary>
-      <div class="px-5 pb-5">
-        <label class="block text-sm font-medium text-slate-700 mb-1">Gallery image URLs, one per line</label>
-        <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "gallery"}}</textarea>
-      </div>
-    </details>
-
-    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "address") (.Values.Get "map_embed_url") (.Values.Get "hours_mon_open")}}open{{end}}>
-      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Address &amp; opening hours <span class="text-xs text-slate-400">optional</span></summary>
-      <div class="px-5 pb-5 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
-          <input type="text" name="address" value="{{.Values.Get "address"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL</label>
-          <input type="url" name="map_embed_url" value="{{.Values.Get "map_embed_url"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Timezone</label>
-          <select name="timezone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            {{$tz := .Values.Get "timezone"}}
-            {{range .Timezones}}<option value="{{.}}" {{if eq . $tz}}selected{{else if and (not $tz) (eq . "Europe/London")}}selected{{end}}>{{.}}</option>{{end}}
+          <label class="block text-sm font-medium text-slate-700 mb-1">What kind of business is this?</label>
+          <select name="business_type" data-business-type class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            {{$bt := .Values.Get "business_type"}}
+            <option value="general" {{if or (eq $bt "general") (not $bt)}}selected{{end}}>General business or trade</option>
+            <option value="salon" {{if eq $bt "salon"}}selected{{end}}>Salon, studio &amp; wellness</option>
           </select>
+          <p class="mt-1.5 text-sm text-slate-400">Just helps us suggest a design on the next step — you can pick any of them.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours</label>
-          <div class="space-y-2">
-            {{range .Weekdays}}
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="w-24 text-sm text-slate-600">{{.Label}}</span>
-              <input type="time" name="hours_{{.Key}}_open" value="{{$.Values.Get (print "hours_" .Key "_open")}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <span class="text-slate-400 text-sm">to</span>
-              <input type="time" name="hours_{{.Key}}_close" value="{{$.Values.Get (print "hours_" .Key "_close")}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <label class="flex items-center gap-1.5 text-sm text-slate-600 ml-2">
-                <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $.Values.Get (print "hours_" .Key "_closed")}}checked{{end}}>
-                Closed
-              </label>
-            </div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Where are you based?</label>
+          <input type="text" name="location" value="{{.Values.Get "location"}}" placeholder="e.g. Belfast, NI" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div class="pt-2 flex justify-end">
+          <button type="button" data-next class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Continue</button>
+        </div>
+      </section>
+
+      <section data-step="2" class="wizard-step space-y-5" hidden>
+        <div>
+          <p class="text-sm font-medium text-slate-700 mb-2">Pick your look</p>
+          <div class="grid sm:grid-cols-2 gap-4">
+            {{range $i, $t := .Templates}}
+            <label class="relative flex flex-col gap-1 rounded-2xl border border-slate-200 p-5 cursor-pointer transition has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20 has-[:checked]:bg-brand/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand">
+              <input type="radio" name="template_id" value="{{$t.ID}}" data-template-radio data-category="{{$t.Category}}" {{if or (eq $t.ID $selTemplate) (and (not $selTemplate) (eq $i 0))}}checked{{end}} class="sr-only">
+              <span class="font-semibold text-slate-900">{{$t.Name}}</span>
+              <span class="text-sm text-slate-500">{{$t.Description}}</span>
+            </label>
             {{end}}
           </div>
         </div>
-      </div>
-    </details>
 
-    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "facebook_url") (.Values.Get "instagram_url") (.Values.Get "whatsapp_url") (.Values.Get "twitter_url") (.Values.Get "tiktok_url") (.Values.Get "linkedin_url") (.Values.Get "youtube_url")}}open{{end}}>
-      <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Social links <span class="text-xs text-slate-400">optional</span></summary>
-      <div class="px-5 pb-5 grid sm:grid-cols-2 gap-4">
-        <input type="url" name="facebook_url" value="{{.Values.Get "facebook_url"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        <input type="url" name="instagram_url" value="{{.Values.Get "instagram_url"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        <input type="url" name="whatsapp_url" value="{{.Values.Get "whatsapp_url"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        <input type="url" name="twitter_url" value="{{.Values.Get "twitter_url"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        <input type="url" name="tiktok_url" value="{{.Values.Get "tiktok_url"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        <input type="url" name="linkedin_url" value="{{.Values.Get "linkedin_url"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        <input type="url" name="youtube_url" value="{{.Values.Get "youtube_url"}}" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-      </div>
-    </details>
-  </section>
+        <div>
+          <p class="text-sm font-medium text-slate-700 mb-2">Colour palette</p>
+          {{range $i, $t := .Templates}}
+          <div data-palette-group="{{$t.ID}}" class="flex flex-wrap gap-2 {{if not (or (eq $t.ID $selTemplate) (and (not $selTemplate) (eq $i 0)))}}hidden{{end}}">
+            {{range $pi, $p := $t.Palettes}}
+            <label class="flex items-center gap-2 rounded-full border border-slate-200 pl-2 pr-3 py-1.5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand">
+              <input type="radio" data-palette-radio data-template="{{$t.ID}}" value="{{$p.ID}}" {{if or (eq $p.ID $selPalette) (and (not $selPalette) (eq $pi 0))}}checked{{end}} class="sr-only">
+              <span class="w-4 h-4 rounded-full border border-black/10" style="background:{{index $.PaletteColors $p.ID}}"></span>
+              <span class="text-sm text-slate-700">{{$p.Name}}</span>
+            </label>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
 
-  <div class="pt-2">
-    <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Publish my site</button>
-    <p class="mt-3 text-center text-sm text-slate-400">Your site goes live the moment you publish, and everything on this page can be changed afterwards.</p>
+        <div>
+          <p class="text-sm font-medium text-slate-700 mb-2">Heading style <span class="text-slate-400 font-normal">optional</span></p>
+          <div class="flex gap-2">
+            <button type="button" data-heading-font="" class="rounded-full border px-4 py-1.5 text-sm font-medium {{if not $selFont}}border-brand ring-2 ring-brand/20 text-brand{{else}}border-slate-200 text-slate-700{{end}}">Design default</button>
+            <button type="button" data-heading-font="sans" class="rounded-full border px-4 py-1.5 text-sm font-medium {{if eq $selFont "sans"}}border-brand ring-2 ring-brand/20 text-brand{{else}}border-slate-200 text-slate-700{{end}}">Sans-serif</button>
+            <button type="button" data-heading-font="serif" class="rounded-full border px-4 py-1.5 text-sm font-medium font-display {{if eq $selFont "serif"}}border-brand ring-2 ring-brand/20 text-brand{{else}}border-slate-200 text-slate-700{{end}}">Serif</button>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-between">
+          <button type="button" data-prev class="rounded-full border border-slate-200 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition">Back</button>
+          <button type="button" data-next class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Continue</button>
+        </div>
+      </section>
+
+      <section data-step="3" class="wizard-step space-y-5" hidden>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+            <input type="tel" name="phone" value="{{.Values.Get "phone"}}" placeholder="e.g. 07700 900123" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
+            <input type="email" name="email" value="{{.Values.Get "email"}}" placeholder="e.g. hello@yourbusiness.co.uk" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">What do you do? One service per line</label>
+          <textarea name="services" rows="4" placeholder="Boiler repair&#10;Central heating installs&#10;Landlord safety certificates" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "services"}}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
+          <input type="text" name="tagline" value="{{.Values.Get "tagline"}}" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-preview-tagline-source>
+        </div>
+        <div class="pt-2 flex justify-between items-center">
+          <button type="button" data-prev class="rounded-full border border-slate-200 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition">Back</button>
+          <div class="text-right">
+            <button type="submit" class="rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Publish my site</button>
+            <p class="mt-2 text-sm text-slate-400">Goes live the moment you publish.</p>
+          </div>
+        </div>
+      </section>
+    </form>
   </div>
-</form>
+
+  <aside class="hidden lg:block sticky top-10">
+    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Live preview</p>
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="flex items-center gap-1.5 px-4 py-3 bg-slate-100 border-b border-slate-200">
+        <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+        <span class="ml-3 flex-1 truncate rounded-md bg-white border border-slate-200 px-3 py-1 text-xs text-slate-500"><span data-slug-preview>yourbusiness</span>.launchly.ltd</span>
+      </div>
+      <div class="p-6">
+        <div class="w-10 h-10 rounded-lg mb-4" data-preview-accent style="background:#4F46E5"></div>
+        <p class="font-bold text-xl leading-tight text-slate-900" data-preview-heading style="font-family:'Fraunces',serif">Your Business Name</p>
+        <p class="mt-2 text-sm text-slate-500" data-preview-tagline>Your tagline will appear here.</p>
+        <div class="mt-5 inline-block rounded-full px-4 py-2 text-xs font-semibold text-white" data-preview-cta style="background:#4F46E5">Get in touch</div>
+      </div>
+    </div>
+    <p class="mt-3 text-xs text-slate-400">A quick look at your design choices — the real thing has your full content.</p>
+  </aside>
+</div>
 
 <script>
   (function () {
-    var nameInput = document.querySelector('input[name="business_name"]');
-    var preview = document.getElementById('slug-preview');
-    if (!nameInput || !preview) return;
+    var form = document.getElementById('wizard-form');
+    var steps = Array.prototype.slice.call(form.querySelectorAll('.wizard-step'));
+    var dots = Array.prototype.slice.call(document.querySelectorAll('[data-step-dot]'));
+    var current = 1;
+    var templateTouched = false;
+
+    var TEMPLATE_DEFAULT_FONT = { meridian: 'serif' };
+    var CATEGORY_DEFAULT_TEMPLATE = { general: 'aurora', salon: 'bloom' };
+
     function slugify(s) {
-      return s.toLowerCase().replace(/['`]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      return s.toLowerCase().replace(/['\x60]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'yourbusiness';
     }
-    function update() {
-      preview.textContent = slugify(nameInput.value) || 'yourbusiness';
+
+    function showStep(n) {
+      steps.forEach(function (s) {
+        var isActive = Number(s.getAttribute('data-step')) === n;
+        s.hidden = !isActive;
+        s.classList.toggle('wizard-step-active', isActive);
+      });
+      dots.forEach(function (d) {
+        var n2 = Number(d.getAttribute('data-step-dot'));
+        var numEl = d.querySelector('.step-num');
+        var labelEl = d.querySelector('.step-label');
+        numEl.classList.remove('border-brand', 'bg-brand', 'text-white', 'border-slate-200', 'text-slate-400', 'border-emerald-500', 'bg-emerald-500');
+        labelEl.classList.remove('text-slate-900', 'text-slate-400');
+        if (n2 < n) {
+          numEl.classList.add('border-emerald-500', 'bg-emerald-500', 'text-white');
+          numEl.textContent = '✓';
+          labelEl.classList.add('text-slate-900');
+        } else if (n2 === n) {
+          numEl.classList.add('border-brand', 'bg-brand', 'text-white');
+          numEl.textContent = n2;
+          labelEl.classList.add('text-slate-900');
+        } else {
+          numEl.classList.add('border-slate-200', 'text-slate-400');
+          numEl.textContent = n2;
+          labelEl.classList.add('text-slate-400');
+        }
+      });
+      current = n;
+      var rect = form.getBoundingClientRect();
+      window.scrollTo({ top: rect.top + window.scrollY - 24, behavior: 'smooth' });
     }
-    nameInput.addEventListener('input', update);
-    update();
+
+    function validateStep(n) {
+      if (n === 1) {
+        var name = form.querySelector('[name="business_name"]');
+        if (!name.value.trim()) {
+          name.focus();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    form.querySelectorAll('[data-next]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!validateStep(current)) return;
+        showStep(Math.min(current + 1, steps.length));
+      });
+    });
+    form.querySelectorAll('[data-prev]').forEach(function (btn) {
+      btn.addEventListener('click', function () { showStep(Math.max(current - 1, 1)); });
+    });
+    form.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT' && current < steps.length) {
+        e.preventDefault();
+        var nextBtn = steps[current - 1].querySelector('[data-next]');
+        if (nextBtn) nextBtn.click();
+      }
+    });
+
+    var slugSource = form.querySelector('[data-slug-source]');
+    var slugPreviews = document.querySelectorAll('[data-slug-preview]');
+    var headingPreview = document.querySelector('[data-preview-heading]');
+    function updateSlugAndHeading() {
+      var value = slugSource.value.trim();
+      var slug = slugify(value);
+      slugPreviews.forEach(function (el) { el.textContent = slug; });
+      headingPreview.textContent = value || 'Your Business Name';
+    }
+    slugSource.addEventListener('input', updateSlugAndHeading);
+
+    var taglineSource = form.querySelector('[data-preview-tagline-source]');
+    var taglinePreview = document.querySelector('[data-preview-tagline]');
+    taglineSource.addEventListener('input', function () {
+      taglinePreview.textContent = taglineSource.value.trim() || 'Your tagline will appear here.';
+    });
+
+    var accentEl = document.querySelector('[data-preview-accent]');
+    var ctaEl = document.querySelector('[data-preview-cta]');
+    function activeTemplateID() {
+      var checked = form.querySelector('[data-template-radio]:checked');
+      return checked ? checked.value : null;
+    }
+    function updatePalettePreview() {
+      var tmplID = activeTemplateID();
+      if (!tmplID) return;
+      var checkedPalette = form.querySelector('[data-palette-radio][data-template="' + tmplID + '"]:checked');
+      if (checkedPalette) {
+        var swatch = checkedPalette.closest('label').querySelector('span[style]');
+        var color = swatch ? swatch.style.backgroundColor : '';
+        if (color) { accentEl.style.background = color; ctaEl.style.background = color; }
+      }
+    }
+    function updatePreviewFont() {
+      var font = document.getElementById('field-heading_font').value;
+      if (!font) font = TEMPLATE_DEFAULT_FONT[activeTemplateID()] || 'sans';
+      headingPreview.style.fontFamily = font === 'serif' ? "'Fraunces',serif" : "'Inter',sans-serif";
+    }
+
+    form.querySelectorAll('[data-template-radio]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        templateTouched = true;
+        document.querySelectorAll('[data-palette-group]').forEach(function (g) {
+          g.classList.toggle('hidden', g.getAttribute('data-palette-group') !== radio.value);
+        });
+        updatePalettePreview();
+        updatePreviewFont();
+      });
+    });
+    form.querySelectorAll('[data-palette-radio]').forEach(function (radio) {
+      radio.addEventListener('change', updatePalettePreview);
+    });
+    form.querySelector('[data-business-type]').addEventListener('change', function () {
+      if (templateTouched) return;
+      var target = CATEGORY_DEFAULT_TEMPLATE[this.value];
+      var radio = target && form.querySelector('[data-template-radio][value="' + target + '"]');
+      if (radio) {
+        radio.checked = true;
+        document.querySelectorAll('[data-palette-group]').forEach(function (g) {
+          g.classList.toggle('hidden', g.getAttribute('data-palette-group') !== target);
+        });
+        updatePalettePreview();
+        updatePreviewFont();
+        templateTouched = false;
+      }
+    });
+
+    document.querySelectorAll('[data-heading-font]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('[data-heading-font]').forEach(function (b) {
+          b.classList.remove('border-brand', 'ring-2', 'ring-brand/20', 'text-brand');
+          b.classList.add('border-slate-200', 'text-slate-700');
+        });
+        btn.classList.remove('border-slate-200', 'text-slate-700');
+        btn.classList.add('border-brand', 'ring-2', 'ring-brand/20', 'text-brand');
+        document.getElementById('field-heading_font').value = btn.getAttribute('data-heading-font');
+        updatePreviewFont();
+      });
+    });
+
+    form.addEventListener('submit', function () {
+      var tmplID = activeTemplateID();
+      var checkedPalette = tmplID && form.querySelector('[data-palette-radio][data-template="' + tmplID + '"]:checked');
+      document.getElementById('field-palette').value = checkedPalette ? checkedPalette.value : '';
+    });
+
+    updateSlugAndHeading();
+    updatePalettePreview();
+    updatePreviewFont();
+    showStep(1);
   })();
 </script>
 {{end}}
