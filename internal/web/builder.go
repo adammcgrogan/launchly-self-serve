@@ -109,6 +109,10 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 			h.renderNewSite(w, r, verr.Message, r.Form)
 			return
 		}
+		if errors.Is(err, service.ErrSiteLimitReached) {
+			h.renderNewSite(w, r, service.ErrSiteLimitReached.Error(), r.Form)
+			return
+		}
 		h.renderNewSite(w, r, "Something went wrong creating your site. Please try again.", r.Form)
 		return
 	}

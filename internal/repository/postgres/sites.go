@@ -69,6 +69,14 @@ func GetSiteBySlug(ctx context.Context, q querier, slug string) (*domain.Site, e
 	return scanSite(q.QueryRowContext(ctx, `SELECT `+siteColumns+` FROM sites WHERE slug = $1`, slug))
 }
 
+// CountSitesByOwner returns how many sites an account owns, used to enforce
+// the per-account site cap (see service.Sites.canCreateSite).
+func CountSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) (int, error) {
+	var n int
+	err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM sites WHERE owner_user_id = $1`, ownerID).Scan(&n)
+	return n, err
+}
+
 func ListSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) ([]domain.Site, error) {
 	rows, err := q.QueryContext(ctx, `SELECT `+siteColumns+` FROM sites WHERE owner_user_id = $1 ORDER BY created_at DESC`, ownerID)
 	if err != nil {

@@ -149,6 +149,12 @@ var (
 // through checkout so the reactivation actually resolves the unpaid trial.
 var ErrSitePaused = errors.New("your site is paused — upgrade to reactivate it.")
 
+// ErrSiteLimitReached is returned by CreateSite when an account with no
+// Pro-plan site tries to create more than one site. Plan is tracked per
+// site, not per account, so the cap is: Starter/trial accounts get 1 site;
+// having Pro on any existing site lifts the cap to unlimited.
+var ErrSiteLimitReached = errors.New("your plan is limited to 1 site — upgrade an existing site to Pro to add more.")
+
 // Errors returned by UpdateNotifySettings — web handlers show these
 // directly to the site owner, so their text is user-facing.
 var (
@@ -208,6 +214,14 @@ type CreateSiteInput struct {
 func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.SiteAggregate, error) {
 	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages); err != nil {
 		return nil, err
+	}
+
+	allowed, err := s.canCreateSite(ctx, in.OwnerUserID)
+	if err != nil {
+		return nil, fmt.Errorf("check site limit: %w", err)
+	}
+	if !allowed {
+		return nil, ErrSiteLimitReached
 	}
 
 	slug, err := s.uniqueSlug(ctx, in.BusinessName)
@@ -273,6 +287,20 @@ func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.Sit
 	}
 
 	return s.GetSiteAggregate(ctx, siteID)
+}
+
+// canCreateSite enforces the per-account site cap: an account with no
+// Pro-plan site is limited to 1 site total; having Pro on any existing site
+// lifts the cap, since plan is tracked per site rather than per account.
+func (s *Sites) canCreateSite(ctx context.Context, ownerID uuid.UUID) (bool, error) {
+	count, err := postgres.CountSitesByOwner(ctx, s.store.DB(), ownerID)
+	if err != nil {
+		return false, err
+	}
+	if count == 0 {
+		return true, nil
+	}
+	return postgres.OwnerHasProSite(ctx, s.store.DB(), ownerID)
 }
 
 func (s *Sites) uniqueSlug(ctx context.Context, businessName string) (string, error) {
