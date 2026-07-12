@@ -1,0 +1,24 @@
+{{define "content"}}
+<a href="/dashboard/sites/{{.Site.ID}}" class="text-sm text-slate-500 hover:text-slate-800">← Back</a>
+<h1 class="font-display text-2xl font-bold text-slate-900 mt-2">Form type</h1>
+<p class="mt-2 text-slate-500">Choose what your site's contact form asks visitors for.</p>
+
+<form method="POST" action="/dashboard/sites/{{.Site.ID}}/form-type" class="mt-8 space-y-4">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
+    <input type="radio" name="form_type" value="contact" {{if eq .Site.FormType "contact"}}checked{{end}} class="mt-1">
+    <span>
+      <span class="block font-semibold text-slate-900">Contact form</span>
+      <span class="block text-sm text-slate-500 mt-1">Name, email, phone and a free-text message.</span>
+    </span>
+  </label>
+  <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
+    <input type="radio" name="form_type" value="booking" {{if eq .Site.FormType "booking"}}checked{{end}} class="mt-1">
+    <span>
+      <span class="block font-semibold text-slate-900">Booking form</span>
+      <span class="block text-sm text-slate-500 mt-1">Adds a service picker and preferred time, so requests arrive pre-qualified.</span>
+    </span>
+  </label>
+  <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save</button>
+</form>
+{{end}}

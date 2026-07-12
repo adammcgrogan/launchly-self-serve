@@ -120,6 +120,20 @@
         <input type="text" name="name" placeholder="Your name" required class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
         <input type="email" name="email" placeholder="Email" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
         <input type="tel" name="phone" placeholder="Phone" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        {{if eq (print .Site.FormType) "booking"}}
+        <select name="service_label" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+          <option value="">What do you need?</option>
+          {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
+          <option value="Something else">Something else</option>
+        </select>
+        <select name="preferred_time" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+          <option value="">Preferred time</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Evening">Evening</option>
+          <option value="Anytime">Anytime</option>
+        </select>
+        {{end}}
         <textarea name="message" placeholder="Tell us about the job" rows="4" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);"></textarea>
         <button type="submit" class="w-full font-display font-semibold px-6 py-3.5" style="background:var(--accent);color:var(--accent-ink);">Send request</button>
       </form>

@@ -183,6 +183,36 @@ func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
+func (h *Handler) FormTypeForm(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	h.render.Render(w, "dashboard:form_type", map[string]any{
+		"Site":      site,
+		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
+	})
+}
+
+func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	formType := domain.FormType(r.FormValue("form_type"))
+	if formType != domain.FormTypeContact && formType != domain.FormTypeBooking {
+		http.Error(w, "invalid form type", http.StatusBadRequest)
+		return
+	}
+	if err := h.sites.UpdateFormType(r.Context(), site.ID, formType); err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	middleware.SetFlash(w, "Form type saved.")
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+}
+
 func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {

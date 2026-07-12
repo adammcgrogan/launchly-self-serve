@@ -81,9 +81,9 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-leads.csv"`, site.Slug))
 	cw := csv.NewWriter(w)
-	cw.Write([]string{"Name", "Email", "Phone", "Message", "Date"})
+	cw.Write([]string{"Name", "Email", "Phone", "Service", "Preferred time", "Message", "Date"})
 	for _, l := range leads {
-		cw.Write([]string{l.Name, l.Email, l.Phone, l.Message, l.CreatedAt.Format("2006-01-02 15:04")})
+		cw.Write([]string{l.Name, l.Email, l.Phone, l.ServiceLabel, l.PreferredTime, l.Message, l.CreatedAt.Format("2006-01-02 15:04")})
 	}
 	cw.Flush()
 }

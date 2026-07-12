@@ -189,6 +189,7 @@ func (h *Handler) submitLeadForSite(w http.ResponseWriter, r *http.Request, site
 
 	if err := h.leads.SubmitLead(r.Context(), site.ID,
 		name, strings.TrimSpace(r.FormValue("email")), strings.TrimSpace(r.FormValue("phone")), strings.TrimSpace(r.FormValue("message")),
+		strings.TrimSpace(r.FormValue("service_label")), strings.TrimSpace(r.FormValue("preferred_time")),
 	); err != nil {
 		slog.Error("submit lead", "site_id", site.ID, "error", err)
 		http.Error(w, "could not save lead", http.StatusInternalServerError)

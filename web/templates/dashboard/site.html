@@ -18,6 +18,7 @@
         <a href="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Edit content</a>
         <a href="/dashboard/sites/{{.Site.ID}}/appearance" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Appearance</a>
         <a href="/dashboard/sites/{{.Site.ID}}/switch-template" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Switch design</a>
+        <a href="/dashboard/sites/{{.Site.ID}}/form-type" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Form type</a>
         <a href="/dashboard/sites/{{.Site.ID}}/address" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Address</a>
         <a href="/dashboard/sites/{{.Site.ID}}/domain" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Custom domain{{if ne (print .Site.Billing.Plan) "pro"}} (Pro){{end}}</a>
         <a href="/dashboard/sites/{{.Site.ID}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
@@ -99,6 +100,7 @@
         {{range .Leads}}
         <div class="py-3">
           <p class="font-medium text-slate-900">{{.Name}}{{if .Email}} · {{.Email}}{{end}}{{if .Phone}} · {{.Phone}}{{end}}</p>
+          {{if .ServiceLabel}}<p class="text-sm text-slate-500 mt-1">{{.ServiceLabel}}{{if .PreferredTime}} · {{.PreferredTime}}{{end}}</p>{{end}}
           {{if .Message}}<p class="text-sm text-slate-500 mt-1">{{.Message}}</p>{{end}}
           <p class="text-xs text-slate-400 mt-1">{{.CreatedAt.Format "2 Jan 2006, 15:04"}}</p>
         </div>

@@ -39,6 +39,13 @@ const (
 	PaymentStatusCancelled PaymentStatus = "cancelled"
 )
 
+type FormType string
+
+const (
+	FormTypeContact FormType = "contact"
+	FormTypeBooking FormType = "booking"
+)
+
 type SocialPlatform string
 
 const (
@@ -64,6 +71,7 @@ type Site struct {
 	LogoURL       string
 	CTAText       string
 	TemplateID    string
+	FormType      FormType
 	Palette       string
 	HeadingFont   string
 	Status        SiteStatus

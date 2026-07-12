@@ -23,8 +23,8 @@ func NewLeads(store *postgres.Store, mailer *email.Client, sms *notify.SMSClient
 // SubmitLead records a contact-form submission and forwards it to the
 // business owner by email, with the visitor's address set as reply-to. It
 // also best-effort texts the owner if they've opted into SMS lead alerts.
-func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, phone, message string) error {
-	lead := &domain.Lead{SiteID: siteID, Name: name, Email: emailAddr, Phone: phone, Message: message}
+func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, phone, message, serviceLabel, preferredTime string) error {
+	lead := &domain.Lead{SiteID: siteID, Name: name, Email: emailAddr, Phone: phone, Message: message, ServiceLabel: serviceLabel, PreferredTime: preferredTime}
 	if err := postgres.CreateLead(ctx, l.store.DB(), lead); err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 	}
 	to := notifyEmail(ctx, l.store, site.OwnerUserID, contactEmail)
 	if to != "" {
-		if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message); err != nil {
+		if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message, serviceLabel, preferredTime); err != nil {
 			slog.Error("send lead notification", "error", err)
 		}
 	}

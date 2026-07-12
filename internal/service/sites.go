@@ -356,6 +356,12 @@ func (s *Sites) UpdateAppearance(ctx context.Context, siteID int, palette, headi
 	return postgres.UpdateSiteAppearance(ctx, s.store.DB(), siteID, palette, headingFont)
 }
 
+// UpdateFormType switches a site's public form between the plain contact
+// form and the booking form (service + preferred time).
+func (s *Sites) UpdateFormType(ctx context.Context, siteID int, formType domain.FormType) error {
+	return postgres.UpdateSiteFormType(ctx, s.store.DB(), siteID, formType)
+}
+
 // SwitchTemplate changes a site's design. The palette is reset (not carried
 // over) since palette IDs are template-specific — a palette valid for the
 // old template may not exist on the new one. Heading font is a
