@@ -124,8 +124,14 @@ func (h *Handler) Account(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	sites, err := h.sites.ListSitesByOwner(r.Context(), middleware.UserID(r))
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
 	h.render.Render(w, "dashboard:account", map[string]any{
 		"Profile":       profile,
+		"Sites":         sites,
 		"Flash":         middleware.GetFlash(w, r),
 		"EmailVerified": profile.EmailVerified,
 		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),

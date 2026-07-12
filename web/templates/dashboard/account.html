@@ -4,6 +4,32 @@
 <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 max-w-md">
   <p class="text-sm text-slate-500">Email</p>
   <p class="mt-1 font-medium text-slate-900">{{.Profile.Email}}</p>
+  <p class="mt-2 text-sm">
+    {{if .Profile.EmailVerified}}
+    <span class="text-emerald-600 font-medium">Verified</span>
+    {{else}}
+    <span class="text-amber-600 font-medium">Not verified</span> —
+    <a href="/resend-verification" class="text-brand font-medium underline">Resend verification email</a>
+    {{end}}
+  </p>
+
+  <div class="mt-6 pt-6 border-t border-slate-100">
+    <p class="text-sm text-slate-500">Member since</p>
+    <p class="mt-1 font-medium text-slate-900">{{.Profile.CreatedAt.Format "2 January 2006"}}</p>
+  </div>
+
+  <div class="mt-6 pt-6 border-t border-slate-100">
+    <p class="text-sm text-slate-500">Your sites ({{len .Sites}})</p>
+    {{if .Sites}}
+    <ul class="mt-2 space-y-1">
+      {{range .Sites}}
+      <li><a href="/dashboard/sites/{{.ID}}" class="text-sm font-medium text-brand hover:underline">{{.BusinessName}}</a></li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="mt-1 text-sm text-slate-400">No sites yet.</p>
+    {{end}}
+  </div>
 
   <div class="mt-6 pt-6 border-t border-slate-100">
     <p class="text-sm text-slate-500">Need to change your password?</p>
