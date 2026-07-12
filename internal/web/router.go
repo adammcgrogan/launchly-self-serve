@@ -34,6 +34,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /forgot-password", h.ForgotPasswordSubmit)
 	mux.HandleFunc("GET /reset-password", h.ResetPasswordForm)
 	mux.HandleFunc("POST /reset-password", h.ResetPasswordSubmit)
+	mux.HandleFunc("GET /resend-verification", h.ResendVerificationForm)
+	mux.HandleFunc("POST /resend-verification", h.ResendVerificationSubmit)
 
 	// Path-based site routing (works without wildcard subdomains — useful for local dev).
 	mux.HandleFunc("GET /sites/{slug}", h.ServeSitePath)

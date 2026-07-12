@@ -120,6 +120,30 @@ func (h *Handler) ResetPasswordForm(w http.ResponseWriter, r *http.Request) {
 	h.render.Render(w, "auth:reset_password", map[string]any{})
 }
 
+func (h *Handler) ResendVerificationForm(w http.ResponseWriter, r *http.Request) {
+	h.render.Render(w, "auth:resend_verification", map[string]any{})
+}
+
+func (h *Handler) ResendVerificationSubmit(w http.ResponseWriter, r *http.Request) {
+	if !h.resendVerificationLimiter.Allow(middleware.ClientIP(r)) {
+		h.render.Render(w, "auth:resend_verification", map[string]any{"Error": "Too many attempts. Please wait a moment and try again."})
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	emailAddr := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
+	if emailAddr != "" && h.resendVerificationLimiter.Allow("email:"+emailAddr) {
+		// Errors are intentionally swallowed: don't reveal whether an
+		// account exists or is already verified.
+		_ = h.accounts.ResendVerificationEmail(r.Context(), emailAddr)
+	}
+	h.render.Render(w, "auth:resend_verification", map[string]any{
+		"Info": "If an account exists for that email and isn't verified yet, a confirmation link is on its way.",
+	})
+}
+
 func (h *Handler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)

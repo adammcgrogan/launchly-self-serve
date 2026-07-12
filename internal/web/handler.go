@@ -32,9 +32,10 @@ type Handler struct {
 	cron      *service.Cron
 	domains   *service.Domains
 
-	loginLimiter   *middleware.RateLimiter
-	signupLimiter  *middleware.RateLimiter
-	contactLimiter *middleware.RateLimiter
+	loginLimiter              *middleware.RateLimiter
+	signupLimiter             *middleware.RateLimiter
+	contactLimiter            *middleware.RateLimiter
+	resendVerificationLimiter *middleware.RateLimiter
 }
 
 // Deps bundles everything main.go constructs so the Handler constructor
@@ -70,9 +71,10 @@ func New(d Deps) (*Handler, error) {
 		analytics:      d.Analytics,
 		cron:           d.Cron,
 		domains:        d.Domains,
-		loginLimiter:   middleware.NewRateLimiter(10, 15*time.Minute),
-		signupLimiter:  middleware.NewRateLimiter(5, 15*time.Minute),
-		contactLimiter: middleware.NewRateLimiter(5, time.Minute),
+		loginLimiter:              middleware.NewRateLimiter(10, 15*time.Minute),
+		signupLimiter:             middleware.NewRateLimiter(5, 15*time.Minute),
+		contactLimiter:            middleware.NewRateLimiter(5, time.Minute),
+		resendVerificationLimiter: middleware.NewRateLimiter(5, 15*time.Minute),
 	}
 
 	h.render = NewRenderer()

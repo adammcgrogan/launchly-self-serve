@@ -45,7 +45,7 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 	}
 
 	authBase := "web/templates/auth/base.html"
-	for _, p := range []string{"signup", "login", "forgot_password", "reset_password"} {
+	for _, p := range []string{"signup", "login", "forgot_password", "reset_password", "resend_verification"} {
 		if err := rd.parse("auth:"+p, authBase, "web/templates/auth/"+p+".html"); err != nil {
 			return err
 		}
