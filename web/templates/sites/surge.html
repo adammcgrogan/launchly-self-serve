@@ -1,0 +1,160 @@
+{{define "theme"}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-display:'Anton',sans-serif; --font-body:'Barlow',sans-serif;
+    {{if eq .Site.Palette "cobalt"}}
+      --ink:#F1F5F9; --surface:#171D26; --paper:#0D1117; --accent:#22D3EE; --accent-ink:#06282E; --muted:#94A3AC; --line:#263241;
+    {{else}}
+      --ink:#F5F5F0; --surface:#1C1C1C; --paper:#121212; --accent:#A3E635; --accent-ink:#0A0A0A; --muted:#A3A39A; --line:#2E2E2A;
+    {{end}}
+  }
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);}
+  .font-display{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.01em;}
+  .surge-divider{height:12px;background:var(--accent);transform:skewY(-1.5deg);}
+  .surge-num{font-family:var(--font-display);color:var(--accent);-webkit-text-stroke:1px var(--accent);}
+</style>
+{{end}}
+
+{{define "site-content"}}
+<header class="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+  <a href="#top" class="flex items-center gap-3 font-display text-xl">
+    {{if .Site.LogoURL}}<img src="{{.Site.LogoURL}}" alt="{{.Site.BusinessName}}" class="h-9 w-9 rounded-full object-cover">{{end}}
+    {{.Site.BusinessName}}
+  </a>
+  <nav class="hidden md:flex items-center gap-8 text-sm font-semibold uppercase tracking-wide" style="color:var(--muted);">
+    {{if .Site.Services}}<a href="#services" class="hover:opacity-70">Programs</a>{{end}}
+    {{if .Site.About}}<a href="#about" class="hover:opacity-70">About</a>{{end}}
+    <a href="#contact" class="hover:opacity-70">Join</a>
+  </nav>
+  <a href="#contact" class="hidden sm:inline-flex items-center rounded px-5 py-2.5 text-sm font-bold uppercase" style="background:var(--accent);color:var(--accent-ink);">
+    {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Join now{{end}}
+  </a>
+</header>
+
+<section id="top" class="relative overflow-hidden" style="background:var(--surface);">
+  <div class="max-w-6xl mx-auto px-6 pt-16 pb-28 md:pt-20 md:pb-36">
+    <div class="max-w-3xl">
+      {{if .Site.Contact.Location}}<p class="text-sm font-bold uppercase tracking-widest mb-4" style="color:var(--accent);">{{.Site.Contact.Location}}</p>{{end}}
+      <h1 class="font-display text-6xl sm:text-8xl leading-[0.9]">{{.Site.BusinessName}}</h1>
+      {{if .Site.Tagline}}<p class="mt-6 text-xl max-w-xl" style="color:var(--muted);">{{.Site.Tagline}}</p>{{end}}
+      <div class="mt-10 flex flex-wrap gap-4">
+        <a href="#contact" class="inline-flex items-center rounded px-8 py-4 font-bold uppercase" style="background:var(--accent);color:var(--accent-ink);">
+          {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Join now{{end}}
+        </a>
+        {{if .Site.Contact.Phone}}<a href="tel:{{.Site.Contact.Phone}}" class="inline-flex items-center rounded px-8 py-4 font-bold uppercase border-2" style="border-color:var(--line);">Call now</a>{{end}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="surge-divider"></div>
+
+{{if .Site.About}}
+<section id="about" class="max-w-6xl mx-auto px-6 pt-16 pb-12">
+  <div class="grid md:grid-cols-[200px_1fr] gap-8">
+    <h2 class="font-display text-2xl">The Gym</h2>
+    <p class="text-lg leading-relaxed max-w-2xl" style="color:var(--muted);">{{.Site.About}}</p>
+  </div>
+  {{if .Site.Certifications}}
+  <div class="mt-10 pt-8 border-t flex flex-wrap gap-x-10 gap-y-3" style="border-color:var(--line);">
+    {{range .Site.Certifications}}<span class="text-sm font-semibold uppercase tracking-wide" style="color:var(--muted);">{{.Label}}</span>{{end}}
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+{{if .Site.Services}}
+<div class="surge-divider"></div>
+<section id="services" class="py-16" style="background:var(--surface);">
+  <div class="max-w-6xl mx-auto px-6">
+    <h2 class="font-display text-3xl mb-10">Programs</h2>
+    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {{range $i, $s := .Site.Services}}
+      <div>
+        <p class="surge-num text-5xl">{{printf "%02d" (add1 $i)}}</p>
+        <p class="mt-2 text-lg font-semibold">{{$s.Label}}</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</section>
+<div class="surge-divider"></div>
+{{end}}
+
+{{if .Site.GalleryImages}}
+<section class="max-w-6xl mx-auto px-6 py-16">
+  <h2 class="font-display text-3xl mb-8">In the gym</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+    {{range .Site.GalleryImages}}<img src="{{.URL}}" alt="{{.AltText}}" class="aspect-square w-full object-cover rounded">{{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Testimonials}}
+<div class="surge-divider"></div>
+<section class="py-16" style="background:var(--surface);">
+  <div class="max-w-6xl mx-auto px-6">
+    <h2 class="font-display text-3xl mb-10">Member results</h2>
+    <div class="grid md:grid-cols-3 gap-6">
+      {{range .Site.Testimonials}}
+      <div>
+        <p class="leading-relaxed">“{{.Quote}}”</p>
+        <p class="mt-4 text-sm font-bold uppercase tracking-wide" style="color:var(--accent);">{{.AuthorName}}{{if .AuthorRole}}, {{.AuthorRole}}{{end}}</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</section>
+<div class="surge-divider"></div>
+{{end}}
+
+<section id="contact" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="grid md:grid-cols-2 gap-12">
+    <div>
+      <h2 class="font-display text-3xl mb-6">Join the gym</h2>
+      {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">Phone: <a href="tel:{{.Site.Contact.Phone}}" class="font-semibold" style="color:var(--ink);">{{.Site.Contact.Phone}}</a></p>{{end}}
+      {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">Email: <a href="mailto:{{.Site.Contact.Email}}" class="font-semibold" style="color:var(--ink);">{{.Site.Contact.Email}}</a></p>{{end}}
+      {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
+      {{if .Site.BusinessHours}}
+      <div class="mt-6 pt-6 border-t" style="border-color:var(--line);">
+        {{if .OpenLabel}}<p class="text-sm font-bold uppercase mb-2" style="color:{{if .Open}}var(--accent){{else}}var(--muted){{end}};">{{.OpenLabel}}</p>{{end}}
+        {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);"><span class="font-semibold" style="color:var(--ink);">{{.Weekday.String}}:</span> {{if .Closed}}Closed{{else}}{{.OpensAt}}–{{.ClosesAt}}{{end}}</p>{{end}}
+      </div>
+      {{end}}
+    </div>
+    <div>
+      {{if .LeadSent}}
+      <div class="rounded p-8 border text-center" style="border-color:var(--line);">
+        <p class="font-display text-2xl">Let's go!</p>
+        <p class="mt-2" style="color:var(--muted);">We'll be in touch shortly.</p>
+      </div>
+      {{else}}
+      <form method="POST" action="{{.FormAction}}" class="rounded p-8 border space-y-4" style="border-color:var(--line);background:var(--surface);">
+        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+        <input type="text" name="name" placeholder="Your name" required class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);">
+        <input type="email" name="email" placeholder="Email" class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);">
+        <input type="tel" name="phone" placeholder="Phone" class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);">
+        {{if or (eq (print .Site.FormType) "booking") .Site.Services}}
+        <select name="service_label" class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);">
+          <option value="">Which program?</option>
+          {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
+          <option value="Something else">Something else</option>
+        </select>
+        <select name="preferred_time" class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);">
+          <option value="">Preferred time</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Evening">Evening</option>
+          <option value="Anytime">Anytime</option>
+        </select>
+        {{end}}
+        <textarea name="message" placeholder="Tell us your goals" rows="4" class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);"></textarea>
+        <button type="submit" class="w-full rounded px-6 py-3.5 font-bold uppercase" style="background:var(--accent);color:var(--accent-ink);">Send enquiry</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}

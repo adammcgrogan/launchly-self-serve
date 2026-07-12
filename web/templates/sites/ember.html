@@ -1,0 +1,153 @@
+{{define "theme"}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-display:'DM Serif Display',serif; --font-body:'Karla',sans-serif;
+    {{if eq .Site.Palette "olive"}}
+      --ink:#1D2118; --surface:#FFFFFF; --paper:#F6F5EC; --accent:#4B5320; --accent-ink:#FFFFFF; --muted:#5C6152; --line:#E1E2D5; --rule:#8A7A3A;
+    {{else}}
+      --ink:#2B1A12; --surface:#FFFFFF; --paper:#FBF3E9; --accent:#B5502E; --accent-ink:#FFFFFF; --muted:#6B5849; --line:#EDE0D0; --rule:#A9822E;
+    {{end}}
+  }
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);}
+  .font-display{font-family:var(--font-display);}
+  .ember-frame{border:1px solid var(--rule);}
+  .ember-frame::before,.ember-frame::after{content:'';display:block;height:1px;background:var(--rule);margin:3px;}
+  .ember-leader{flex:1;border-bottom:2px dotted var(--line);margin:0 .75rem;transform:translateY(-.35rem);}
+  .ember-dots{color:var(--rule);letter-spacing:.3em;}
+</style>
+{{end}}
+
+{{define "site-content"}}
+<header class="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
+  <a href="#top" class="flex items-center gap-3 font-display text-xl italic">
+    {{if .Site.LogoURL}}<img src="{{.Site.LogoURL}}" alt="{{.Site.BusinessName}}" class="h-9 w-9 rounded-full object-cover">{{end}}
+    {{.Site.BusinessName}}
+  </a>
+  <nav class="hidden md:flex items-center gap-8 text-sm font-medium" style="color:var(--muted);">
+    {{if .Site.About}}<a href="#about" class="hover:opacity-70">Our story</a>{{end}}
+    {{if .Site.Services}}<a href="#services" class="hover:opacity-70">Menu</a>{{end}}
+    <a href="#contact" class="hover:opacity-70">Visit</a>
+  </nav>
+  <a href="#contact" class="hidden sm:inline-flex items-center rounded-sm px-5 py-2.5 text-sm font-semibold" style="background:var(--accent);color:var(--accent-ink);">
+    {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Reserve a table{{end}}
+  </a>
+</header>
+
+<section id="top" class="max-w-4xl mx-auto px-6 pt-10 pb-20 text-center">
+  {{if .Site.Contact.Location}}<p class="ember-dots text-xs uppercase mb-6">· · · {{.Site.Contact.Location}} · · ·</p>{{end}}
+  <h1 class="font-display text-5xl sm:text-7xl italic leading-[1.05]">{{.Site.BusinessName}}</h1>
+  {{if .Site.Tagline}}
+  <div class="ember-frame inline-block mt-8 px-8 py-5">
+    <p class="text-lg" style="color:var(--muted);">{{.Site.Tagline}}</p>
+  </div>
+  {{end}}
+  <div class="mt-10 flex flex-wrap justify-center gap-4">
+    <a href="#contact" class="inline-flex items-center rounded-sm px-8 py-3.5 font-semibold" style="background:var(--accent);color:var(--accent-ink);">
+      {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Reserve a table{{end}}
+    </a>
+    {{if .Site.Contact.Phone}}<a href="tel:{{.Site.Contact.Phone}}" class="inline-flex items-center rounded-sm px-8 py-3.5 font-semibold border" style="border-color:var(--line);">Call {{.Site.Contact.Phone}}</a>{{end}}
+  </div>
+</section>
+
+{{if .Site.About}}
+<section id="about" class="max-w-2xl mx-auto px-6 py-16 text-center border-t" style="border-color:var(--line);">
+  <p class="ember-dots text-xs uppercase mb-4">Our story</p>
+  <p class="font-display text-2xl italic leading-relaxed">{{.Site.About}}</p>
+  {{if .Site.Certifications}}
+  <div class="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2">
+    {{range .Site.Certifications}}<span class="text-sm" style="color:var(--rule);">{{.Label}}</span>{{end}}
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+{{if .Site.Services}}
+<section id="services" class="max-w-2xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display text-3xl italic text-center mb-10">On the menu</h2>
+  <div class="space-y-4">
+    {{range .Site.Services}}
+    <div class="flex items-baseline">
+      <span class="text-lg font-medium">{{.Label}}</span>
+      <span class="ember-leader"></span>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.GalleryImages}}
+<section class="max-w-5xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display text-3xl italic text-center mb-10">From the kitchen</h2>
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+    {{range .Site.GalleryImages}}<img src="{{.URL}}" alt="{{.AltText}}" class="aspect-[4/5] w-full object-cover rounded-sm">{{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Testimonials}}
+<section class="max-w-3xl mx-auto px-6 py-16 border-t text-center" style="border-color:var(--line);">
+  <h2 class="font-display text-3xl italic mb-10">Guests say</h2>
+  <div class="space-y-10">
+    {{range .Site.Testimonials}}
+    <div>
+      <p class="font-display italic text-xl leading-relaxed">“{{.Quote}}”</p>
+      <p class="mt-3 text-sm" style="color:var(--rule);">{{.AuthorName}}{{if .AuthorRole}}, {{.AuthorRole}}{{end}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+<section id="contact" class="max-w-4xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display text-3xl italic text-center mb-10">Visit us</h2>
+  <div class="grid md:grid-cols-2 gap-12">
+    <div class="text-center md:text-left">
+      {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Phone}}</p>{{end}}
+      {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Email}}</p>{{end}}
+      {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
+      {{if .Site.BusinessHours}}
+      <div class="mt-6 ember-frame p-5">
+        {{if .OpenLabel}}<p class="text-sm font-semibold mb-2" style="color:{{if .Open}}var(--accent){{else}}var(--muted){{end}};">{{.OpenLabel}}</p>{{end}}
+        {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);"><span class="font-medium" style="color:var(--ink);">{{.Weekday.String}}</span>: {{if .Closed}}Closed{{else}}{{.OpensAt}}–{{.ClosesAt}}{{end}}</p>{{end}}
+      </div>
+      {{end}}
+      {{if .Site.Contact.MapEmbedURL}}
+      <iframe src="{{.Site.Contact.MapEmbedURL}}" class="mt-6 w-full h-56 rounded-sm border-0" style="border:1px solid var(--line);" loading="lazy"></iframe>
+      {{end}}
+    </div>
+    <div>
+      {{if .LeadSent}}
+      <div class="ember-frame p-8 text-center">
+        <p class="font-display text-2xl italic">Thank you!</p>
+        <p class="mt-2" style="color:var(--muted);">We'll confirm your reservation shortly.</p>
+      </div>
+      {{else}}
+      <form method="POST" action="{{.FormAction}}" class="ember-frame p-8 space-y-4">
+        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+        <input type="text" name="name" placeholder="Your name" required class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);">
+        <input type="email" name="email" placeholder="Email" class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);">
+        <input type="tel" name="phone" placeholder="Phone" class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);">
+        {{if or (eq (print .Site.FormType) "booking") .Site.Services}}
+        <select name="service_label" class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);">
+          <option value="">What are you booking?</option>
+          {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
+          <option value="Something else">Something else</option>
+        </select>
+        <select name="preferred_time" class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);">
+          <option value="">Preferred time</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Evening">Evening</option>
+          <option value="Anytime">Anytime</option>
+        </select>
+        {{end}}
+        <textarea name="message" placeholder="Party size, occasion, allergies…" rows="4" class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);"></textarea>
+        <button type="submit" class="w-full rounded-sm px-6 py-3.5 font-semibold" style="background:var(--accent);color:var(--accent-ink);">Send reservation request</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}

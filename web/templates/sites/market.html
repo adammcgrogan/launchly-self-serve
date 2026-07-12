@@ -1,0 +1,151 @@
+{{define "theme"}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-display:'Bebas Neue',sans-serif; --font-body:'Work Sans',sans-serif;
+    {{if eq .Site.Palette "citrus"}}
+      --ink:#171410; --surface:#FFFFFF; --paper:#FFFDF7; --accent:#F59E0B; --accent-ink:#171410; --muted:#6B6355; --line:#EDE8D8;
+    {{else}}
+      --ink:#111111; --surface:#FFFFFF; --paper:#FAFAF9; --accent:#E11D2E; --accent-ink:#FFFFFF; --muted:#6B6B6B; --line:#E5E5E0;
+    {{end}}
+  }
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);}
+  .font-display{font-family:var(--font-display);letter-spacing:.02em;}
+  .market-card{border:2px solid var(--ink);position:relative;}
+  .market-tag{position:absolute;top:-1px;right:-1px;background:var(--accent);color:var(--accent-ink);font-family:var(--font-display);font-size:.7rem;letter-spacing:.05em;padding:.2rem .55rem;}
+</style>
+{{end}}
+
+{{define "site-content"}}
+<header class="border-b-2" style="border-color:var(--ink);">
+  <div class="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-3 font-display text-2xl">
+      {{if .Site.LogoURL}}<img src="{{.Site.LogoURL}}" alt="{{.Site.BusinessName}}" class="h-9 w-9 object-cover">{{end}}
+      {{.Site.BusinessName}}
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-sm font-semibold uppercase tracking-wide" style="color:var(--muted);">
+      {{if .Site.Services}}<a href="#services" class="hover:opacity-70">Shop</a>{{end}}
+      {{if .Site.About}}<a href="#about" class="hover:opacity-70">About</a>{{end}}
+      <a href="#contact" class="hover:opacity-70">Visit</a>
+    </nav>
+    <a href="#contact" class="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-bold uppercase" style="background:var(--ink);color:var(--paper);">
+      {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Shop now{{end}}
+    </a>
+  </div>
+</header>
+
+<section id="top" class="max-w-6xl mx-auto px-6 pt-16 pb-20">
+  <div class="max-w-3xl">
+    {{if .Site.Contact.Location}}<p class="text-sm font-bold uppercase tracking-widest mb-4" style="color:var(--accent);">{{.Site.Contact.Location}}</p>{{end}}
+    <h1 class="font-display text-6xl sm:text-8xl leading-[0.9]">{{.Site.BusinessName}}</h1>
+    <div class="w-24 h-2 mt-6" style="background:var(--accent);"></div>
+    {{if .Site.Tagline}}<p class="mt-6 text-xl max-w-xl" style="color:var(--muted);">{{.Site.Tagline}}</p>{{end}}
+    <div class="mt-10 flex flex-wrap gap-4">
+      <a href="#contact" class="inline-flex items-center px-8 py-4 font-bold uppercase" style="background:var(--ink);color:var(--paper);">
+        {{if .Site.CTAText}}{{.Site.CTAText}}{{else}}Shop now{{end}}
+      </a>
+      {{if .Site.Contact.Phone}}<a href="tel:{{.Site.Contact.Phone}}" class="inline-flex items-center px-8 py-4 font-bold uppercase market-card">Call us</a>{{end}}
+    </div>
+  </div>
+</section>
+
+{{if .Site.About}}
+<section id="about" class="border-t-2" style="border-color:var(--ink);background:var(--surface);">
+  <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-[220px_1fr] gap-8">
+    <h2 class="font-display text-3xl">The shop</h2>
+    <p class="text-lg leading-relaxed max-w-2xl" style="color:var(--muted);">{{.Site.About}}</p>
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Services}}
+<section id="services" class="max-w-6xl mx-auto px-6 py-16">
+  <h2 class="font-display text-3xl mb-10">What we sell</h2>
+  <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+    {{range $i, $s := .Site.Services}}
+    <div class="market-card p-6">
+      {{if eq $i 0}}<span class="market-tag">NEW</span>{{end}}
+      <p class="font-display text-xl">{{$s.Label}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.GalleryImages}}
+<section class="border-t-2" style="border-color:var(--ink);background:var(--surface);">
+  <div class="max-w-6xl mx-auto px-6 py-16">
+    <h2 class="font-display text-3xl mb-8">In store</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-0.5">
+      {{range .Site.GalleryImages}}<img src="{{.URL}}" alt="{{.AltText}}" class="aspect-square w-full object-cover">{{end}}
+    </div>
+  </div>
+</section>
+{{end}}
+
+{{if .Site.Testimonials}}
+<section class="max-w-6xl mx-auto px-6 py-16">
+  <h2 class="font-display text-3xl mb-10">Customers say</h2>
+  <div class="grid md:grid-cols-3 gap-5">
+    {{range .Site.Testimonials}}
+    <div class="market-card p-6">
+      <p class="leading-relaxed">“{{.Quote}}”</p>
+      <p class="mt-4 text-sm font-bold uppercase" style="color:var(--accent);">{{.AuthorName}}{{if .AuthorRole}}, {{.AuthorRole}}{{end}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+<section id="contact" class="border-t-2" style="border-color:var(--ink);background:var(--surface);">
+  <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12">
+    <div>
+      <h2 class="font-display text-3xl mb-6">Find us</h2>
+      {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">Phone: <a href="tel:{{.Site.Contact.Phone}}" class="font-semibold" style="color:var(--ink);">{{.Site.Contact.Phone}}</a></p>{{end}}
+      {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">Email: <a href="mailto:{{.Site.Contact.Email}}" class="font-semibold" style="color:var(--ink);">{{.Site.Contact.Email}}</a></p>{{end}}
+      {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
+      {{if .Site.BusinessHours}}
+      <div class="mt-6 pt-6 border-t-2" style="border-color:var(--line);">
+        {{if .OpenLabel}}<p class="text-sm font-bold uppercase mb-2" style="color:{{if .Open}}var(--accent){{else}}var(--muted){{end}};">{{.OpenLabel}}</p>{{end}}
+        {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);"><span class="font-semibold" style="color:var(--ink);">{{.Weekday.String}}:</span> {{if .Closed}}Closed{{else}}{{.OpensAt}}–{{.ClosesAt}}{{end}}</p>{{end}}
+      </div>
+      {{end}}
+      {{if .Site.Contact.MapEmbedURL}}
+      <iframe src="{{.Site.Contact.MapEmbedURL}}" class="mt-6 w-full h-56" style="border:2px solid var(--ink);" loading="lazy"></iframe>
+      {{end}}
+    </div>
+    <div>
+      {{if .LeadSent}}
+      <div class="market-card p-8 text-center">
+        <p class="font-display text-2xl">Thanks!</p>
+        <p class="mt-2" style="color:var(--muted);">We'll be in touch shortly.</p>
+      </div>
+      {{else}}
+      <form method="POST" action="{{.FormAction}}" class="market-card p-8 space-y-4">
+        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+        <input type="text" name="name" placeholder="Your name" required class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <input type="email" name="email" placeholder="Email" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <input type="tel" name="phone" placeholder="Phone" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        {{if or (eq (print .Site.FormType) "booking") .Site.Services}}
+        <select name="service_label" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+          <option value="">What are you after?</option>
+          {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
+          <option value="Something else">Something else</option>
+        </select>
+        <select name="preferred_time" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+          <option value="">Preferred time</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Evening">Evening</option>
+          <option value="Anytime">Anytime</option>
+        </select>
+        {{end}}
+        <textarea name="message" placeholder="Message" rows="4" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);"></textarea>
+        <button type="submit" class="w-full px-6 py-3.5 font-bold uppercase" style="background:var(--ink);color:var(--paper);">Send message</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}

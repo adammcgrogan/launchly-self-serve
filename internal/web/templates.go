@@ -47,6 +47,36 @@ var siteTemplates = []domain.Template{
 			{ID: "sage", Name: "Sage"},
 		},
 	},
+	{
+		ID:          "ember",
+		Name:        "Ember",
+		Description: "Warm, tactile, menu-led — a cosy design for restaurants, cafes, and food service.",
+		Category:    "hospitality",
+		Palettes: []domain.Palette{
+			{ID: "terracotta", Name: "Terracotta"},
+			{ID: "olive", Name: "Olive"},
+		},
+	},
+	{
+		ID:          "market",
+		Name:        "Market",
+		Description: "Bold, graphic, signage-led — built for retail, shops, and boutiques.",
+		Category:    "retail",
+		Palettes: []domain.Palette{
+			{ID: "onyx", Name: "Onyx"},
+			{ID: "citrus", Name: "Citrus"},
+		},
+	},
+	{
+		ID:          "surge",
+		Name:        "Surge",
+		Description: "High-energy, athletic, dark-led — built for gyms, studios, and fitness coaches.",
+		Category:    "fitness",
+		Palettes: []domain.Palette{
+			{ID: "volt", Name: "Volt"},
+			{ID: "cobalt", Name: "Cobalt"},
+		},
+	},
 }
 
 // businessType is one option in the builder wizard's "what kind of business
@@ -61,10 +91,10 @@ type businessType struct {
 
 var businessTypes = []businessType{
 	{ID: "general", Label: "General business or trade", DefaultTemplate: "aurora"},
-	{ID: "hospitality", Label: "Hospitality & food service", DefaultTemplate: "aurora"},
-	{ID: "retail", Label: "Retail & shop", DefaultTemplate: "aurora"},
+	{ID: "hospitality", Label: "Hospitality & food service", DefaultTemplate: "ember"},
+	{ID: "retail", Label: "Retail & shop", DefaultTemplate: "market"},
 	{ID: "professional", Label: "Professional services", DefaultTemplate: "meridian"},
-	{ID: "fitness", Label: "Fitness & gyms", DefaultTemplate: "foundry"},
+	{ID: "fitness", Label: "Fitness & gyms", DefaultTemplate: "surge"},
 	{ID: "salon", Label: "Salon, studio & wellness", DefaultTemplate: "bloom"},
 }
 
@@ -82,13 +112,19 @@ func findTemplate(id string) (domain.Template, bool) {
 // Palette.CSS (which drives the actual rendered site and isn't populated
 // per-palette yet).
 var paletteSwatchColors = map[string]string{
-	"indigo":   "#4F46E5",
-	"emerald":  "#059669",
-	"sunset":   "#F97316",
-	"charcoal": "#1E293B",
-	"rust":     "#B45309",
-	"ivory":    "#CA8A04",
-	"forest":   "#166534",
-	"blush":    "#EC4899",
-	"sage":     "#5F8D6E",
+	"indigo":     "#4F46E5",
+	"emerald":    "#059669",
+	"sunset":     "#F97316",
+	"charcoal":   "#1E293B",
+	"rust":       "#B45309",
+	"ivory":      "#CA8A04",
+	"forest":     "#166534",
+	"blush":      "#EC4899",
+	"sage":       "#5F8D6E",
+	"terracotta": "#B5502E",
+	"olive":      "#4B5320",
+	"onyx":       "#E11D2E",
+	"citrus":     "#F59E0B",
+	"volt":       "#A3E635",
+	"cobalt":     "#22D3EE",
 }
