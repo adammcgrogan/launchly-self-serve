@@ -6,7 +6,7 @@
     <h1 class="font-display text-2xl font-bold text-slate-900">{{.Site.BusinessName}}</h1>
     <a href="{{.SiteURL}}" target="_blank" class="text-brand text-sm font-medium">{{.SiteURL}} ↗</a>
   </div>
-  <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Site.Status}}</span>
+  <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Site.Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Site.Status}}</span>
 </div>
 
 <div class="grid md:grid-cols-3 gap-6">
@@ -24,7 +24,7 @@
         <form method="POST" action="/dashboard/sites/{{.Site.ID}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Unpublish</button>
         </form>
-        {{else}}
+        {{else if ne (print .Site.Status) "paused"}}
         <form method="POST" action="/dashboard/sites/{{.Site.ID}}/publish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Publish</button>
         </form>
@@ -91,6 +91,7 @@
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 class="font-semibold text-slate-900 mb-3">Plan</h2>
       <p class="text-sm text-slate-500 capitalize">{{.Site.Billing.Plan}} · <span class="capitalize">{{.Site.Billing.PaymentStatus}}</span></p>
+      {{if eq (print .Site.Status) "paused"}}<p class="mt-1 text-sm font-medium text-amber-700">Your site is paused — reactivate below to bring it back online.</p>{{end}}
       {{if eq (print .Site.Billing.PaymentStatus) "trialing"}}
         {{if .Site.Billing.TrialEndsAt}}<p class="text-xs text-slate-400 mt-1">Trial ends {{.Site.Billing.TrialEndsAt.Format "2 Jan 2006"}}</p>{{end}}
         <form method="POST" action="/dashboard/sites/{{.Site.ID}}/upgrade" class="mt-4 space-y-2">

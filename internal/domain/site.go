@@ -9,8 +9,9 @@ import (
 type SiteStatus string
 
 const (
-	SiteStatusDraft SiteStatus = "draft"
-	SiteStatusLive  SiteStatus = "live"
+	SiteStatusDraft  SiteStatus = "draft"
+	SiteStatusLive   SiteStatus = "live"
+	SiteStatusPaused SiteStatus = "paused" // trial ended (+ grace) with no paid plan; distinct from owner-chosen draft
 )
 
 type Plan string

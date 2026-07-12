@@ -189,6 +189,11 @@ func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.sites.Publish(r.Context(), site.ID); err != nil {
+		if err == service.ErrSitePaused {
+			middleware.SetFlash(w, err.Error())
+			http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+			return
+		}
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}

@@ -140,6 +140,33 @@ func GetSiteIDsDueForTrialReminder(ctx context.Context, q querier, kind string) 
 	return ids, rows.Err()
 }
 
+// GetSiteIDsDueForTrialPause returns IDs of live sites whose trial ended
+// before cutoff (i.e. trial_ends_at + grace period) with no paid
+// subscription, so the trial cron can pause them.
+func GetSiteIDsDueForTrialPause(ctx context.Context, q querier, cutoff time.Time) ([]int, error) {
+	rows, err := q.QueryContext(ctx, `
+		SELECT sb.site_id FROM site_billing sb
+		JOIN sites s ON s.id = sb.site_id
+		WHERE sb.trial_ends_at IS NOT NULL
+		  AND sb.trial_ends_at < $1
+		  AND sb.payment_status != 'paid'
+		  AND s.status = 'live'
+	`, cutoff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func MarkTrialReminderSent(ctx context.Context, q querier, siteID int, kind string) error {
 	var col string
 	switch kind {

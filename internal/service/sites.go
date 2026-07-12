@@ -37,6 +37,11 @@ var (
 	ErrSlugRateLimited = errors.New("you can only change your address once per day.")
 )
 
+// ErrSitePaused is returned by Publish when the site was paused by the
+// trial cron — publishing isn't a free way back online, it has to go
+// through checkout so the reactivation actually resolves the unpaid trial.
+var ErrSitePaused = errors.New("your site is paused — upgrade to reactivate it.")
+
 // reservedSlugs can't be claimed as a site's address — they're platform
 // routes or would be confusing as a subdomain.
 var reservedSlugs = map[string]bool{
@@ -430,8 +435,19 @@ func (s *Sites) UpdateAnalyticsFrequency(ctx context.Context, siteID int, freque
 }
 
 // Publish and Unpublish let an owner take their own site up/down at will —
-// there is no admin approval gate on either direction.
+// there is no admin approval gate on either direction. A paused site is the
+// exception: it can only come back via checkout (see ErrSitePaused).
 func (s *Sites) Publish(ctx context.Context, siteID int) error {
+	site, err := postgres.GetSiteByID(ctx, s.store.DB(), siteID)
+	if err != nil {
+		return err
+	}
+	if site == nil {
+		return fmt.Errorf("site %d not found", siteID)
+	}
+	if site.Status == domain.SiteStatusPaused {
+		return ErrSitePaused
+	}
 	return postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusLive)
 }
 

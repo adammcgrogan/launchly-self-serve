@@ -106,6 +106,11 @@ func (b *Billing) handleCheckoutCompleted(ctx context.Context, event *payment.We
 	if err != nil || site == nil {
 		return err
 	}
+	if site.Status == domain.SiteStatusPaused {
+		if err := postgres.SetSiteStatus(ctx, b.store.DB(), site.ID, domain.SiteStatusLive); err != nil {
+			slog.Error("reactivate paused site", "site_id", site.ID, "error", err)
+		}
+	}
 	contact, err := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
 	if err != nil {
 		return err

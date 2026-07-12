@@ -288,6 +288,19 @@ func (c *Client) SendTrialWarning(to, businessName, dashboardURL string, daysLef
 	return c.Send(to, subject, wrap("Free trial", content))
 }
 
+// SendSitePaused notifies an owner their trial ended and the site is now
+// paused. Reactivation links straight to the dashboard upgrade button — the
+// same self-serve checkout used everywhere else.
+func (c *Client) SendSitePaused(to, businessName, dashboardURL string) error {
+	content := h1("Your site has been paused") +
+		p(fmt.Sprintf("The free trial for <strong>%s</strong> has ended, so it's paused and no longer visible to visitors.", businessName)) +
+		p("Reactivating takes one click — upgrade from your dashboard any time and your site comes straight back online.") +
+		button(dashboardURL, "Reactivate my site") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
+	return c.Send(to, fmt.Sprintf("Your site is paused - %s", businessName), wrap("Site paused", content))
+}
+
 func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *domain.SiteStats, siteURL string) error {
 	period, days := "weekly", "7 days"
 	if frequency == "monthly" {

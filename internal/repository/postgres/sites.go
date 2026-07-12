@@ -151,12 +151,17 @@ func SlugInUse(ctx context.Context, q querier, slug string) (bool, error) {
 }
 
 func SetSiteStatus(ctx context.Context, q querier, id int, status domain.SiteStatus) error {
-	if status == domain.SiteStatusLive {
+	switch status {
+	case domain.SiteStatusLive:
 		_, err := q.ExecContext(ctx, `UPDATE sites SET status = 'live', published_at = now(), updated_at = now() WHERE id = $1`, id)
 		return err
+	case domain.SiteStatusPaused:
+		_, err := q.ExecContext(ctx, `UPDATE sites SET status = 'paused', updated_at = now() WHERE id = $1`, id)
+		return err
+	default:
+		_, err := q.ExecContext(ctx, `UPDATE sites SET status = 'draft', updated_at = now() WHERE id = $1`, id)
+		return err
 	}
-	_, err := q.ExecContext(ctx, `UPDATE sites SET status = 'draft', updated_at = now() WHERE id = $1`, id)
-	return err
 }
 
 func DeleteSite(ctx context.Context, q querier, id int) error {

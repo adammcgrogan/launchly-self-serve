@@ -44,6 +44,10 @@ func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, 
 		h.renderClaimOrError(w, slug)
 		return
 	}
+	if site.Status == domain.SiteStatusPaused {
+		h.render.Render(w, "paused", map[string]any{"BusinessName": site.BusinessName})
+		return
+	}
 	if site.Status != domain.SiteStatusLive {
 		h.render.RenderError(w, http.StatusNotFound)
 		return

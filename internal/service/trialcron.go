@@ -6,9 +6,15 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 )
+
+// trialGracePeriod is how long a site stays live after its trial ends
+// before being paused, so "14-day free trial" stays honest (owners get a
+// few extra days of leeway, not an instant cutoff).
+const trialGracePeriod = 3 * 24 * time.Hour
 
 // Cron runs background reminders: trial-ending emails and scheduled
 // analytics digests. Trial reminders link straight to the dashboard upgrade
@@ -27,6 +33,7 @@ func NewCron(store *postgres.Store, mailer *email.Client, analytics *Analytics, 
 // Start launches the background tickers. Call once at server startup.
 func (c *Cron) Start() {
 	go c.runEvery(time.Hour, c.sendDueTrialReminders)
+	go c.runEvery(time.Hour, c.pauseDueSites)
 	go c.runEvery(time.Hour, c.sendDueAnalyticsDigests)
 }
 
@@ -77,6 +84,48 @@ func (c *Cron) sendDueTrialReminders() {
 			} else {
 				slog.Info("trial reminder sent", "slug", site.Slug, "kind", kind)
 			}
+		}
+	}
+}
+
+// pauseDueSites pauses live sites whose trial ended more than
+// trialGracePeriod ago with no paid subscription — nothing else ever
+// unpublishes a trial that ran out, so without this every trial site stays
+// live free forever.
+func (c *Cron) pauseDueSites() {
+	ctx := context.Background()
+	cutoff := time.Now().UTC().Add(-trialGracePeriod)
+	ids, err := postgres.GetSiteIDsDueForTrialPause(ctx, c.store.DB(), cutoff)
+	if err != nil {
+		slog.Error("trial cron: list sites due for pause", "error", err)
+		return
+	}
+	for _, id := range ids {
+		site, err := postgres.GetSiteByID(ctx, c.store.DB(), id)
+		if err != nil || site == nil {
+			continue
+		}
+		if err := postgres.SetSiteStatus(ctx, c.store.DB(), id, domain.SiteStatusPaused); err != nil {
+			slog.Error("trial cron: pause site", "slug", site.Slug, "error", err)
+			continue
+		}
+		slog.Info("trial site paused", "slug", site.Slug)
+
+		contact, err := postgres.GetSiteContact(ctx, c.store.DB(), id)
+		if err != nil {
+			continue
+		}
+		contactEmail := ""
+		if contact != nil {
+			contactEmail = contact.Email
+		}
+		to := notifyEmail(ctx, c.store, site.OwnerUserID, contactEmail)
+		if to == "" {
+			continue
+		}
+		dashboardURL := fmt.Sprintf("%s/dashboard/sites/%d", c.baseURL, id)
+		if err := c.mailer.SendSitePaused(to, site.BusinessName, dashboardURL); err != nil {
+			slog.Error("trial cron: send paused email", "slug", site.Slug, "error", err)
 		}
 	}
 }
