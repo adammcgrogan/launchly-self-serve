@@ -16,8 +16,8 @@ func ReplaceSiteServices(ctx context.Context, q querier, siteID int, services []
 			continue
 		}
 		if _, err := q.ExecContext(ctx,
-			`INSERT INTO site_services (site_id, label, sort_order) VALUES ($1, $2, $3)`,
-			siteID, svc.Label, i,
+			`INSERT INTO site_services (site_id, label, description, price_text, sort_order) VALUES ($1, $2, $3, $4, $5)`,
+			siteID, svc.Label, svc.Description, svc.PriceText, i,
 		); err != nil {
 			return err
 		}
@@ -26,7 +26,7 @@ func ReplaceSiteServices(ctx context.Context, q querier, siteID int, services []
 }
 
 func GetSiteServices(ctx context.Context, q querier, siteID int) ([]domain.Service, error) {
-	rows, err := q.QueryContext(ctx, `SELECT id, site_id, label, sort_order FROM site_services WHERE site_id = $1 ORDER BY sort_order`, siteID)
+	rows, err := q.QueryContext(ctx, `SELECT id, site_id, label, description, price_text, sort_order FROM site_services WHERE site_id = $1 ORDER BY sort_order`, siteID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func GetSiteServices(ctx context.Context, q querier, siteID int) ([]domain.Servi
 	var out []domain.Service
 	for rows.Next() {
 		var s domain.Service
-		if err := rows.Scan(&s.ID, &s.SiteID, &s.Label, &s.SortOrder); err != nil {
+		if err := rows.Scan(&s.ID, &s.SiteID, &s.Label, &s.Description, &s.PriceText, &s.SortOrder); err != nil {
 			return nil, err
 		}
 		out = append(out, s)

@@ -74,7 +74,11 @@
       {{range $i, $s := .Site.Services}}
       <div>
         <p class="surge-num text-5xl">{{printf "%02d" (add1 $i)}}</p>
-        <p class="mt-2 text-lg font-semibold">{{$s.Label}}</p>
+        <div class="mt-2 flex items-baseline justify-between gap-3">
+          <p class="text-lg font-semibold">{{$s.Label}}</p>
+          {{if $s.PriceText}}<p class="shrink-0 text-sm font-bold" style="color:var(--accent);">{{$s.PriceText}}</p>{{end}}
+        </div>
+        {{if $s.Description}}<p class="mt-1 text-sm" style="color:var(--muted);">{{$s.Description}}</p>{{end}}
       </div>
       {{end}}
     </div>

@@ -110,7 +110,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Templates":        siteTemplates,
 		"Palettes":         tmpl.Palettes,
 		"Socials":          socialLinksMap(site.SocialLinks),
-		"ServicesText":     servicesToLines(site.Services),
+		"ServiceRows":      serviceRowsForDisplay(site.Services),
 		"CertsText":        certificationsToLines(site.Certifications),
 		"TestimonialsText": testimonialsToLines(site.Testimonials),
 		"GalleryText":      galleryToLines(site.GalleryImages),

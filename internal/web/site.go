@@ -105,13 +105,15 @@ type jsonLDOpeningHours struct {
 }
 
 type jsonLDService struct {
-	Type string `json:"@type"`
-	Name string `json:"name"`
+	Type        string `json:"@type"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
 }
 
 type jsonLDOffer struct {
 	Type        string        `json:"@type"`
 	ItemOffered jsonLDService `json:"itemOffered"`
+	Price       string        `json:"price,omitempty"`
 }
 
 type jsonLDOfferCatalog struct {
@@ -179,7 +181,11 @@ func localBusinessJSONLD(site *domain.SiteAggregate, siteURL string) template.JS
 	var offers []jsonLDOffer
 	for _, s := range site.Services {
 		if s.Label != "" {
-			offers = append(offers, jsonLDOffer{Type: "Offer", ItemOffered: jsonLDService{Type: "Service", Name: s.Label}})
+			offers = append(offers, jsonLDOffer{
+				Type:        "Offer",
+				ItemOffered: jsonLDService{Type: "Service", Name: s.Label, Description: s.Description},
+				Price:       s.PriceText,
+			})
 		}
 	}
 	if len(offers) > 0 {

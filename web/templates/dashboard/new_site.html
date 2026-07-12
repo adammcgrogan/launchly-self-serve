@@ -125,8 +125,20 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">What do you do? One service per line</label>
-          <textarea name="services" rows="4" placeholder="Boiler repair&#10;Central heating installs&#10;Landlord safety certificates" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "services"}}</textarea>
+          <p class="block text-sm font-medium text-slate-700 mb-2">What do you do?</p>
+          <div data-service-list class="space-y-3">
+            {{range $i, $s := .ServiceRows}}
+            <div class="service-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-service-row>
+              <button type="button" data-remove-service class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove service">✕</button>
+              <div class="grid sm:grid-cols-[1fr_auto] gap-3 pr-6">
+                <input type="text" name="service_label" value="{{$s.Label}}" placeholder="e.g. Boiler repair" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="service_price" value="{{$s.PriceText}}" placeholder="Price, e.g. from £25 (optional)" class="w-full sm:w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              </div>
+              <input type="text" name="service_description" value="{{$s.Description}}" placeholder="Short description (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            </div>
+            {{end}}
+          </div>
+          <button type="button" data-add-service class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another service</button>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
@@ -460,6 +472,28 @@
       }
     });
     updateTestimonialRemoveButtons();
+
+    var serviceList = document.querySelector('[data-service-list]');
+    function updateServiceRemoveButtons() {
+      var rows = serviceList.querySelectorAll('[data-service-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-service]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-service]').addEventListener('click', function () {
+      var rows = serviceList.querySelectorAll('[data-service-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      serviceList.appendChild(clone);
+      updateServiceRemoveButtons();
+    });
+    serviceList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-service]')) {
+        e.target.closest('[data-service-row]').remove();
+        updateServiceRemoveButtons();
+      }
+    });
+    updateServiceRemoveButtons();
 
     updateSlugAndHeading();
     updatePalettePreview();

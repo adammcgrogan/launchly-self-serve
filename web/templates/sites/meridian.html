@@ -58,8 +58,12 @@
   <h2 class="font-display italic text-2xl mb-10 text-center">Services</h2>
   <div class="divide-y" style="border-color:var(--line);">
     {{range .Site.Services}}
-    <div class="py-4 flex items-center justify-between">
-      <span class="text-lg">{{.Label}}</span>
+    <div class="py-4">
+      <div class="flex items-center justify-between gap-4">
+        <span class="text-lg">{{.Label}}</span>
+        {{if .PriceText}}<span class="text-sm italic" style="color:var(--brass);">{{.PriceText}}</span>{{end}}
+      </div>
+      {{if .Description}}<p class="mt-1 text-sm" style="color:var(--muted);">{{.Description}}</p>{{end}}
     </div>
     {{end}}
   </div>

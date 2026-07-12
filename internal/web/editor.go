@@ -63,7 +63,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 			MapEmbedURL: strings.TrimSpace(r.FormValue("map_embed_url")),
 		},
 		SocialLinks:    parseSocialLinks(r),
-		Services:       parseServices(r.FormValue("services")),
+		Services:       parseServiceRows(r),
 		Certifications: parseCertifications(r.FormValue("certifications")),
 		Testimonials:   parseTestimonials(r.FormValue("testimonials")),
 		GalleryImages:  parseGallery(r.FormValue("gallery")),

@@ -11,11 +11,12 @@ import (
 )
 
 // The editor form uses simple newline-separated textareas for list fields
-// (services, certifications, gallery URLs) and "field|field" lines for
-// testimonials — the same convention the old app used, just parsed into
-// normalized rows instead of stored as raw delimited strings. The builder
+// (certifications, gallery URLs) and "field|field" lines for testimonials —
+// the same convention the old app used, just parsed into normalized rows
+// instead of stored as raw delimited strings. Services and the builder
 // wizard's testimonials use real repeated fields instead (see
-// parseTestimonialRows) rather than asking for a delimited line.
+// parseServiceRows, parseTestimonialRows) rather than asking for a
+// delimited line.
 
 func splitLines(s string) []string {
 	var out []string
@@ -28,12 +29,73 @@ func splitLines(s string) []string {
 	return out
 }
 
-func parseServices(s string) []domain.Service {
+// parseServiceRows reads the repeatable service-menu cards — service_label,
+// service_price, and service_description are each submitted as one value
+// per row, in the same order, so the i-th value of each names one row. Rows
+// with no label are dropped.
+func parseServiceRows(r *http.Request) []domain.Service {
+	labels := r.Form["service_label"]
+	prices := r.Form["service_price"]
+	descriptions := r.Form["service_description"]
 	var out []domain.Service
-	for i, label := range splitLines(s) {
-		out = append(out, domain.Service{Label: label, SortOrder: i})
+	for i, label := range labels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		s := domain.Service{Label: label, SortOrder: len(out)}
+		if i < len(prices) {
+			s.PriceText = strings.TrimSpace(prices[i])
+		}
+		if i < len(descriptions) {
+			s.Description = strings.TrimSpace(descriptions[i])
+		}
+		out = append(out, s)
 	}
 	return out
+}
+
+// serviceRowsForForm rebuilds the service-menu cards from a failed submit's
+// form values (or an existing site's services, for the edit form), so
+// nothing typed is lost on reload. Always returns at least one (possibly
+// empty) row so the form has one to render.
+func serviceRowsForForm(values url.Values) []domain.Service {
+	labels := values["service_label"]
+	prices := values["service_price"]
+	descriptions := values["service_description"]
+	n := len(labels)
+	if len(prices) > n {
+		n = len(prices)
+	}
+	if len(descriptions) > n {
+		n = len(descriptions)
+	}
+	rows := make([]domain.Service, n)
+	for i := range rows {
+		if i < len(labels) {
+			rows[i].Label = labels[i]
+		}
+		if i < len(prices) {
+			rows[i].PriceText = prices[i]
+		}
+		if i < len(descriptions) {
+			rows[i].Description = descriptions[i]
+		}
+	}
+	if len(rows) == 0 {
+		rows = append(rows, domain.Service{})
+	}
+	return rows
+}
+
+// serviceRowsForDisplay adapts a site's stored services to the repeatable
+// service-menu card form, always returning at least one (possibly empty)
+// row so the edit form has one to render.
+func serviceRowsForDisplay(services []domain.Service) []domain.Service {
+	if len(services) == 0 {
+		return []domain.Service{{}}
+	}
+	return services
 }
 
 func parseCertifications(s string) []domain.Certification {
@@ -228,14 +290,6 @@ func socialLinksMap(links []domain.SocialLink) map[string]string {
 		m[string(l.Platform)] = l.URL
 	}
 	return m
-}
-
-func servicesToLines(services []domain.Service) string {
-	lines := make([]string, len(services))
-	for i, s := range services {
-		lines[i] = s.Label
-	}
-	return strings.Join(lines, "\n")
 }
 
 func certificationsToLines(c []domain.Certification) string {

@@ -173,10 +173,12 @@ type SocialLink struct {
 
 // Service is one line item in a site's services list.
 type Service struct {
-	ID        int
-	SiteID    int
-	Label     string
-	SortOrder int
+	ID          int
+	SiteID      int
+	Label       string
+	Description string
+	PriceText   string // free-text, e.g. "from £25" or "£40/hr" — no currency parsing
+	SortOrder   int
 }
 
 // Certification is one trust badge / certification shown on a site.

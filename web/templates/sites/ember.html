@@ -68,9 +68,13 @@
   <h2 class="font-display text-3xl italic text-center mb-10">On the menu</h2>
   <div class="space-y-4">
     {{range .Site.Services}}
-    <div class="flex items-baseline">
-      <span class="text-lg font-medium">{{.Label}}</span>
-      <span class="ember-leader"></span>
+    <div>
+      <div class="flex items-baseline">
+        <span class="text-lg font-medium">{{.Label}}</span>
+        <span class="ember-leader"></span>
+        {{if .PriceText}}<span class="text-lg" style="color:var(--rule);">{{.PriceText}}</span>{{end}}
+      </div>
+      {{if .Description}}<p class="mt-1 text-sm" style="color:var(--muted);">{{.Description}}</p>{{end}}
     </div>
     {{end}}
   </div>

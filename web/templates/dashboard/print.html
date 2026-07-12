@@ -41,7 +41,7 @@
       <div>
         <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Services</h2>
         <ul class="space-y-1 text-slate-700">
-          {{range .Site.Services}}<li>{{.Label}}</li>{{end}}
+          {{range .Site.Services}}<li>{{.Label}}{{if .PriceText}} — {{.PriceText}}{{end}}</li>{{end}}
         </ul>
       </div>
       {{end}}

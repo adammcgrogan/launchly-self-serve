@@ -27,6 +27,7 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		"Weekdays":        weekdays,
 		"Timezones":       timezones,
 		"TestimonialRows": testimonialRowsForForm(values),
+		"ServiceRows":     serviceRowsForForm(values),
 		"CSRFToken":       h.csrf.Token(middleware.UserID(r).String()),
 		"EmailVerified":   h.emailVerified(r),
 	})
@@ -96,7 +97,7 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 			MapEmbedURL: strings.TrimSpace(r.FormValue("map_embed_url")),
 		},
 		SocialLinks:    parseSocialLinks(r),
-		Services:       parseServices(r.FormValue("services")),
+		Services:       parseServiceRows(r),
 		Certifications: parseCertifications(r.FormValue("certifications")),
 		Testimonials:   parseTestimonialRows(r),
 		GalleryImages:  parseGallery(r.FormValue("gallery")),

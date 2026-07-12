@@ -108,7 +108,11 @@ func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, 
 		checks = append(checks, checkLen(string(sl.Platform)+" link", sl.URL, maxMediumField))
 	}
 	for _, sv := range services {
-		checks = append(checks, checkLen("service", sv.Label, maxShortField))
+		checks = append(checks,
+			checkLen("service", sv.Label, maxShortField),
+			checkLen("service price", sv.PriceText, maxShortField),
+			checkLen("service description", sv.Description, maxMediumField),
+		)
 	}
 	for _, c := range certs {
 		checks = append(checks, checkLen("certification", c.Label, maxShortField))
