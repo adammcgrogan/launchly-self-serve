@@ -53,6 +53,24 @@
     </div>
 
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-1">SMS lead alerts{{if ne (print .Site.Billing.Plan) "pro"}} <span class="text-xs font-normal text-slate-400">(Pro)</span>{{end}}</h2>
+      <p class="text-sm text-slate-500 mb-4">Get a text the moment someone contacts you, on top of the email notification.</p>
+      {{if eq (print .Site.Billing.Plan) "pro"}}
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/notify-settings" class="space-y-3">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="tel" name="mobile_number" value="{{.Site.Notify.MobileNumber}}" placeholder="+447700900123" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <label class="flex items-center gap-2 text-sm text-slate-600">
+          <input type="checkbox" name="sms_alerts_enabled" {{if .Site.Notify.SMSAlertsEnabled}}checked{{end}}>
+          Text me new leads
+        </label>
+        <button type="submit" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Save</button>
+      </form>
+      {{else}}
+      <p class="text-sm text-slate-400">Upgrade to Pro to enable SMS alerts.</p>
+      {{end}}
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 class="font-semibold text-slate-900 mb-4">Last 7 days</h2>
       {{if .Stats}}
       <div class="grid grid-cols-2 gap-4">

@@ -27,6 +27,7 @@ func NewSites(store *postgres.Store, billing *Billing) *Sites {
 var (
 	slugStripRe = regexp.MustCompile(`['\x60]`)
 	slugCharsRe = regexp.MustCompile(`[^a-z0-9]+`)
+	e164Re      = regexp.MustCompile(`^\+[1-9]\d{6,14}$`)
 )
 
 // Errors returned by RenameSlug — web handlers show these directly to the
@@ -42,6 +43,13 @@ var (
 // trial cron — publishing isn't a free way back online, it has to go
 // through checkout so the reactivation actually resolves the unpaid trial.
 var ErrSitePaused = errors.New("your site is paused — upgrade to reactivate it.")
+
+// Errors returned by UpdateNotifySettings — web handlers show these
+// directly to the site owner, so their text is user-facing.
+var (
+	ErrNotifyNotPro        = errors.New("SMS lead alerts are a Pro feature.")
+	ErrNotifyInvalidNumber = errors.New("enter your mobile number in international format, e.g. +447700900123.")
+)
 
 // reservedSlugs can't be claimed as a site's address — they're platform
 // routes or would be confusing as a subdomain.
@@ -201,6 +209,10 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 	if err != nil {
 		return nil, err
 	}
+	notify, err := postgres.GetSiteNotifySettings(ctx, q, id)
+	if err != nil {
+		return nil, err
+	}
 	announcement, err := postgres.GetSiteAnnouncement(ctx, q, id)
 	if err != nil {
 		return nil, err
@@ -235,6 +247,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		Contact:        *contact,
 		Billing:        *billing,
 		Analytics:      *analytics,
+		Notify:         *notify,
 		Announcement:   *announcement,
 		SocialLinks:    socialLinks,
 		Services:       services,
@@ -445,6 +458,28 @@ func (s *Sites) UpdateAnnouncement(ctx context.Context, siteID int, text string,
 func (s *Sites) UpdateAnalyticsFrequency(ctx context.Context, siteID int, frequency string) error {
 	return postgres.UpsertSiteAnalyticsSettings(ctx, s.store.DB(), &domain.SiteAnalyticsSettings{
 		SiteID: siteID, AnalyticsFrequency: frequency,
+	})
+}
+
+// UpdateNotifySettings sets a site's SMS lead alert opt-in. Enabling it
+// requires a Pro plan (per-message cost) and a mobile number in E.164
+// format; disabling always succeeds regardless of plan so a downgraded
+// owner can still turn it off.
+func (s *Sites) UpdateNotifySettings(ctx context.Context, siteID int, mobileNumber string, enabled bool) error {
+	if enabled {
+		billing, err := postgres.GetSiteBilling(ctx, s.store.DB(), siteID)
+		if err != nil {
+			return err
+		}
+		if billing == nil || billing.Plan != domain.PlanPro {
+			return ErrNotifyNotPro
+		}
+		if !e164Re.MatchString(mobileNumber) {
+			return ErrNotifyInvalidNumber
+		}
+	}
+	return postgres.UpsertSiteNotifySettings(ctx, s.store.DB(), &domain.SiteNotifySettings{
+		SiteID: siteID, MobileNumber: mobileNumber, SMSAlertsEnabled: enabled,
 	})
 }
 

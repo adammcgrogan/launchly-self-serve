@@ -28,6 +28,10 @@ type Config struct {
 	ResendAPIKey string
 	EmailFrom    string
 
+	TwilioAccountSID string
+	TwilioAuthToken  string
+	TwilioFromNumber string
+
 	SuperadminPassword string
 	CookieSigningKey   string // HMAC key for CSRF/flash cookies (not auth — auth uses Supabase JWTs)
 
@@ -61,6 +65,10 @@ func Load() (*Config, error) {
 
 		ResendAPIKey: getEnv("RESEND_API_KEY", ""),
 		EmailFrom:    getEnv("EMAIL_FROM", "noreply@launchly.ltd"),
+
+		TwilioAccountSID: getEnv("TWILIO_ACCOUNT_SID", ""),
+		TwilioAuthToken:  getEnv("TWILIO_AUTH_TOKEN", ""),
+		TwilioFromNumber: getEnv("TWILIO_FROM_NUMBER", ""),
 
 		SuperadminPassword: os.Getenv("SUPERADMIN_PASSWORD"),
 		CookieSigningKey:   os.Getenv("COOKIE_SIGNING_KEY"),

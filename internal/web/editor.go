@@ -280,6 +280,31 @@ func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
+func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	mobile := strings.TrimSpace(r.FormValue("mobile_number"))
+	enabled := r.FormValue("sms_alerts_enabled") == "on"
+
+	if err := h.sites.UpdateNotifySettings(r.Context(), site.ID, mobile, enabled); err != nil {
+		if err == service.ErrNotifyNotPro || err == service.ErrNotifyInvalidNumber {
+			middleware.SetFlash(w, err.Error())
+			http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+			return
+		}
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	middleware.SetFlash(w, "Notification settings saved.")
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+}
+
 func (h *Handler) SendAnalyticsNow(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {

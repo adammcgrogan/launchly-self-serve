@@ -111,6 +111,14 @@ type SiteAnalyticsSettings struct {
 	AnalyticsLastSentAt *time.Time
 }
 
+// SiteNotifySettings holds a site's opt-in SMS lead alert preferences. 1:1
+// with Site. SMS is a Pro perk on top of the always-on email notification.
+type SiteNotifySettings struct {
+	SiteID           int
+	MobileNumber     string // E.164 format, e.g. "+447700900123"
+	SMSAlertsEnabled bool
+}
+
 // SiteAnnouncement is a temporary banner an owner can set from the
 // dashboard (e.g. "Closed for holidays until 4 Aug"), shown on every page
 // until it's cleared or ExpiresAt passes. 1:1 with Site.
@@ -190,6 +198,7 @@ type SiteAggregate struct {
 	Contact        SiteContact
 	Billing        SiteBilling
 	Analytics      SiteAnalyticsSettings
+	Notify         SiteNotifySettings
 	Announcement   SiteAnnouncement
 	SocialLinks    []SocialLink
 	Services       []Service

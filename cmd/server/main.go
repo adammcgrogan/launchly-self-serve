@@ -15,6 +15,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/cloudflare"
 	"github.com/adammcgrogan/launchly-self-serve/internal/config"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
+	"github.com/adammcgrogan/launchly-self-serve/internal/notify"
 	"github.com/adammcgrogan/launchly-self-serve/internal/payment"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
@@ -44,6 +45,7 @@ func main() {
 
 	supa := supabase.NewClient(cfg.SupabaseURL, cfg.SupabaseAnonKey)
 	mailer := email.New(cfg.ResendAPIKey, cfg.EmailFrom)
+	sms := notify.NewSMSClient(cfg.TwilioAccountSID, cfg.TwilioAuthToken, cfg.TwilioFromNumber)
 	pay := payment.New(cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripeStarterPriceID, cfg.StripeProPriceID)
 
 	baseURL := "https://" + cfg.Domain
@@ -55,7 +57,7 @@ func main() {
 	analytics := service.NewAnalytics(store, cfg.CookieSigningKey)
 	billing := service.NewBilling(store, pay, mailer, baseURL)
 	sites := service.NewSites(store, billing)
-	leads := service.NewLeads(store, mailer)
+	leads := service.NewLeads(store, mailer, sms)
 	cron := service.NewCron(store, mailer, analytics, baseURL)
 
 	cf := cloudflare.New(cfg.CloudflareAPIToken, cfg.CloudflareZoneID)
