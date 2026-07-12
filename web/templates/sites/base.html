@@ -11,20 +11,7 @@
   <meta property="og:type" content="website">
   {{if .Site.LogoURL}}<meta property="og:image" content="{{.Site.LogoURL}}">{{end}}
   <link rel="canonical" href="https://{{.Site.Slug}}.launchly.ltd">
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "{{.Site.BusinessName}}"
-    {{if .Site.Tagline}},"description": "{{.Site.Tagline}}"{{end}}
-    {{if .Site.Contact.Phone}},"telephone": "{{.Site.Contact.Phone}}"{{end}}
-    {{if .Site.Contact.Email}},"email": "{{.Site.Contact.Email}}"{{end}}
-    {{if .Site.Contact.Address}},"address": {"@type": "PostalAddress", "streetAddress": "{{.Site.Contact.Address}}"}{{end}}
-    {{if .Site.LogoURL}},"image": "{{.Site.LogoURL}}"{{end}}
-    {{if .Site.OpenDays}},"openingHoursSpecification": [{{range $i, $h := .Site.OpenDays}}{{if $i}},{{end}}{"@type": "OpeningHoursSpecification", "dayOfWeek": "{{$h.Weekday.String}}", "opens": "{{$h.OpensAt}}", "closes": "{{$h.ClosesAt}}"}{{end}}]{{end}}
-    ,"url": "https://{{.Site.Slug}}.launchly.ltd"
-  }
-  </script>
+  <script type="application/ld+json">{{.JSONLD}}</script>
   <script src="https://cdn.tailwindcss.com"></script>
   {{template "theme" .}}
   {{if eq .Site.HeadingFont "sans"}}

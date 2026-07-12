@@ -1,6 +1,8 @@
 package web
 
 import (
+	"encoding/json"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -79,7 +81,114 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		"UmamiScriptURL": h.cfg.UmamiScriptURL,
 		"Open":           open,
 		"OpenLabel":      openLabel,
+		"JSONLD":         localBusinessJSONLD(site, h.siteURL(site.Slug)),
 	})
+}
+
+// JSON-LD types for the LocalBusiness structured data block emitted on
+// every published site. Kept as marshalled Go structs rather than
+// hand-assembled JSON in the template, which is fragile against quoting bugs.
+type jsonLDAddress struct {
+	Type            string `json:"@type"`
+	StreetAddress   string `json:"streetAddress,omitempty"`
+	AddressLocality string `json:"addressLocality,omitempty"`
+}
+
+type jsonLDOpeningHours struct {
+	Type      string `json:"@type"`
+	DayOfWeek string `json:"dayOfWeek"`
+	Opens     string `json:"opens"`
+	Closes    string `json:"closes"`
+}
+
+type jsonLDService struct {
+	Type string `json:"@type"`
+	Name string `json:"name"`
+}
+
+type jsonLDOffer struct {
+	Type        string        `json:"@type"`
+	ItemOffered jsonLDService `json:"itemOffered"`
+}
+
+type jsonLDOfferCatalog struct {
+	Type            string        `json:"@type"`
+	Name            string        `json:"name,omitempty"`
+	ItemListElement []jsonLDOffer `json:"itemListElement"`
+}
+
+type jsonLDLocalBusiness struct {
+	Context                   string               `json:"@context"`
+	Type                      string               `json:"@type"`
+	Name                      string               `json:"name"`
+	Description               string               `json:"description,omitempty"`
+	Telephone                 string               `json:"telephone,omitempty"`
+	Email                     string               `json:"email,omitempty"`
+	Image                     string               `json:"image,omitempty"`
+	URL                       string               `json:"url"`
+	Address                   *jsonLDAddress       `json:"address,omitempty"`
+	HasMap                    string               `json:"hasMap,omitempty"`
+	OpeningHoursSpecification []jsonLDOpeningHours `json:"openingHoursSpecification,omitempty"`
+	SameAs                    []string             `json:"sameAs,omitempty"`
+	HasOfferCatalog           *jsonLDOfferCatalog  `json:"hasOfferCatalog,omitempty"`
+}
+
+// localBusinessJSONLD builds the site's LocalBusiness structured data. Only
+// fields backed by genuine platform data are included — there's no rating
+// data behind testimonials, so no aggregateRating is emitted, and no
+// stored geo coordinates, so no geo property.
+func localBusinessJSONLD(site *domain.SiteAggregate, siteURL string) template.JS {
+	biz := jsonLDLocalBusiness{
+		Context:     "https://schema.org",
+		Type:        "LocalBusiness",
+		Name:        site.BusinessName,
+		Description: site.Tagline,
+		Telephone:   site.Contact.Phone,
+		Email:       site.Contact.Email,
+		Image:       site.LogoURL,
+		URL:         siteURL,
+		HasMap:      site.Contact.MapURL,
+	}
+
+	if site.Contact.Address != "" || site.Contact.Location != "" {
+		biz.Address = &jsonLDAddress{
+			Type:            "PostalAddress",
+			StreetAddress:   site.Contact.Address,
+			AddressLocality: site.Contact.Location,
+		}
+	}
+
+	for _, h := range site.OpenDays() {
+		biz.OpeningHoursSpecification = append(biz.OpeningHoursSpecification, jsonLDOpeningHours{
+			Type:      "OpeningHoursSpecification",
+			DayOfWeek: h.Weekday.String(),
+			Opens:     h.OpensAt,
+			Closes:    h.ClosesAt,
+		})
+	}
+
+	for _, l := range site.SocialLinks {
+		if l.URL != "" {
+			biz.SameAs = append(biz.SameAs, l.URL)
+		}
+	}
+
+	var offers []jsonLDOffer
+	for _, s := range site.Services {
+		if s.Label != "" {
+			offers = append(offers, jsonLDOffer{Type: "Offer", ItemOffered: jsonLDService{Type: "Service", Name: s.Label}})
+		}
+	}
+	if len(offers) > 0 {
+		biz.HasOfferCatalog = &jsonLDOfferCatalog{Type: "OfferCatalog", Name: "Services", ItemListElement: offers}
+	}
+
+	out, err := json.Marshal(biz)
+	if err != nil {
+		slog.Error("marshal local business json-ld", "site_id", site.ID, "error", err)
+		return ""
+	}
+	return template.JS(out)
 }
 
 // renderClaimOrError shows the "this subdomain is available" claim page for
