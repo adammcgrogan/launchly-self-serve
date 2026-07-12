@@ -107,7 +107,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"CertsText":        certificationsToLines(site.Certifications),
 		"TestimonialsText": testimonialsToLines(site.Testimonials),
 		"GalleryText":      galleryToLines(site.GalleryImages),
-		"HoursText":        businessHoursToLines(site.BusinessHours),
+		"HoursByDay":       businessHoursByDay(site.BusinessHours),
+		"Weekdays":         weekdays,
+		"Timezones":        timezones,
 		"Domain":           h.cfg.Domain,
 		"DomainData":       domainData,
 	})

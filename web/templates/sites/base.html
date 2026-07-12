@@ -21,6 +21,7 @@
     {{if .Site.Contact.Email}},"email": "{{.Site.Contact.Email}}"{{end}}
     {{if .Site.Contact.Address}},"address": {"@type": "PostalAddress", "streetAddress": "{{.Site.Contact.Address}}"}{{end}}
     {{if .Site.LogoURL}},"image": "{{.Site.LogoURL}}"{{end}}
+    {{if .Site.OpenDays}},"openingHoursSpecification": [{{range $i, $h := .Site.OpenDays}}{{if $i}},{{end}}{"@type": "OpeningHoursSpecification", "dayOfWeek": "{{$h.Weekday.String}}", "opens": "{{$h.OpensAt}}", "closes": "{{$h.ClosesAt}}"}{{end}}]{{end}}
     ,"url": "https://{{.Site.Slug}}.launchly.ltd"
   }
   </script>

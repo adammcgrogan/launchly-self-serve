@@ -11,7 +11,7 @@ import (
 
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
 	template_id, form_type, palette, heading_font, status, created_at, published_at, updated_at, slug_changed_at,
-	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at`
+	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at, timezone`
 
 func scanSite(row *sql.Row) (*domain.Site, error) {
 	var s domain.Site
@@ -19,7 +19,7 @@ func scanSite(row *sql.Row) (*domain.Site, error) {
 	err := row.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
-		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt,
+		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -38,7 +38,7 @@ func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 	err := rows.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
-		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt,
+		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
 	)
 	s.CustomDomain = customDomain.String
 	s.CustomDomainCFID = customDomainCFID.String
@@ -52,11 +52,11 @@ func CreateSite(ctx context.Context, q querier, site *domain.Site) (int, error) 
 	now := time.Now().UTC()
 	err := q.QueryRowContext(ctx, `
 		INSERT INTO sites (owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
-		                   template_id, palette, heading_font, status, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'live', $11)
+		                   template_id, palette, heading_font, status, published_at, timezone)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'live', $11, $12)
 		RETURNING id
 	`, site.OwnerUserID, site.Slug, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText,
-		site.TemplateID, site.Palette, site.HeadingFont, now,
+		site.TemplateID, site.Palette, site.HeadingFont, now, site.Timezone,
 	).Scan(&site.ID)
 	return site.ID, err
 }
@@ -125,9 +125,9 @@ func ListLiveSites(ctx context.Context, q querier) ([]domain.Site, error) {
 // UpdateSiteContent saves the editable core fields (not appearance/template/status).
 func UpdateSiteContent(ctx context.Context, q querier, site *domain.Site) error {
 	_, err := q.ExecContext(ctx, `
-		UPDATE sites SET business_name = $1, tagline = $2, about = $3, logo_url = $4, cta_text = $5, updated_at = now()
-		WHERE id = $6
-	`, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText, site.ID)
+		UPDATE sites SET business_name = $1, tagline = $2, about = $3, logo_url = $4, cta_text = $5, timezone = $6, updated_at = now()
+		WHERE id = $7
+	`, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText, site.Timezone, site.ID)
 	return err
 }
 

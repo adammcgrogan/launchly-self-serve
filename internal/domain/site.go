@@ -84,6 +84,10 @@ type Site struct {
 	CustomDomainStatus  CustomDomainStatus
 	CustomDomainCFID    string
 	CustomDomainAddedAt *time.Time
+
+	// Timezone is the IANA zone opening hours (and the "Open now" badge) are
+	// evaluated in, e.g. "Europe/London".
+	Timezone string
 }
 
 // SiteContact holds a site's public contact details. 1:1 with Site.
@@ -189,13 +193,15 @@ type GalleryImage struct {
 	SortOrder int
 }
 
-// BusinessHours is one opening-hours line, e.g. "Mon-Fri" / "9am-5pm".
+// BusinessHours is one day's opening hours, in the site's own Timezone.
+// OpensAt/ClosesAt are "HH:MM" 24-hour (e.g. "09:00"), empty when Closed.
 type BusinessHours struct {
-	ID        int
-	SiteID    int
-	Label     string
-	HoursText string
-	SortOrder int
+	ID       int
+	SiteID   int
+	Weekday  time.Weekday // 0=Sunday .. 6=Saturday
+	OpensAt  string
+	ClosesAt string
+	Closed   bool
 }
 
 // SiteAggregate is a fully-loaded site with all related data, as used by
@@ -214,4 +220,80 @@ type SiteAggregate struct {
 	Testimonials   []Testimonial
 	GalleryImages  []GalleryImage
 	BusinessHours  []BusinessHours
+}
+
+// OpenDays returns the BusinessHours rows that are actually open — it
+// excludes days marked Closed or missing a time — for driving
+// openingHoursSpecification JSON-LD and similar rendering that only cares
+// about hours the business is actually open.
+func (s SiteAggregate) OpenDays() []BusinessHours {
+	var out []BusinessHours
+	for _, h := range s.BusinessHours {
+		if h.Closed || h.OpensAt == "" || h.ClosesAt == "" {
+			continue
+		}
+		out = append(out, h)
+	}
+	return out
+}
+
+// OpenNow reports whether the site is open right now, in its own Timezone
+// (falling back to Europe/London if unset/invalid), plus a short status
+// label for the public "Open now" badge. label is "" if no hours are
+// configured at all — callers should hide the badge in that case.
+func (s SiteAggregate) OpenNow() (open bool, label string) {
+	if len(s.BusinessHours) == 0 {
+		return false, ""
+	}
+	loc, err := time.LoadLocation(s.Timezone)
+	if err != nil {
+		if loc, err = time.LoadLocation("Europe/London"); err != nil {
+			loc = time.UTC
+		}
+	}
+	now := time.Now().In(loc)
+	nowClock := now.Format("15:04")
+
+	if today := businessHoursForDay(s.BusinessHours, now.Weekday()); today != nil && !today.Closed && today.OpensAt != "" && today.ClosesAt != "" {
+		if nowClock >= today.OpensAt && nowClock < today.ClosesAt {
+			return true, "Open now"
+		}
+		if nowClock < today.OpensAt {
+			return false, "Closed — opens " + friendlyHour(today.OpensAt) + " today"
+		}
+	}
+	for i := 1; i <= 7; i++ {
+		wd := time.Weekday((int(now.Weekday()) + i) % 7)
+		next := businessHoursForDay(s.BusinessHours, wd)
+		if next == nil || next.Closed || next.OpensAt == "" {
+			continue
+		}
+		when := wd.String()
+		if i == 1 {
+			when = "tomorrow"
+		}
+		return false, "Closed — opens " + friendlyHour(next.OpensAt) + " " + when
+	}
+	return false, "Closed"
+}
+
+func businessHoursForDay(hours []BusinessHours, wd time.Weekday) *BusinessHours {
+	for i := range hours {
+		if hours[i].Weekday == wd {
+			return &hours[i]
+		}
+	}
+	return nil
+}
+
+// friendlyHour turns "09:00" into "9am" and "13:30" into "1:30pm".
+func friendlyHour(hhmm string) string {
+	t, err := time.Parse("15:04", hhmm)
+	if err != nil {
+		return hhmm
+	}
+	if t.Minute() == 0 {
+		return t.Format("3pm")
+	}
+	return t.Format("3:04pm")
 }

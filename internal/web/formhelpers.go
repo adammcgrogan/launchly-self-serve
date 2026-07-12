@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
@@ -73,20 +74,71 @@ func parseTestimonials(s string) []domain.Testimonial {
 	return out
 }
 
-// parseBusinessHours parses "Label|HoursText" lines, e.g. "Mon-Fri|9am-5pm".
-func parseBusinessHours(s string) []domain.BusinessHours {
+// weekdayField describes one row of the opening-hours grid in the builder
+// and editor forms: Key is the form-field prefix (hours_<key>_open etc.).
+type weekdayField struct {
+	Key     string
+	Label   string
+	Weekday time.Weekday
+}
+
+// weekdays drives the opening-hours grid, Monday first (the usual UK
+// business convention), independent of time.Weekday's Sunday-first order.
+var weekdays = []weekdayField{
+	{"mon", "Monday", time.Monday},
+	{"tue", "Tuesday", time.Tuesday},
+	{"wed", "Wednesday", time.Wednesday},
+	{"thu", "Thursday", time.Thursday},
+	{"fri", "Friday", time.Friday},
+	{"sat", "Saturday", time.Saturday},
+	{"sun", "Sunday", time.Sunday},
+}
+
+// timezones is a curated list of IANA zones offered in the builder/editor
+// timezone select, covering Launchly's UK/Ireland target market plus the
+// other zones a small business is most likely to actually need.
+var timezones = []string{
+	"Europe/London", "Europe/Dublin", "Europe/Paris", "Europe/Madrid", "Europe/Berlin",
+	"America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+	"Australia/Sydney",
+}
+
+// parseBusinessHours reads the 7-day opening-hours grid off the request —
+// three fields per day (hours_<key>_open, hours_<key>_close,
+// hours_<key>_closed) — skipping any day left entirely blank so hours stay
+// optional, same as the old free-text textarea.
+func parseBusinessHours(r *http.Request) []domain.BusinessHours {
 	var out []domain.BusinessHours
-	for i, line := range splitLines(s) {
-		parts := strings.SplitN(line, "|", 2)
-		bh := domain.BusinessHours{SortOrder: i, Label: strings.TrimSpace(parts[0])}
-		if len(parts) == 2 {
-			bh.HoursText = strings.TrimSpace(parts[1])
+	for _, d := range weekdays {
+		closed := r.FormValue("hours_"+d.Key+"_closed") != ""
+		opens := strings.TrimSpace(r.FormValue("hours_" + d.Key + "_open"))
+		closes := strings.TrimSpace(r.FormValue("hours_" + d.Key + "_close"))
+		if !closed && opens == "" && closes == "" {
+			continue
 		}
-		if bh.Label != "" {
-			out = append(out, bh)
-		}
+		out = append(out, domain.BusinessHours{Weekday: d.Weekday, OpensAt: opens, ClosesAt: closes, Closed: closed})
 	}
 	return out
+}
+
+// resolveTimezone trims/defaults the submitted timezone field to
+// "Europe/London" when blank, so Site.Timezone is never empty.
+func resolveTimezone(tz string) string {
+	tz = strings.TrimSpace(tz)
+	if tz == "" {
+		return "Europe/London"
+	}
+	return tz
+}
+
+// businessHoursByDay indexes a site's hours by weekday, for pre-filling the
+// opening-hours grid on the edit form.
+func businessHoursByDay(hrs []domain.BusinessHours) map[time.Weekday]domain.BusinessHours {
+	m := make(map[time.Weekday]domain.BusinessHours, len(hrs))
+	for _, h := range hrs {
+		m[h.Weekday] = h
+	}
+	return m
 }
 
 var socialFields = map[domain.SocialPlatform]string{
@@ -150,10 +202,3 @@ func testimonialsToLines(t []domain.Testimonial) string {
 	return strings.Join(lines, "\n")
 }
 
-func businessHoursToLines(hrs []domain.BusinessHours) string {
-	lines := make([]string, len(hrs))
-	for i, x := range hrs {
-		lines[i] = fmt.Sprintf("%s|%s", x.Label, x.HoursText)
-	}
-	return strings.Join(lines, "\n")
-}

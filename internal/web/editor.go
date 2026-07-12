@@ -50,6 +50,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		About:        strings.TrimSpace(r.FormValue("about")),
 		LogoURL:      strings.TrimSpace(r.FormValue("logo_url")),
 		CTAText:      strings.TrimSpace(r.FormValue("cta_text")),
+		Timezone:     resolveTimezone(r.FormValue("timezone")),
 		Contact: domain.SiteContact{
 			SiteID:      site.ID,
 			Phone:       strings.TrimSpace(r.FormValue("phone")),
@@ -64,7 +65,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		Certifications: parseCertifications(r.FormValue("certifications")),
 		Testimonials:   parseTestimonials(r.FormValue("testimonials")),
 		GalleryImages:  parseGallery(r.FormValue("gallery")),
-		BusinessHours:  parseBusinessHours(r.FormValue("hours")),
+		BusinessHours:  parseBusinessHours(r),
 	}
 
 	if err := h.sites.UpdateContent(r.Context(), in); err != nil {

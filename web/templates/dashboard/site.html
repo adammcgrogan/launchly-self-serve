@@ -224,8 +224,29 @@
           <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.GalleryText}}</textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours, one per line as "Label|Hours"</label>
-          <textarea name="hours" rows="2" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.HoursText}}</textarea>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Timezone</label>
+          <select name="timezone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            {{$tz := .Site.Timezone}}
+            {{range .Timezones}}<option value="{{.}}" {{if eq . $tz}}selected{{end}}>{{.}}</option>{{end}}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours</label>
+          <div class="space-y-2">
+            {{range .Weekdays}}
+            {{$h := index $.HoursByDay .Weekday}}
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="w-24 text-sm text-slate-600">{{.Label}}</span>
+              <input type="time" name="hours_{{.Key}}_open" value="{{$h.OpensAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <span class="text-slate-400 text-sm">to</span>
+              <input type="time" name="hours_{{.Key}}_close" value="{{$h.ClosesAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <label class="flex items-center gap-1.5 text-sm text-slate-600 ml-2">
+                <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $h.Closed}}checked{{end}}>
+                Closed
+              </label>
+            </div>
+            {{end}}
+          </div>
         </div>
       </section>
 

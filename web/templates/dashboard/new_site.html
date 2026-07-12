@@ -100,7 +100,7 @@
       </div>
     </details>
 
-    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "address") (.Values.Get "map_embed_url") (.Values.Get "hours")}}open{{end}}>
+    <details class="rounded-2xl border border-slate-200 bg-white" {{if or (.Values.Get "address") (.Values.Get "map_embed_url") (.Values.Get "hours_mon_open")}}open{{end}}>
       <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Address &amp; opening hours <span class="text-xs text-slate-400">optional</span></summary>
       <div class="px-5 pb-5 space-y-4">
         <div>
@@ -112,8 +112,28 @@
           <input type="url" name="map_embed_url" value="{{.Values.Get "map_embed_url"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours, one per line as Label|Hours</label>
-          <textarea name="hours" rows="2" placeholder="Mon-Fri|9am-5pm" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "hours"}}</textarea>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Timezone</label>
+          <select name="timezone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            {{$tz := .Values.Get "timezone"}}
+            {{range .Timezones}}<option value="{{.}}" {{if eq . $tz}}selected{{else if and (not $tz) (eq . "Europe/London")}}selected{{end}}>{{.}}</option>{{end}}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours</label>
+          <div class="space-y-2">
+            {{range .Weekdays}}
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="w-24 text-sm text-slate-600">{{.Label}}</span>
+              <input type="time" name="hours_{{.Key}}_open" value="{{$.Values.Get (print "hours_" .Key "_open")}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <span class="text-slate-400 text-sm">to</span>
+              <input type="time" name="hours_{{.Key}}_close" value="{{$.Values.Get (print "hours_" .Key "_close")}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <label class="flex items-center gap-1.5 text-sm text-slate-600 ml-2">
+                <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $.Values.Get (print "hours_" .Key "_closed")}}checked{{end}}>
+                Closed
+              </label>
+            </div>
+            {{end}}
+          </div>
         </div>
       </div>
     </details>

@@ -21,6 +21,8 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		"Templates":     siteTemplates,
 		"Error":         errMsg,
 		"Values":        values,
+		"Weekdays":      weekdays,
+		"Timezones":     timezones,
 		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
 		"EmailVerified": h.emailVerified(r),
 	})
@@ -60,6 +62,7 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		LogoURL:      strings.TrimSpace(r.FormValue("logo_url")),
 		CTAText:      strings.TrimSpace(r.FormValue("cta_text")),
 		TemplateID:   templateID,
+		Timezone:     resolveTimezone(r.FormValue("timezone")),
 		Contact: domain.SiteContact{
 			Phone:       strings.TrimSpace(r.FormValue("phone")),
 			Email:       strings.TrimSpace(r.FormValue("email")),
@@ -73,7 +76,7 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		Certifications: parseCertifications(r.FormValue("certifications")),
 		Testimonials:   parseTestimonials(r.FormValue("testimonials")),
 		GalleryImages:  parseGallery(r.FormValue("gallery")),
-		BusinessHours:  parseBusinessHours(r.FormValue("hours")),
+		BusinessHours:  parseBusinessHours(r),
 	}
 
 	site, err := h.sites.CreateSite(r.Context(), in)

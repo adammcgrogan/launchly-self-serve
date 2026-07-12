@@ -67,6 +67,8 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 	}
 	go h.recordPageView(r, site.ID)
 
+	open, openLabel := site.OpenNow()
+
 	tmplKey := "site:" + site.TemplateID
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	h.render.Render(w, tmplKey, map[string]any{
@@ -75,6 +77,8 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		"FormAction":     formAction,
 		"Socials":        socialLinksMap(site.SocialLinks),
 		"UmamiScriptURL": h.cfg.UmamiScriptURL,
+		"Open":           open,
+		"OpenLabel":      openLabel,
 	})
 }
 
