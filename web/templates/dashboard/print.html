@@ -1,0 +1,68 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Site.BusinessName}} | Print sheet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans:['Inter','sans-serif'], display:['Fraunces','serif'] }, colors: { brand:{DEFAULT:'#4F46E5',dark:'#3730A3'} } } } }
+  </script>
+  <style>
+    body{font-family:'Inter',sans-serif;}
+    @media print {
+      .no-print{display:none;}
+      body{background:#fff;}
+      .sheet{box-shadow:none;border:none;margin:0;}
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
+  <div class="no-print max-w-2xl mx-auto px-6 pt-6 flex items-center justify-between">
+    <a href="/dashboard/sites/{{.Site.ID}}" class="text-sm font-medium text-slate-500 hover:text-slate-800">&larr; Back to site</a>
+    <button onclick="window.print()" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Print / Save as PDF</button>
+  </div>
+
+  <main class="sheet max-w-2xl mx-auto my-8 bg-white border border-slate-200 rounded-2xl shadow-sm p-10">
+    <div class="flex items-start justify-between gap-6">
+      <div>
+        {{if .Site.LogoURL}}<img src="{{.Site.LogoURL}}" alt="{{.Site.BusinessName}} logo" class="h-16 mb-4 object-contain">{{end}}
+        <h1 class="font-display text-3xl font-bold text-slate-900">{{.Site.BusinessName}}</h1>
+        {{if .Site.Tagline}}<p class="mt-1 text-slate-500">{{.Site.Tagline}}</p>{{end}}
+      </div>
+      <img src="/dashboard/sites/{{.Site.ID}}/qr.png" alt="QR code linking to {{.SiteURL}}" class="h-32 w-32 shrink-0">
+    </div>
+
+    <div class="mt-8 grid sm:grid-cols-2 gap-8">
+      {{if .Site.Services}}
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Services</h2>
+        <ul class="space-y-1 text-slate-700">
+          {{range .Site.Services}}<li>{{.Label}}</li>{{end}}
+        </ul>
+      </div>
+      {{end}}
+
+      {{if .Site.OpenDays}}
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Hours</h2>
+        <ul class="space-y-1 text-slate-700">
+          {{range .Site.OpenDays}}<li>{{.Weekday}}: {{.OpensAt}} &ndash; {{.ClosesAt}}</li>{{end}}
+        </ul>
+      </div>
+      {{end}}
+    </div>
+
+    <div class="mt-8 pt-6 border-t border-slate-200 space-y-1 text-slate-700">
+      {{if .Site.Contact.Phone}}<p>{{.Site.Contact.Phone}}</p>{{end}}
+      {{if .Site.Contact.Email}}<p>{{.Site.Contact.Email}}</p>{{end}}
+      {{if .Site.Contact.Address}}<p>{{.Site.Contact.Address}}</p>{{end}}
+      <p class="text-brand font-medium">{{.SiteURL}}</p>
+    </div>
+  </main>
+</body>
+</html>
+{{end}}

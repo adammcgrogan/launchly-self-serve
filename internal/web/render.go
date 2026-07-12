@@ -57,6 +57,9 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 			return err
 		}
 	}
+	if err := rd.parse("dashboard:print", "web/templates/dashboard/print.html"); err != nil {
+		return err
+	}
 
 	superBase := "web/templates/superadmin/base.html"
 	for _, p := range []string{"login", "dashboard", "site"} {

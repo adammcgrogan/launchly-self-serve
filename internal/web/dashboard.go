@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	qrcode "github.com/skip2/go-qrcode"
+
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
@@ -221,4 +223,29 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 		cw.Write([]string{l.Name, l.Email, l.Phone, l.ServiceLabel, l.PreferredTime, l.Message, string(l.Status), l.CreatedAt.Format("2006-01-02 15:04")})
 	}
 	cw.Flush()
+}
+
+// SiteQRCode renders a PNG QR code encoding the site's public URL, for the
+// owner to download and use in offline marketing (van livery, flyers, etc).
+func (h *Handler) SiteQRCode(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	png, err := qrcode.Encode(h.siteURL(site.Slug), qrcode.Medium, 512)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-qr.png"`, site.Slug))
+	w.Write(png)
+}
+
+// SitePrintPage renders a print-ready one-pager (logo, business name,
+// services, hours, QR code) the owner can print or save as a PDF straight
+// from the browser — no server-side PDF dependency needed.
+func (h *Handler) SitePrintPage(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	h.render.Render(w, "dashboard:print", map[string]any{
+		"Site":    site,
+		"SiteURL": h.siteURL(site.Slug),
+	})
 }

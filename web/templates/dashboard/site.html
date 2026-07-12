@@ -11,7 +11,7 @@
 
 <div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6" data-tabs="{{.Site.ID}}" data-style="underline" data-storage-key="dashboard-site-tab" data-query-param="tab" data-default="overview">
   <button type="button" data-tab="overview" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Overview</button>
-  <button type="button" data-tab="settings" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Site settings</button>
+  <button type="button" data-tab="settings" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Edit site</button>
   <button type="button" data-tab="notifications" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Notifications</button>
   <button type="button" data-tab="billing" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Billing</button>
 </div>
@@ -425,6 +425,8 @@
       <h2 class="font-semibold text-slate-900 mb-4">Publishing</h2>
       <div class="flex flex-wrap gap-3">
         <a href="/dashboard/sites/{{.Site.ID}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
+        <a href="/dashboard/sites/{{.Site.ID}}/print" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Print / QR one-pager</a>
+        <a href="/dashboard/sites/{{.Site.ID}}/qr.png" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Download QR code</a>
         {{if eq (print .Site.Status) "live"}}
         <form method="POST" action="/dashboard/sites/{{.Site.ID}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Unpublish</button>
