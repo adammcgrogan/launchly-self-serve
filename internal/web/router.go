@@ -16,6 +16,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /templates", h.TemplatesPage)
 	mux.HandleFunc("GET /privacy", h.Privacy)
 	mux.HandleFunc("GET /terms", h.Terms)
+	mux.HandleFunc("GET /help", h.Help)
+	mux.HandleFunc("GET /help/custom-domain", h.HelpCustomDomain)
+	mux.HandleFunc("GET /help/address", h.HelpAddress)
+	mux.HandleFunc("GET /help/switch-template", h.HelpSwitchTemplate)
+	mux.HandleFunc("GET /help/appearance", h.HelpAppearance)
 	mux.HandleFunc("GET /robots.txt", h.Robots)
 	mux.HandleFunc("GET /sitemap.xml", h.Sitemap)
 

@@ -26,6 +26,26 @@ func (h *Handler) Terms(w http.ResponseWriter, r *http.Request) {
 	h.render.Render(w, "terms", map[string]any{})
 }
 
+func (h *Handler) Help(w http.ResponseWriter, r *http.Request) {
+	h.render.Render(w, "help", map[string]any{})
+}
+
+func (h *Handler) HelpCustomDomain(w http.ResponseWriter, r *http.Request) {
+	h.render.Render(w, "help_custom_domain", map[string]any{})
+}
+
+func (h *Handler) HelpAddress(w http.ResponseWriter, r *http.Request) {
+	h.render.Render(w, "help_address", map[string]any{})
+}
+
+func (h *Handler) HelpSwitchTemplate(w http.ResponseWriter, r *http.Request) {
+	h.render.Render(w, "help_switch_template", map[string]any{})
+}
+
+func (h *Handler) HelpAppearance(w http.ResponseWriter, r *http.Request) {
+	h.render.Render(w, "help_appearance", map[string]any{})
+}
+
 // Robots serves /robots.txt, pointing crawlers at the sitemap.
 func (h *Handler) Robots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

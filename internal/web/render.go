@@ -38,7 +38,7 @@ func (rd *Renderer) parse(key, base string, files ...string) error {
 // a bad template file fails the server at boot, not on first request.
 func (rd *Renderer) LoadAll(templates []domain.Template) error {
 	pubBase := "web/templates/public/base.html"
-	for _, p := range []string{"home", "pricing", "templates", "privacy", "terms", "error", "claim", "paused"} {
+	for _, p := range []string{"home", "pricing", "templates", "privacy", "terms", "help", "help_custom_domain", "help_address", "help_switch_template", "help_appearance", "error", "claim", "paused"} {
 		if err := rd.parse(p, pubBase, "web/templates/public/"+p+".html"); err != nil {
 			return err
 		}

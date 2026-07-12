@@ -1,0 +1,20 @@
+{{define "content"}}
+<section class="max-w-3xl mx-auto px-6 pt-20 pb-24 prose prose-slate">
+  <a href="/help" class="text-sm text-slate-500 hover:text-slate-800 no-underline">← Help centre</a>
+  <h1 class="font-display text-4xl font-bold text-slate-900 mt-4">Connecting a custom domain</h1>
+  <p class="mt-6 text-slate-600">Connecting your own domain (e.g. <span class="font-mono text-sm">yourbusiness.com</span>) is a Pro-plan feature. It replaces your launchly.ltd subdomain as your site's main address.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">1. Add your domain</h2>
+  <p class="text-slate-600">Go to <span class="font-medium">Dashboard → your site → Custom domain</span>, and enter the domain you own. You don't need the "www" prefix.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">2. Add DNS records at your registrar</h2>
+  <p class="text-slate-600">Once you've added your domain, we show you the DNS records to create — a CNAME record pointing your domain at Launchly, plus verification records. Add these in the DNS settings of whoever you registered your domain with (GoDaddy, Namecheap, Cloudflare, etc.), not in Launchly.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">3. Wait for verification</h2>
+  <p class="text-slate-600">DNS changes can take anywhere from a few minutes to a few hours to take effect. Your domain's status starts as "pending" and moves to "active" automatically once we can see the records. Use the <span class="font-medium">Check status</span> button on the domain page any time to re-check without waiting for the automatic refresh.</p>
+  <p class="text-slate-600">If a domain gets stuck or shows "failed", double-check the records match exactly what's shown on the domain page — a stray "www" or missing record is the most common cause.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Removing a domain</h2>
+  <p class="text-slate-600">Click <span class="font-medium">Remove domain</span> on the domain page. Your site immediately falls back to its launchly.ltd subdomain.</p>
+</section>
+{{end}}
