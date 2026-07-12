@@ -63,6 +63,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/{id}/unpublish", owned(h.UnpublishSite))
 	mux.HandleFunc("POST /dashboard/sites/{id}/delete", owned(h.DeleteSite))
 	mux.HandleFunc("GET /dashboard/sites/{id}/leads.csv", owned(h.ExportLeads))
+	mux.HandleFunc("POST /dashboard/sites/{id}/leads/{leadID}/status", owned(h.LeadStatusSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{id}/announcement", owned(h.UpdateAnnouncement))
 	mux.HandleFunc("POST /dashboard/sites/{id}/analytics-frequency", owned(h.UpdateAnalyticsFrequency))
 	mux.HandleFunc("POST /dashboard/sites/{id}/notify-settings", owned(h.UpdateNotifySettings))

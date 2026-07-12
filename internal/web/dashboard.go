@@ -57,6 +57,12 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	newLeadCount := 0
+	for _, l := range leads {
+		if l.Status == domain.LeadStatusNew {
+			newLeadCount++
+		}
+	}
 	since7 := time.Now().UTC().Add(-7 * 24 * time.Hour)
 	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7)
 	allTimeStats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, site.CreatedAt)
@@ -82,6 +88,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Site":               site,
 		"Leads":              leads,
 		"LeadCount":          len(leads),
+		"NewLeadCount":       newLeadCount,
 		"Stats":              stats,
 		"AllTimeStats":       allTimeStats,
 		"SiteURL":            h.siteURL(site.Slug),
@@ -130,9 +137,9 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-leads.csv"`, site.Slug))
 	cw := csv.NewWriter(w)
-	cw.Write([]string{"Name", "Email", "Phone", "Service", "Preferred time", "Message", "Date"})
+	cw.Write([]string{"Name", "Email", "Phone", "Service", "Preferred time", "Message", "Status", "Date"})
 	for _, l := range leads {
-		cw.Write([]string{l.Name, l.Email, l.Phone, l.ServiceLabel, l.PreferredTime, l.Message, l.CreatedAt.Format("2006-01-02 15:04")})
+		cw.Write([]string{l.Name, l.Email, l.Phone, l.ServiceLabel, l.PreferredTime, l.Message, string(l.Status), l.CreatedAt.Format("2006-01-02 15:04")})
 	}
 	cw.Flush()
 }

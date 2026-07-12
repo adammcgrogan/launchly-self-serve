@@ -75,3 +75,9 @@ func (l *Leads) sendSMSAlert(ctx context.Context, site *domain.Site, visitorName
 func (l *Leads) ListBySite(ctx context.Context, siteID int) ([]domain.Lead, error) {
 	return postgres.ListLeadsBySite(ctx, l.store.DB(), siteID)
 }
+
+// UpdateStatus sets a lead's follow-up status, scoped to siteID so an owner
+// can't update a lead belonging to a site they don't own.
+func (l *Leads) UpdateStatus(ctx context.Context, siteID, leadID int, status domain.LeadStatus) error {
+	return postgres.UpdateLeadStatus(ctx, l.store.DB(), siteID, leadID, status)
+}

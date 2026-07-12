@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -151,6 +152,34 @@ func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, "Form type saved.")
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+}
+
+func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
+	leadID, err := strconv.Atoi(r.PathValue("leadID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	status := domain.LeadStatus(r.FormValue("status"))
+	switch status {
+	case domain.LeadStatusNew, domain.LeadStatusContacted, domain.LeadStatusWon, domain.LeadStatusLost:
+	default:
+		http.Error(w, "invalid status", http.StatusBadRequest)
+		return
+	}
+	if err := h.leads.UpdateStatus(r.Context(), site.ID, leadID, status); err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
