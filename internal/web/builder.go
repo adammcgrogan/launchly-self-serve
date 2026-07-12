@@ -23,13 +23,15 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		"PaletteColors": paletteSwatchColors,
 		"Error":         errMsg,
 		"Values":        values,
+		"Weekdays":      weekdays,
+		"Timezones":     timezones,
 		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
 		"EmailVerified": h.emailVerified(r),
 	})
 }
 
-// NewSiteForm renders the builder wizard: a three-step flow (business
-// basics, design, contact) that ends in an instant publish.
+// NewSiteForm renders the builder wizard: a four-step flow (business
+// basics, design, contact, optional extras) that ends in an instant publish.
 func (h *Handler) NewSiteForm(w http.ResponseWriter, r *http.Request) {
 	h.renderNewSite(w, r, "", nil)
 }
@@ -77,16 +79,26 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		OwnerUserID:  middleware.UserID(r),
 		BusinessName: businessName,
 		Tagline:      strings.TrimSpace(r.FormValue("tagline")),
+		About:        strings.TrimSpace(r.FormValue("about")),
+		LogoURL:      strings.TrimSpace(r.FormValue("logo_url")),
+		CTAText:      strings.TrimSpace(r.FormValue("cta_text")),
 		TemplateID:   templateID,
 		Palette:      palette,
 		HeadingFont:  headingFont,
 		Timezone:     resolveTimezone(r.FormValue("timezone")),
 		Contact: domain.SiteContact{
-			Phone:    strings.TrimSpace(r.FormValue("phone")),
-			Email:    strings.TrimSpace(r.FormValue("email")),
-			Location: strings.TrimSpace(r.FormValue("location")),
+			Phone:       strings.TrimSpace(r.FormValue("phone")),
+			Email:       strings.TrimSpace(r.FormValue("email")),
+			Address:     strings.TrimSpace(r.FormValue("address")),
+			Location:    strings.TrimSpace(r.FormValue("location")),
+			MapEmbedURL: strings.TrimSpace(r.FormValue("map_embed_url")),
 		},
-		Services: parseServices(r.FormValue("services")),
+		SocialLinks:    parseSocialLinks(r),
+		Services:       parseServices(r.FormValue("services")),
+		Certifications: parseCertifications(r.FormValue("certifications")),
+		Testimonials:   parseTestimonials(r.FormValue("testimonials")),
+		GalleryImages:  parseGallery(r.FormValue("gallery")),
+		BusinessHours:  parseBusinessHours(r),
 	}
 
 	site, err := h.sites.CreateSite(r.Context(), in)

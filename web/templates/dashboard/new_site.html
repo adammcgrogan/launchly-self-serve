@@ -9,7 +9,7 @@
   <div>
     <p class="text-sm font-semibold text-brand uppercase tracking-wide">Create your site</p>
     <h1 class="font-display text-3xl font-bold text-slate-900 mt-1">Let's get you online</h1>
-    <p class="mt-2 text-slate-500">Three quick steps, then publish. Everything here can be changed later.</p>
+    <p class="mt-2 text-slate-500">A few quick steps, then publish. Everything here can be changed later.</p>
 
     <ol class="flex items-center mt-8 mb-8">
       <li class="flex items-center flex-1" data-step-dot="1">
@@ -22,9 +22,14 @@
         <span class="ml-2 text-sm font-medium text-slate-400 step-label hidden sm:inline">Design</span>
         <span class="flex-1 h-px bg-slate-200 mx-3"></span>
       </li>
-      <li class="flex items-center" data-step-dot="3">
+      <li class="flex items-center flex-1" data-step-dot="3">
         <span class="step-num shrink-0 flex items-center justify-center w-8 h-8 rounded-full border-2 border-slate-200 text-sm font-semibold text-slate-400">3</span>
         <span class="ml-2 text-sm font-medium text-slate-400 step-label hidden sm:inline">Contact</span>
+        <span class="flex-1 h-px bg-slate-200 mx-3"></span>
+      </li>
+      <li class="flex items-center" data-step-dot="4">
+        <span class="step-num shrink-0 flex items-center justify-center w-8 h-8 rounded-full border-2 border-slate-200 text-sm font-semibold text-slate-400">4</span>
+        <span class="ml-2 text-sm font-medium text-slate-400 step-label hidden sm:inline">Extras</span>
       </li>
     </ol>
 
@@ -83,7 +88,7 @@
           <div data-palette-group="{{$t.ID}}" class="flex flex-wrap gap-2 {{if not (or (eq $t.ID $selTemplate) (and (not $selTemplate) (eq $i 0)))}}hidden{{end}}">
             {{range $pi, $p := $t.Palettes}}
             <label class="flex items-center gap-2 rounded-full border border-slate-200 pl-2 pr-3 py-1.5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand">
-              <input type="radio" data-palette-radio data-template="{{$t.ID}}" value="{{$p.ID}}" {{if or (eq $p.ID $selPalette) (and (not $selPalette) (eq $pi 0))}}checked{{end}} class="sr-only">
+              <input type="radio" name="palette_{{$t.ID}}" data-palette-radio data-template="{{$t.ID}}" value="{{$p.ID}}" {{if or (eq $p.ID $selPalette) (and (not $selPalette) (eq $pi 0))}}checked{{end}} class="sr-only">
               <span class="w-4 h-4 rounded-full border border-black/10" style="background:{{index $.PaletteColors $p.ID}}"></span>
               <span class="text-sm text-slate-700">{{$p.Name}}</span>
             </label>
@@ -126,6 +131,111 @@
           <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
           <input type="text" name="tagline" value="{{.Values.Get "tagline"}}" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-preview-tagline-source>
         </div>
+        <div class="pt-2 flex justify-between">
+          <button type="button" data-prev class="rounded-full border border-slate-200 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition">Back</button>
+          <button type="button" data-next class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Continue</button>
+        </div>
+      </section>
+
+      <section data-step="4" class="wizard-step space-y-4" hidden>
+        <div>
+          <p class="font-medium text-slate-900">Anything else? <span class="text-slate-400 font-normal">totally optional</span></p>
+          <p class="mt-1 text-sm text-slate-500">Skip straight to publish, or add what you have — all of this (and more) can be added or changed later from your site editor.</p>
+        </div>
+
+        <details class="rounded-2xl border border-slate-200 bg-white">
+          <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">About &amp; branding <span class="text-xs text-slate-400">optional</span></summary>
+          <div class="px-5 pb-5 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
+              <textarea name="about" rows="4" placeholder="A few sentences about who you are, how long you've been going, and why customers pick you." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "about"}}</textarea>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
+                <input type="text" name="cta_text" value="{{.Values.Get "cta_text"}}" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
+                <input type="url" name="logo_url" value="{{.Values.Get "logo_url"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="rounded-2xl border border-slate-200 bg-white">
+          <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Reviews &amp; trust badges <span class="text-xs text-slate-400">optional</span></summary>
+          <div class="px-5 pb-5 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials, one per line as Name|Role|Quote (role is optional)</label>
+              <textarea name="testimonials" rows="3" placeholder="Jane Doe|Homeowner|Brilliant service, highly recommend." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "testimonials"}}</textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Certifications or trust badges, one per line</label>
+              <textarea name="certifications" rows="2" placeholder="Gas Safe registered&#10;Fully insured" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "certifications"}}</textarea>
+            </div>
+          </div>
+        </details>
+
+        <details class="rounded-2xl border border-slate-200 bg-white">
+          <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Photos <span class="text-xs text-slate-400">optional</span></summary>
+          <div class="px-5 pb-5">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Gallery image URLs, one per line</label>
+            <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "gallery"}}</textarea>
+          </div>
+        </details>
+
+        <details class="rounded-2xl border border-slate-200 bg-white">
+          <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Address &amp; opening hours <span class="text-xs text-slate-400">optional</span></summary>
+          <div class="px-5 pb-5 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+              <input type="text" name="address" value="{{.Values.Get "address"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL</label>
+              <input type="url" name="map_embed_url" value="{{.Values.Get "map_embed_url"}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Timezone</label>
+              <select name="timezone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+                {{$tz := .Values.Get "timezone"}}
+                {{range .Timezones}}<option value="{{.}}" {{if eq . $tz}}selected{{else if and (not $tz) (eq . "Europe/London")}}selected{{end}}>{{.}}</option>{{end}}
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours</label>
+              <div class="space-y-2">
+                {{range .Weekdays}}
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class="w-24 text-sm text-slate-600">{{.Label}}</span>
+                  <input type="time" name="hours_{{.Key}}_open" value="{{$.Values.Get (print "hours_" .Key "_open")}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <span class="text-slate-400 text-sm">to</span>
+                  <input type="time" name="hours_{{.Key}}_close" value="{{$.Values.Get (print "hours_" .Key "_close")}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <label class="flex items-center gap-1.5 text-sm text-slate-600 ml-2">
+                    <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $.Values.Get (print "hours_" .Key "_closed")}}checked{{end}}>
+                    Closed
+                  </label>
+                </div>
+                {{end}}
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="rounded-2xl border border-slate-200 bg-white">
+          <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">Social links <span class="text-xs text-slate-400">optional</span></summary>
+          <div class="px-5 pb-5 grid sm:grid-cols-2 gap-4">
+            <input type="url" name="facebook_url" value="{{.Values.Get "facebook_url"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="instagram_url" value="{{.Values.Get "instagram_url"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="whatsapp_url" value="{{.Values.Get "whatsapp_url"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="twitter_url" value="{{.Values.Get "twitter_url"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="tiktok_url" value="{{.Values.Get "tiktok_url"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="linkedin_url" value="{{.Values.Get "linkedin_url"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="youtube_url" value="{{.Values.Get "youtube_url"}}" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+        </details>
+
         <div class="pt-2 flex justify-between items-center">
           <button type="button" data-prev class="rounded-full border border-slate-200 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition">Back</button>
           <div class="text-right">
