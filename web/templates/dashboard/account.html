@@ -4,76 +4,82 @@
   <p class="mt-1 text-sm text-slate-500">Your profile, your sites, and account-level settings.</p>
 </div>
 
-<div class="max-w-2xl space-y-6">
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="lg:col-span-2 space-y-6">
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-6">
-    <div class="flex items-start gap-4">
-      <div class="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-brand/10 font-display text-lg font-bold text-brand">
-        {{.Initial}}
-      </div>
-      <div class="min-w-0">
-        <p class="truncate font-semibold text-slate-900">{{.Profile.Email}}</p>
-        <p class="mt-1 text-sm text-slate-500">Member since {{.Profile.CreatedAt.Format "2 January 2006"}}</p>
-      </div>
-      <span class="ml-auto flex-none text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full {{if .Profile.EmailVerified}}bg-emerald-50 text-emerald-700{{else}}bg-amber-50 text-amber-700{{end}}">
-        {{if .Profile.EmailVerified}}Verified{{else}}Unverified{{end}}
-      </span>
-    </div>
-    {{if not .Profile.EmailVerified}}
-    <p class="mt-4 pt-4 border-t border-slate-100 text-sm text-slate-500">
-      Confirm your email to unlock every feature. <a href="/resend-verification" class="font-medium text-brand underline">Resend verification email</a>
-    </p>
-    {{end}}
-  </div>
-
-  <div class="rounded-2xl border border-slate-200 bg-white p-6">
-    <div class="flex items-center justify-between">
-      <h2 class="font-semibold text-slate-900">Your sites</h2>
-      <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{len .Sites}}</span>
-    </div>
-    {{if .Sites}}
-    <div class="mt-4 space-y-2">
-      {{range .Sites}}
-      <a href="/dashboard/sites/{{.ID}}" class="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3 hover:border-slate-300 transition">
-        <div>
-          <p class="text-sm font-medium text-slate-900">{{.BusinessName}}</p>
-          <p class="text-xs text-slate-500">{{.Slug}}.launchly.ltd</p>
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <div class="flex items-start gap-4">
+        <div class="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-brand/10 font-display text-lg font-bold text-brand">
+          {{.Initial}}
         </div>
-        <span class="text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full {{if eq (print .Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Status}}</span>
-      </a>
+        <div class="min-w-0">
+          <p class="truncate font-semibold text-slate-900">{{.Profile.Email}}</p>
+          <p class="mt-1 text-sm text-slate-500">Member since {{.Profile.CreatedAt.Format "2 January 2006"}}</p>
+        </div>
+        <span class="ml-auto flex-none text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full {{if .Profile.EmailVerified}}bg-emerald-50 text-emerald-700{{else}}bg-amber-50 text-amber-700{{end}}">
+          {{if .Profile.EmailVerified}}Verified{{else}}Unverified{{end}}
+        </span>
+      </div>
+      {{if not .Profile.EmailVerified}}
+      <p class="mt-4 pt-4 border-t border-slate-100 text-sm text-slate-500">
+        Confirm your email to unlock every feature. <a href="/resend-verification" class="font-medium text-brand underline">Resend verification email</a>
+      </p>
       {{end}}
     </div>
-    {{else}}
-    <p class="mt-3 text-sm text-slate-500">No sites yet. <a href="/dashboard/sites/new" class="font-medium text-brand">Build one</a>.</p>
-    {{end}}
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-slate-900">Your sites</h2>
+        <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{len .Sites}}</span>
+      </div>
+      {{if .Sites}}
+      <div class="mt-4 grid gap-2 sm:grid-cols-2">
+        {{range .Sites}}
+        <a href="/dashboard/sites/{{.ID}}" class="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3 hover:border-slate-300 transition">
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-slate-900">{{.BusinessName}}</p>
+            <p class="truncate text-xs text-slate-500">{{.Slug}}.launchly.ltd</p>
+          </div>
+          <span class="ml-3 flex-none text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full {{if eq (print .Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Status}}</span>
+        </a>
+        {{end}}
+      </div>
+      {{else}}
+      <p class="mt-3 text-sm text-slate-500">No sites yet. <a href="/dashboard/sites/new" class="font-medium text-brand">Build one</a>.</p>
+      {{end}}
+    </div>
+
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Security &amp; data</h2>
-    <div class="divide-y divide-slate-100">
-      <div class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-        <p class="text-sm text-slate-600">Change your password by email</p>
-        <a href="/forgot-password" class="text-sm font-medium text-brand">Send reset link</a>
-      </div>
-      <div class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-        <p class="text-sm text-slate-600">Download a copy of everything you've stored with Launchly</p>
-        <a href="/dashboard/account/export" class="text-sm font-medium text-brand whitespace-nowrap">Download data</a>
-      </div>
-      <div class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-        <p class="text-sm text-slate-600">Signed in on this device</p>
-        <a href="/logout" class="text-sm font-medium text-brand">Log out</a>
+  <div class="space-y-6">
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-4">Security &amp; data</h2>
+      <div class="divide-y divide-slate-100">
+        <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+          <p class="text-sm text-slate-600">Change your password by email</p>
+          <a href="/forgot-password" class="flex-none text-sm font-medium text-brand">Send reset link</a>
+        </div>
+        <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+          <p class="text-sm text-slate-600">Download a copy of everything you've stored with Launchly</p>
+          <a href="/dashboard/account/export" class="flex-none text-sm font-medium text-brand">Download</a>
+        </div>
+        <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+          <p class="text-sm text-slate-600">Signed in on this device</p>
+          <a href="/logout" class="flex-none text-sm font-medium text-brand">Log out</a>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="rounded-2xl border border-red-200 bg-red-50/40 p-6">
-    <h2 class="font-semibold text-red-900">Danger zone</h2>
-    <p class="mt-2 text-sm text-red-700/80">Deleting your account permanently removes your profile, all sites, and all leads. This cannot be undone.</p>
-    <form method="POST" action="/dashboard/account/delete" class="mt-4" onsubmit="return confirm('Delete your account? This permanently removes your profile, all sites, and all leads, and cannot be undone.');">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <button class="rounded-full border border-red-300 bg-white text-red-700 px-5 py-2.5 text-sm font-medium hover:bg-red-50">Delete my account</button>
-    </form>
-  </div>
+    <div class="rounded-2xl border border-red-200 bg-red-50/40 p-6">
+      <h2 class="font-semibold text-red-900">Danger zone</h2>
+      <p class="mt-2 text-sm text-red-700/80">Deleting your account permanently removes your profile, all sites, and all leads. This cannot be undone.</p>
+      <form method="POST" action="/dashboard/account/delete" class="mt-4" onsubmit="return confirm('Delete your account? This permanently removes your profile, all sites, and all leads, and cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="rounded-full border border-red-300 bg-white text-red-700 px-5 py-2.5 text-sm font-medium hover:bg-red-50">Delete my account</button>
+      </form>
+    </div>
 
+  </div>
 </div>
 {{end}}
