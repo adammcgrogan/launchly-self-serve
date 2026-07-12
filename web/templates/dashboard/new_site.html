@@ -54,8 +54,9 @@
           <label class="block text-sm font-medium text-slate-700 mb-1">What kind of business is this?</label>
           <select name="business_type" data-business-type class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             {{$bt := .Values.Get "business_type"}}
-            <option value="general" {{if or (eq $bt "general") (not $bt)}}selected{{end}}>General business or trade</option>
-            <option value="salon" {{if eq $bt "salon"}}selected{{end}}>Salon, studio &amp; wellness</option>
+            {{range $i, $b := .BusinessTypes}}
+            <option value="{{$b.ID}}" data-default-template="{{$b.DefaultTemplate}}" {{if or (eq $b.ID $bt) (and (not $bt) (eq $i 0))}}selected{{end}}>{{$b.Label}}</option>
+            {{end}}
           </select>
           <p class="mt-1.5 text-sm text-slate-400">Just helps us suggest a design on the next step — you can pick any of them.</p>
         </div>
@@ -288,7 +289,6 @@
     var templateTouched = false;
 
     var TEMPLATE_DEFAULT_FONT = { meridian: 'serif' };
-    var CATEGORY_DEFAULT_TEMPLATE = { general: 'aurora', salon: 'bloom' };
 
     function slugify(s) {
       return s.toLowerCase().replace(/['\x60]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'yourbusiness';
@@ -407,7 +407,7 @@
     });
     form.querySelector('[data-business-type]').addEventListener('change', function () {
       if (templateTouched) return;
-      var target = CATEGORY_DEFAULT_TEMPLATE[this.value];
+      var target = this.selectedOptions[0].getAttribute('data-default-template');
       var radio = target && form.querySelector('[data-template-radio][value="' + target + '"]');
       if (radio) {
         radio.checked = true;

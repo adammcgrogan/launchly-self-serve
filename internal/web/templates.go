@@ -49,6 +49,25 @@ var siteTemplates = []domain.Template{
 	},
 }
 
+// businessType is one option in the builder wizard's "what kind of business
+// is this?" picker. These are deliberately broad, general-purpose buckets —
+// not a template per vertical — each just suggesting a sensible default
+// design; the owner can still pick any template regardless (see issue #16).
+type businessType struct {
+	ID              string
+	Label           string
+	DefaultTemplate string
+}
+
+var businessTypes = []businessType{
+	{ID: "general", Label: "General business or trade", DefaultTemplate: "aurora"},
+	{ID: "hospitality", Label: "Hospitality & food service", DefaultTemplate: "aurora"},
+	{ID: "retail", Label: "Retail & shop", DefaultTemplate: "aurora"},
+	{ID: "professional", Label: "Professional services", DefaultTemplate: "meridian"},
+	{ID: "fitness", Label: "Fitness & gyms", DefaultTemplate: "foundry"},
+	{ID: "salon", Label: "Salon, studio & wellness", DefaultTemplate: "bloom"},
+}
+
 func findTemplate(id string) (domain.Template, bool) {
 	for _, t := range siteTemplates {
 		if t.ID == id {

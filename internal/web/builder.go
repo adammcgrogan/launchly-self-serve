@@ -20,6 +20,7 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 	}
 	h.render.Render(w, "dashboard:new_site", map[string]any{
 		"Templates":       siteTemplates,
+		"BusinessTypes":   businessTypes,
 		"PaletteColors":   paletteSwatchColors,
 		"Error":           errMsg,
 		"Values":          values,
