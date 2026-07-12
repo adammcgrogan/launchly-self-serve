@@ -18,10 +18,11 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		values = url.Values{}
 	}
 	h.render.Render(w, "dashboard:new_site", map[string]any{
-		"Templates": siteTemplates,
-		"Error":     errMsg,
-		"Values":    values,
-		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
+		"Templates":     siteTemplates,
+		"Error":         errMsg,
+		"Values":        values,
+		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
+		"EmailVerified": h.emailVerified(r),
 	})
 }
 

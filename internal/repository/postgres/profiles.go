@@ -25,11 +25,16 @@ func UpsertProfile(ctx context.Context, q querier, id uuid.UUID, email string) (
 }
 
 // GetProfile returns nil, nil if no profile exists for the given ID.
+// EmailVerified is read from Supabase's auth.users table, joined in here
+// since our own profiles table doesn't track verification state.
 func GetProfile(ctx context.Context, q querier, id uuid.UUID) (*domain.Profile, error) {
 	var p domain.Profile
-	err := q.QueryRowContext(ctx,
-		`SELECT id, email, created_at FROM profiles WHERE id = $1`, id,
-	).Scan(&p.ID, &p.Email, &p.CreatedAt)
+	err := q.QueryRowContext(ctx, `
+		SELECT p.id, p.email, p.created_at, u.email_confirmed_at IS NOT NULL
+		FROM profiles p
+		JOIN auth.users u ON u.id = p.id
+		WHERE p.id = $1
+	`, id).Scan(&p.ID, &p.Email, &p.CreatedAt, &p.EmailVerified)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

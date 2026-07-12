@@ -24,6 +24,13 @@
       </nav>
     </div>
   </header>
+  {{if not .EmailVerified}}
+  <div class="max-w-5xl mx-auto px-6 mt-6">
+    <p class="rounded-lg bg-amber-50 text-amber-700 text-sm px-4 py-3">
+      Please confirm your email address. <a href="/resend-verification" class="font-medium underline">Resend verification email</a>
+    </p>
+  </div>
+  {{end}}
   {{if .Flash}}
   <div class="max-w-5xl mx-auto px-6 mt-6">
     <p class="rounded-lg bg-emerald-50 text-emerald-700 text-sm px-4 py-3">{{.Flash}}</p>

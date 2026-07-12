@@ -18,9 +18,22 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.render.Render(w, "dashboard:sites", map[string]any{
-		"Sites": sites,
-		"Flash": middleware.GetFlash(w, r),
+		"Sites":         sites,
+		"Flash":         middleware.GetFlash(w, r),
+		"EmailVerified": h.emailVerified(r),
 	})
+}
+
+// emailVerified reports whether the logged-in user has confirmed their
+// email, for the dashboard's unverified-email nudge banner. It fails open
+// (treats lookup errors as verified) so a profile-lookup hiccup never blocks
+// the dashboard from rendering.
+func (h *Handler) emailVerified(r *http.Request) bool {
+	profile, err := h.accounts.GetProfile(r.Context(), middleware.UserID(r))
+	if err != nil || profile == nil {
+		return true
+	}
+	return profile.EmailVerified
 }
 
 // SiteOverview shows one site's status, live URL, trial/billing state,
@@ -32,8 +45,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("launched") == "1" {
 		siteURL := h.siteURL(site.Slug)
 		h.render.Render(w, "dashboard:launched", map[string]any{
-			"Site":    site,
-			"SiteURL": siteURL,
+			"Site":          site,
+			"SiteURL":       siteURL,
+			"EmailVerified": h.emailVerified(r),
 		})
 		return
 	}
@@ -75,6 +89,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"CSRFToken":          h.csrf.Token(middleware.UserID(r).String()),
 		"Upgraded":           r.URL.Query().Get("upgraded") == "1",
 		"SMSAlertsAvailable": h.cfg.SMSAlertsAvailable(),
+		"EmailVerified":      h.emailVerified(r),
 
 		"Design":           tmpl,
 		"Templates":        siteTemplates,
@@ -99,8 +114,9 @@ func (h *Handler) Account(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.render.Render(w, "dashboard:account", map[string]any{
-		"Profile": profile,
-		"Flash":   middleware.GetFlash(w, r),
+		"Profile":       profile,
+		"Flash":         middleware.GetFlash(w, r),
+		"EmailVerified": profile.EmailVerified,
 	})
 }
 
