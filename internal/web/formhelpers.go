@@ -3,17 +3,19 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
 
-// The builder/editor forms use simple newline-separated textareas for list
-// fields (services, certifications, gallery URLs) and "field|field" lines
-// for two-part rows (testimonials, business hours) — the same convention
-// the old app used, just parsed into normalized rows instead of stored as
-// raw delimited strings.
+// The editor form uses simple newline-separated textareas for list fields
+// (services, certifications, gallery URLs) and "field|field" lines for
+// testimonials — the same convention the old app used, just parsed into
+// normalized rows instead of stored as raw delimited strings. The builder
+// wizard's testimonials use real repeated fields instead (see
+// parseTestimonialRows) rather than asking for a delimited line.
 
 func splitLines(s string) []string {
 	var out []string
@@ -72,6 +74,64 @@ func parseTestimonials(s string) []domain.Testimonial {
 		}
 	}
 	return out
+}
+
+// parseTestimonialRows reads the wizard's repeatable testimonial cards —
+// testimonial_name/testimonial_role/testimonial_quote are each submitted as
+// one value per row, in the same order, so the i-th value of each names one
+// row. Rows with no quote are dropped.
+func parseTestimonialRows(r *http.Request) []domain.Testimonial {
+	names := r.Form["testimonial_name"]
+	roles := r.Form["testimonial_role"]
+	quotes := r.Form["testimonial_quote"]
+	var out []domain.Testimonial
+	for i, quote := range quotes {
+		quote = strings.TrimSpace(quote)
+		if quote == "" {
+			continue
+		}
+		t := domain.Testimonial{Quote: quote, SortOrder: len(out)}
+		if i < len(names) {
+			t.AuthorName = strings.TrimSpace(names[i])
+		}
+		if i < len(roles) {
+			t.AuthorRole = strings.TrimSpace(roles[i])
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// testimonialRowsForForm rebuilds the wizard's testimonial cards from a
+// failed submit's form values, so nothing typed is lost on reload. Always
+// returns at least one (possibly empty) row so the form has one to render.
+func testimonialRowsForForm(values url.Values) []domain.Testimonial {
+	names := values["testimonial_name"]
+	roles := values["testimonial_role"]
+	quotes := values["testimonial_quote"]
+	n := len(quotes)
+	if len(names) > n {
+		n = len(names)
+	}
+	if len(roles) > n {
+		n = len(roles)
+	}
+	rows := make([]domain.Testimonial, n)
+	for i := range rows {
+		if i < len(names) {
+			rows[i].AuthorName = names[i]
+		}
+		if i < len(roles) {
+			rows[i].AuthorRole = roles[i]
+		}
+		if i < len(quotes) {
+			rows[i].Quote = quotes[i]
+		}
+	}
+	if len(rows) == 0 {
+		rows = append(rows, domain.Testimonial{})
+	}
+	return rows
 }
 
 // weekdayField describes one row of the opening-hours grid in the builder
@@ -201,4 +261,3 @@ func testimonialsToLines(t []domain.Testimonial) string {
 	}
 	return strings.Join(lines, "\n")
 }
-
