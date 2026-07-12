@@ -291,6 +291,11 @@ func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 	}
 	mobile := strings.TrimSpace(r.FormValue("mobile_number"))
 	enabled := r.FormValue("sms_alerts_enabled") == "on"
+	if enabled && !h.cfg.SMSAlertsAvailable() {
+		middleware.SetFlash(w, "SMS lead alerts aren't available yet.")
+		http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+		return
+	}
 
 	if err := h.sites.UpdateNotifySettings(r.Context(), site.ID, mobile, enabled); err != nil {
 		if err == service.ErrNotifyNotPro || err == service.ErrNotifyInvalidNumber {

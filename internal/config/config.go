@@ -97,6 +97,14 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// SMSAlertsAvailable reports whether Twilio is configured — the feature
+// flag for SMS lead alerts. Left unset until we're ready to pay for Twilio,
+// at which point setting the env vars turns the feature on with no code
+// change.
+func (c *Config) SMSAlertsAvailable() bool {
+	return c.TwilioAccountSID != "" && c.TwilioAuthToken != "" && c.TwilioFromNumber != ""
+}
+
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v

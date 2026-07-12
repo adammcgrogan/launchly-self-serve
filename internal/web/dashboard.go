@@ -46,13 +46,14 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7)
 
 	h.render.Render(w, "dashboard:site", map[string]any{
-		"Site":      site,
-		"Leads":     leads,
-		"Stats":     stats,
-		"SiteURL":   h.siteURL(site.Slug),
-		"Flash":     middleware.GetFlash(w, r),
-		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-		"Upgraded":  r.URL.Query().Get("upgraded") == "1",
+		"Site":               site,
+		"Leads":              leads,
+		"Stats":              stats,
+		"SiteURL":            h.siteURL(site.Slug),
+		"Flash":              middleware.GetFlash(w, r),
+		"CSRFToken":          h.csrf.Token(middleware.UserID(r).String()),
+		"Upgraded":           r.URL.Query().Get("upgraded") == "1",
+		"SMSAlertsAvailable": h.cfg.SMSAlertsAvailable(),
 	})
 }
 
