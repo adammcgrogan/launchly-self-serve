@@ -11,6 +11,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 // Sites owns the create/edit/publish lifecycle of a site and assembling the
@@ -196,52 +197,38 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		return nil, nil
 	}
 
-	contact, err := postgres.GetSiteContact(ctx, q, id)
-	if err != nil {
+	var (
+		contact        *domain.SiteContact
+		billing        *domain.SiteBilling
+		analytics      *domain.SiteAnalyticsSettings
+		notify         *domain.SiteNotifySettings
+		announcement   *domain.SiteAnnouncement
+		socialLinks    []domain.SocialLink
+		services       []domain.Service
+		certifications []domain.Certification
+		testimonials   []domain.Testimonial
+		gallery        []domain.GalleryImage
+		hours          []domain.BusinessHours
+	)
+
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() (err error) { contact, err = postgres.GetSiteContact(gctx, q, id); return })
+	g.Go(func() (err error) { billing, err = postgres.GetSiteBilling(gctx, q, id); return })
+	g.Go(func() (err error) { analytics, err = postgres.GetSiteAnalyticsSettings(gctx, q, id); return })
+	g.Go(func() (err error) { notify, err = postgres.GetSiteNotifySettings(gctx, q, id); return })
+	g.Go(func() (err error) { announcement, err = postgres.GetSiteAnnouncement(gctx, q, id); return })
+	g.Go(func() (err error) { socialLinks, err = postgres.GetSiteSocialLinks(gctx, q, id); return })
+	g.Go(func() (err error) { services, err = postgres.GetSiteServices(gctx, q, id); return })
+	g.Go(func() (err error) { certifications, err = postgres.GetSiteCertifications(gctx, q, id); return })
+	g.Go(func() (err error) { testimonials, err = postgres.GetSiteTestimonials(gctx, q, id); return })
+	g.Go(func() (err error) { gallery, err = postgres.GetSiteGalleryImages(gctx, q, id); return })
+	g.Go(func() (err error) { hours, err = postgres.GetSiteBusinessHours(gctx, q, id); return })
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
-	billing, err := postgres.GetSiteBilling(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
+
 	if billing == nil {
 		billing = &domain.SiteBilling{SiteID: id}
-	}
-	analytics, err := postgres.GetSiteAnalyticsSettings(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	notify, err := postgres.GetSiteNotifySettings(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	announcement, err := postgres.GetSiteAnnouncement(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	socialLinks, err := postgres.GetSiteSocialLinks(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	services, err := postgres.GetSiteServices(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	certifications, err := postgres.GetSiteCertifications(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	testimonials, err := postgres.GetSiteTestimonials(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	gallery, err := postgres.GetSiteGalleryImages(ctx, q, id)
-	if err != nil {
-		return nil, err
-	}
-	hours, err := postgres.GetSiteBusinessHours(ctx, q, id)
-	if err != nil {
-		return nil, err
 	}
 
 	return &domain.SiteAggregate{
