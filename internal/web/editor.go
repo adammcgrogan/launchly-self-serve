@@ -11,17 +11,6 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
-func (h *Handler) AddressForm(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
-	h.render.Render(w, "dashboard:address", map[string]any{
-		"Site":      site,
-		"SiteURL":   h.siteURL(site.Slug),
-		"Domain":    h.cfg.Domain,
-		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-		"Flash":     middleware.GetFlash(w, r),
-	})
-}
-
 func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
@@ -34,34 +23,13 @@ func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 	slug := strings.TrimSpace(r.FormValue("slug"))
 
 	if err := h.sites.RenameSlug(r.Context(), site.ID, slug); err != nil {
-		h.render.Render(w, "dashboard:address", map[string]any{
-			"Site":      site,
-			"SiteURL":   h.siteURL(site.Slug),
-			"Domain":    h.cfg.Domain,
-			"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-			"Error":     err.Error(),
-			"Slug":      slug,
-		})
+		middleware.SetFlash(w, err.Error())
+		http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 		return
 	}
 
 	middleware.SetFlash(w, "Address updated. Your old link will keep working.")
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d/address", site.ID), http.StatusSeeOther)
-}
-
-func (h *Handler) EditForm(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
-	socials := socialLinksMap(site.SocialLinks)
-	h.render.Render(w, "dashboard:edit", map[string]any{
-		"Site":             site,
-		"Socials":          socials,
-		"ServicesText":     servicesToLines(site.Services),
-		"CertsText":        certificationsToLines(site.Certifications),
-		"TestimonialsText": testimonialsToLines(site.Testimonials),
-		"GalleryText":      galleryToLines(site.GalleryImages),
-		"HoursText":        businessHoursToLines(site.BusinessHours),
-		"CSRFToken":        h.csrf.Token(middleware.UserID(r).String()),
-	})
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
 func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
@@ -107,16 +75,6 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
-func (h *Handler) AppearanceForm(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
-	tmpl, _ := findTemplate(site.TemplateID)
-	h.render.Render(w, "dashboard:appearance", map[string]any{
-		"Site":      site,
-		"Palettes":  tmpl.Palettes,
-		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-	})
-}
-
 func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
@@ -152,15 +110,6 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
-func (h *Handler) SwitchTemplateForm(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
-	h.render.Render(w, "dashboard:switch_template", map[string]any{
-		"Site":      site,
-		"Templates": siteTemplates,
-		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-	})
-}
-
 func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
@@ -181,14 +130,6 @@ func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	middleware.SetFlash(w, "Template switched.")
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
-}
-
-func (h *Handler) FormTypeForm(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
-	h.render.Render(w, "dashboard:form_type", map[string]any{
-		"Site":      site,
-		"CSRFToken": h.csrf.Token(middleware.UserID(r).String()),
-	})
 }
 
 func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
@@ -23,8 +24,8 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 // SiteOverview shows one site's status, live URL, trial/billing state,
-// stats, and recent leads. RequireSiteOwner has already loaded the site
-// into the request context.
+// stats, and recent leads, plus every site-level setting grouped into tabs.
+// RequireSiteOwner has already loaded the site into the request context.
 func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 
@@ -44,16 +45,48 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	since7 := time.Now().UTC().Add(-7 * 24 * time.Hour)
 	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7)
+	allTimeStats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, site.CreatedAt)
+
+	tmpl, _ := findTemplate(site.TemplateID)
+
+	domainData := map[string]any{
+		"FallbackOrigin": h.domains.FallbackOrigin(),
+		"IsPro":          site.Billing.Plan == domain.PlanPro,
+	}
+	if site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending {
+		if hostname, err := h.domains.RefreshCustomDomainStatus(r.Context(), site.ID); err == nil {
+			domainData["Hostname"] = hostname
+			if hostname.Active() {
+				site.CustomDomainStatus = domain.CustomDomainActive
+			} else if hostname.Failed() {
+				site.CustomDomainStatus = domain.CustomDomainFailed
+			}
+		}
+	}
 
 	h.render.Render(w, "dashboard:site", map[string]any{
 		"Site":               site,
 		"Leads":              leads,
+		"LeadCount":          len(leads),
 		"Stats":              stats,
+		"AllTimeStats":       allTimeStats,
 		"SiteURL":            h.siteURL(site.Slug),
 		"Flash":              middleware.GetFlash(w, r),
 		"CSRFToken":          h.csrf.Token(middleware.UserID(r).String()),
 		"Upgraded":           r.URL.Query().Get("upgraded") == "1",
 		"SMSAlertsAvailable": h.cfg.SMSAlertsAvailable(),
+
+		"Design":           tmpl,
+		"Templates":        siteTemplates,
+		"Palettes":         tmpl.Palettes,
+		"Socials":          socialLinksMap(site.SocialLinks),
+		"ServicesText":     servicesToLines(site.Services),
+		"CertsText":        certificationsToLines(site.Certifications),
+		"TestimonialsText": testimonialsToLines(site.Testimonials),
+		"GalleryText":      galleryToLines(site.GalleryImages),
+		"HoursText":        businessHoursToLines(site.BusinessHours),
+		"Domain":           h.cfg.Domain,
+		"DomainData":       domainData,
 	})
 }
 

@@ -9,30 +9,83 @@
   <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Site.Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Site.Status}}</span>
 </div>
 
-<div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6" data-site-tabs="{{.Site.ID}}">
-  <button type="button" data-tab="overview" class="site-tab rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Overview</button>
-  <button type="button" data-tab="settings" class="site-tab rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Site settings</button>
-  <button type="button" data-tab="notifications" class="site-tab rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Notifications</button>
-  <button type="button" data-tab="billing" class="site-tab rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Billing</button>
+<div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6" data-tabs="{{.Site.ID}}" data-style="underline" data-storage-key="dashboard-site-tab" data-query-param="tab" data-default="overview">
+  <button type="button" data-tab="overview" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Overview</button>
+  <button type="button" data-tab="settings" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Site settings</button>
+  <button type="button" data-tab="notifications" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Notifications</button>
+  <button type="button" data-tab="billing" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Billing</button>
 </div>
 
 <div data-tab-panel="overview" class="space-y-6">
-  <div class="rounded-2xl border border-slate-200 bg-white p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Last 7 days</h2>
-    {{if .Stats}}
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <p class="text-3xl font-bold text-slate-900">{{.Stats.TotalViews}}</p>
-        <p class="text-sm text-slate-500">Page views</p>
-      </div>
-      <div>
-        <p class="text-3xl font-bold text-slate-900">{{.Stats.UniqueVisitors}}</p>
-        <p class="text-sm text-slate-500">Unique visitors</p>
-      </div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Design</p>
+      <p class="mt-1 font-semibold text-slate-900">{{.Design.Name}}</p>
     </div>
-    {{else}}
-    <p class="text-sm text-slate-500">No data yet.</p>
-    {{end}}
+    <div class="rounded-2xl border border-slate-200 bg-white p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Form type</p>
+      <p class="mt-1 font-semibold text-slate-900 capitalize">{{.Site.FormType}}</p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Plan</p>
+      <p class="mt-1 font-semibold text-slate-900 capitalize">{{.Site.Billing.Plan}} · <span class="capitalize">{{.Site.Billing.PaymentStatus}}</span></p>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Announcement</p>
+      {{if .Site.Announcement.Text}}
+      <p class="mt-1 font-semibold text-slate-900">Active{{if .Site.Announcement.ExpiresAt}} until {{.Site.Announcement.ExpiresAt.Format "2 Jan"}}{{end}}</p>
+      {{else}}
+      <p class="mt-1 font-semibold text-slate-400">None</p>
+      {{end}}
+    </div>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-6">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-4">Last 7 days</h2>
+      {{if .Stats}}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <p class="text-3xl font-bold text-slate-900">{{.Stats.TotalViews}}</p>
+          <p class="text-sm text-slate-500">Page views</p>
+        </div>
+        <div>
+          <p class="text-3xl font-bold text-slate-900">{{.Stats.UniqueVisitors}}</p>
+          <p class="text-sm text-slate-500">Unique visitors</p>
+        </div>
+      </div>
+      {{if .Stats.TopReferrers}}
+      <div class="mt-5 pt-4 border-t border-slate-100">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Top referrers</p>
+        <ul class="space-y-1.5 text-sm text-slate-600">
+          {{range .Stats.TopReferrers}}
+          <li class="flex justify-between"><span>{{if .Referrer}}{{.Referrer}}{{else}}Direct{{end}}</span><span class="text-slate-400">{{.Count}}</span></li>
+          {{end}}
+        </ul>
+      </div>
+      {{end}}
+      {{else}}
+      <p class="text-sm text-slate-500">No data yet.</p>
+      {{end}}
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-4">All time</h2>
+      {{if .AllTimeStats}}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <p class="text-3xl font-bold text-slate-900">{{.AllTimeStats.TotalViews}}</p>
+          <p class="text-sm text-slate-500">Page views</p>
+        </div>
+        <div>
+          <p class="text-3xl font-bold text-slate-900">{{.LeadCount}}</p>
+          <p class="text-sm text-slate-500">Leads received</p>
+        </div>
+      </div>
+      {{else}}
+      <p class="text-sm text-slate-500">No data yet.</p>
+      {{end}}
+    </div>
   </div>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-6">
@@ -54,46 +107,301 @@
   </div>
 </div>
 
-<div data-tab-panel="settings" class="space-y-6 hidden">
-  <div class="rounded-2xl border border-slate-200 bg-white p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Manage</h2>
-    <div class="flex flex-wrap gap-3">
-      <a href="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Edit content</a>
-      <a href="/dashboard/sites/{{.Site.ID}}/appearance" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Appearance</a>
-      <a href="/dashboard/sites/{{.Site.ID}}/switch-template" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Switch design</a>
-      <a href="/dashboard/sites/{{.Site.ID}}/form-type" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Form type</a>
-      <a href="/dashboard/sites/{{.Site.ID}}/address" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Address</a>
-      <a href="/dashboard/sites/{{.Site.ID}}/domain" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Custom domain{{if ne (print .Site.Billing.Plan) "pro"}} (Pro){{end}}</a>
-      <a href="/dashboard/sites/{{.Site.ID}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
-      {{if eq (print .Site.Status) "live"}}
-      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Unpublish</button>
-      </form>
-      {{else if ne (print .Site.Status) "paused"}}
-      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/publish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <button class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Publish</button>
-      </form>
-      {{end}}
-      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/delete" onsubmit="return confirm('Delete this site? This cannot be undone.');">
+<div data-tab-panel="settings" class="hidden">
+  <div class="flex flex-wrap gap-2 mb-6" data-tabs="{{.Site.ID}}-settings" data-style="pill" data-storage-key="dashboard-site-subtab" data-query-param="subtab" data-default="content">
+    <button type="button" data-tab="content" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Content</button>
+    <button type="button" data-tab="design" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Design</button>
+    <button type="button" data-tab="form" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Form</button>
+    <button type="button" data-tab="address" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Address</button>
+    <button type="button" data-tab="domain" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Domain</button>
+    <button type="button" data-tab="publishing" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Publishing</button>
+  </div>
+
+  <div data-tab-panel="content" class="space-y-6">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-1">Announcement</h2>
+      <p class="text-sm text-slate-500 mb-4">Shown as a banner at the top of your site until it expires or you clear it — e.g. "Closed for holidays until 4 Aug".</p>
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/announcement" class="space-y-3">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Delete</button>
+        <textarea name="announcement_text" rows="2" placeholder="Fully booked until September" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{.Site.Announcement.Text}}</textarea>
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="text-sm text-slate-500">Expires
+            <input type="date" name="announcement_expires_at" value="{{if .Site.Announcement.ExpiresAt}}{{.Site.Announcement.ExpiresAt.Format "2006-01-02"}}{{end}}" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
+          </label>
+          <button type="submit" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Save</button>
+        </div>
+      </form>
+    </div>
+
+    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-10">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <section class="space-y-4">
+        <h2 class="font-semibold text-slate-900">Business details</h2>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
+          <input type="text" name="business_name" value="{{.Site.BusinessName}}" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
+          <input type="text" name="tagline" value="{{.Site.Tagline}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
+          <textarea name="about" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.About}}</textarea>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
+            <input type="url" name="logo_url" value="{{.Site.LogoURL}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
+            <input type="text" name="cta_text" value="{{.Site.CTAText}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="font-semibold text-slate-900">Contact</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+            <input type="tel" name="phone" value="{{.Site.Contact.Phone}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
+            <input type="email" name="email" value="{{.Site.Contact.Email}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+            <input type="text" name="address" value="{{.Site.Contact.Address}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Location badge</label>
+            <input type="text" name="location" value="{{.Site.Contact.Location}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL (optional)</label>
+          <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="font-semibold text-slate-900">Content</h2>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Services, one per line</label>
+          <textarea name="services" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.ServicesText}}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Certifications / trust badges, one per line</label>
+          <textarea name="certifications" rows="2" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.CertsText}}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials, one per line as "Name|Role|Quote"</label>
+          <textarea name="testimonials" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.TestimonialsText}}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Gallery image URLs, one per line</label>
+          <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.GalleryText}}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours, one per line as "Label|Hours"</label>
+          <textarea name="hours" rows="2" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.HoursText}}</textarea>
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="font-semibold text-slate-900">Social links</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <input type="url" name="whatsapp_url" value="{{index .Socials "whatsapp"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <input type="url" name="twitter_url" value="{{index .Socials "twitter"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <input type="url" name="tiktok_url" value="{{index .Socials "tiktok"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <input type="url" name="linkedin_url" value="{{index .Socials "linkedin"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <input type="url" name="youtube_url" value="{{index .Socials "youtube"}}" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+      </section>
+
+      <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save changes</button>
+    </form>
+  </div>
+
+  <div data-tab-panel="design" class="space-y-6 hidden">
+    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/appearance" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-8">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <section>
+        <h2 class="font-semibold text-slate-900 mb-4">Colour palette</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          {{range .Palettes}}
+          <label class="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
+            <input type="radio" name="palette" value="{{.ID}}" {{if eq .ID $.Site.Palette}}checked{{end}}>
+            <span class="font-medium text-slate-900">{{.Name}}</span>
+          </label>
+          {{end}}
+        </div>
+      </section>
+      <section>
+        <h2 class="font-semibold text-slate-900 mb-4">Heading font</h2>
+        <select name="heading_font" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <option value="" {{if eq .Site.HeadingFont ""}}selected{{end}}>Design default</option>
+          <option value="sans" {{if eq .Site.HeadingFont "sans"}}selected{{end}}>Sans-serif</option>
+          <option value="serif" {{if eq .Site.HeadingFont "serif"}}selected{{end}}>Serif</option>
+        </select>
+      </section>
+      <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save appearance</button>
+    </form>
+
+    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/switch-template" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-8">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <h2 class="font-semibold text-slate-900">Switch design</h2>
+      <p class="text-sm text-slate-500">Your content carries over. Nothing is lost when you switch.</p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        {{range .Templates}}
+        <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
+          <input type="radio" name="template_id" value="{{.ID}}" {{if eq .ID $.Site.TemplateID}}checked{{end}} class="mt-1">
+          <span>
+            <span class="block font-semibold text-slate-900">{{.Name}}</span>
+            <span class="block text-sm text-slate-500 mt-1">{{.Description}}</span>
+          </span>
+        </label>
+        {{end}}
+      </div>
+      <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Switch design</button>
+    </form>
+  </div>
+
+  <div data-tab-panel="form" class="hidden">
+    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/form-type" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <h2 class="font-semibold text-slate-900 mb-1">Form type</h2>
+      <p class="text-sm text-slate-500 mb-2">Choose what your site's contact form asks visitors for.</p>
+      <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
+        <input type="radio" name="form_type" value="contact" {{if eq .Site.FormType "contact"}}checked{{end}} class="mt-1">
+        <span>
+          <span class="block font-semibold text-slate-900">Contact form</span>
+          <span class="block text-sm text-slate-500 mt-1">Name, email, phone and a free-text message.</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
+        <input type="radio" name="form_type" value="booking" {{if eq .Site.FormType "booking"}}checked{{end}} class="mt-1">
+        <span>
+          <span class="block font-semibold text-slate-900">Booking form</span>
+          <span class="block text-sm text-slate-500 mt-1">Adds a service picker and preferred time, so requests arrive pre-qualified.</span>
+        </span>
+      </label>
+      <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save</button>
+    </form>
+  </div>
+
+  <div data-tab-panel="address" class="hidden">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900">Address</h2>
+      <p class="mt-2 text-slate-500">Your site is live at <a href="{{.SiteURL}}" target="_blank" class="text-brand font-medium">{{.SiteURL}} ↗</a></p>
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/address" class="mt-6 space-y-4 max-w-md">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Subdomain</label>
+          <div class="flex items-center rounded-lg border border-slate-200 focus-within:ring-2 focus-within:ring-brand">
+            <input type="text" name="slug" value="{{.Site.Slug}}" required class="flex-1 min-w-0 rounded-l-lg px-4 py-2.5 focus:outline-none">
+            <span class="pr-4 text-sm text-slate-400 whitespace-nowrap">.{{.Domain}}</span>
+          </div>
+          <p class="mt-1 text-xs text-slate-400">Your old link will keep working — it'll redirect here automatically. You can change this once per day.</p>
+        </div>
+        <button type="submit" class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Save address</button>
       </form>
     </div>
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-6">
-    <h2 class="font-semibold text-slate-900 mb-1">Announcement</h2>
-    <p class="text-sm text-slate-500 mb-4">Shown as a banner at the top of your site until it expires or you clear it — e.g. "Closed for holidays until 4 Aug".</p>
-    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/announcement" class="space-y-3">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <textarea name="announcement_text" rows="2" placeholder="Fully booked until September" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{.Site.Announcement.Text}}</textarea>
-      <div class="flex flex-wrap items-center gap-3">
-        <label class="text-sm text-slate-500">Expires
-          <input type="date" name="announcement_expires_at" value="{{if .Site.Announcement.ExpiresAt}}{{.Site.Announcement.ExpiresAt.Format "2006-01-02"}}{{end}}" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
-        </label>
-        <button type="submit" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Save</button>
+  <div data-tab-panel="domain" class="hidden">
+    {{if not .DomainData.IsPro}}
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 max-w-md">
+      <p class="text-slate-600">Connecting your own domain is a Pro-plan feature.</p>
+    </div>
+    {{else}}
+    {{if not .Site.CustomDomain}}
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900">Custom domain</h2>
+      <p class="mt-2 text-slate-500">Connect a domain you own, e.g. <span class="font-mono text-sm">yourbusiness.com</span>.</p>
+      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain" class="mt-6 space-y-4 max-w-md">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Domain</label>
+          <input type="text" name="domain" placeholder="yourbusiness.com" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand">
+        </div>
+        <button type="submit" class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Connect domain</button>
+      </form>
+    </div>
+    {{else}}
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <div class="flex items-center justify-between">
+        <p class="font-medium text-slate-900">{{.Site.CustomDomain}}</p>
+        <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full
+          {{if eq (print .Site.CustomDomainStatus) "active"}}bg-emerald-50 text-emerald-700
+          {{else if eq (print .Site.CustomDomainStatus) "failed"}}bg-red-50 text-red-600
+          {{else}}bg-amber-50 text-amber-700{{end}}">{{.Site.CustomDomainStatus}}</span>
       </div>
-    </form>
+
+      {{if ne (print .Site.CustomDomainStatus) "active"}}
+      <div class="mt-4 text-sm text-slate-600 space-y-2">
+        <p>Add these DNS records at your domain's registrar:</p>
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500"><tr><th class="px-3 py-2">Type</th><th class="px-3 py-2">Name</th><th class="px-3 py-2">Value</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 font-mono">
+              <tr><td class="px-3 py-2">CNAME</td><td class="px-3 py-2">{{.Site.CustomDomain}}</td><td class="px-3 py-2">{{.DomainData.FallbackOrigin}}</td></tr>
+              {{if .DomainData.Hostname}}
+              {{if .DomainData.Hostname.OwnershipVerification}}
+              <tr><td class="px-3 py-2">{{.DomainData.Hostname.OwnershipVerification.Type}}</td><td class="px-3 py-2 break-all">{{.DomainData.Hostname.OwnershipVerification.Name}}</td><td class="px-3 py-2 break-all">{{.DomainData.Hostname.OwnershipVerification.Value}}</td></tr>
+              {{end}}
+              {{range .DomainData.Hostname.SSLValidationRecords}}
+              <tr><td class="px-3 py-2">{{.Type}}</td><td class="px-3 py-2 break-all">{{.Name}}</td><td class="px-3 py-2 break-all">{{.Value}}</td></tr>
+              {{end}}
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-slate-400">DNS changes can take anywhere from a few minutes to a few hours to take effect.</p>
+      </div>
+      {{end}}
+
+      <div class="mt-4 flex flex-wrap gap-3">
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain/check">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Check status</button>
+        </form>
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain/remove" onsubmit="return confirm('Remove this custom domain?');">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Remove domain</button>
+        </form>
+      </div>
+    </div>
+    {{end}}
+    {{end}}
+  </div>
+
+  <div data-tab-panel="publishing" class="hidden">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 class="font-semibold text-slate-900 mb-4">Publishing</h2>
+      <div class="flex flex-wrap gap-3">
+        <a href="/dashboard/sites/{{.Site.ID}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
+        {{if eq (print .Site.Status) "live"}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Unpublish</button>
+        </form>
+        {{else if ne (print .Site.Status) "paused"}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/publish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Publish</button>
+        </form>
+        {{end}}
+        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/delete" onsubmit="return confirm('Delete this site? This cannot be undone.');">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Delete</button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -164,38 +472,56 @@
 
 <script>
   (function () {
-    var nav = document.querySelector('[data-site-tabs]');
-    if (!nav) return;
-    var siteID = nav.getAttribute('data-site-tabs');
-    var storageKey = 'dashboard-site-tab-' + siteID;
-    var tabs = Array.prototype.slice.call(document.querySelectorAll('.site-tab'));
-    var panels = {};
-    document.querySelectorAll('[data-tab-panel]').forEach(function (panel) {
-      panels[panel.getAttribute('data-tab-panel')] = panel;
-    });
+    // Active/inactive class sets per nav style — 'underline' for the main
+    // top-level tabs, 'pill' for the nested settings sub-tabs.
+    var STYLES = {
+      underline: {
+        active: ['border-brand', 'text-brand'],
+        inactive: ['border-transparent', 'text-slate-500'],
+      },
+      pill: {
+        active: ['bg-brand', 'text-white', 'border-brand'],
+        inactive: ['border-slate-200', 'text-slate-600'],
+      },
+    };
 
-    function activate(name) {
-      if (!panels[name]) name = 'overview';
+    function initTabGroup(nav) {
+      var style = STYLES[nav.getAttribute('data-style')] || STYLES.underline;
+      var storageKey = nav.getAttribute('data-storage-key') + '-' + nav.getAttribute('data-tabs');
+      var queryParam = nav.getAttribute('data-query-param');
+      var defaultTab = nav.getAttribute('data-default');
+      var tabs = Array.prototype.slice.call(nav.querySelectorAll(':scope > [data-tab]'));
+      var panels = {};
+      Array.prototype.forEach.call(nav.parentElement.children, function (el) {
+        if (el.hasAttribute('data-tab-panel')) panels[el.getAttribute('data-tab-panel')] = el;
+      });
+
+      function activate(name) {
+        if (!panels[name]) name = defaultTab;
+        tabs.forEach(function (tab) {
+          var active = tab.getAttribute('data-tab') === name;
+          var on = active ? style.active : style.inactive;
+          var off = active ? style.inactive : style.active;
+          tab.classList.remove.apply(tab.classList, off);
+          tab.classList.add.apply(tab.classList, on);
+        });
+        Object.keys(panels).forEach(function (key) {
+          panels[key].classList.toggle('hidden', key !== name);
+        });
+        window.localStorage.setItem(storageKey, name);
+      }
+
       tabs.forEach(function (tab) {
-        var active = tab.getAttribute('data-tab') === name;
-        tab.classList.toggle('border-brand', active);
-        tab.classList.toggle('text-brand', active);
-        tab.classList.toggle('border-transparent', !active);
-        tab.classList.toggle('text-slate-500', !active);
+        tab.addEventListener('click', function () {
+          activate(tab.getAttribute('data-tab'));
+        });
       });
-      Object.keys(panels).forEach(function (key) {
-        panels[key].classList.toggle('hidden', key !== name);
-      });
-      window.localStorage.setItem(storageKey, name);
+
+      var params = new URLSearchParams(window.location.search);
+      activate(params.get(queryParam) || window.localStorage.getItem(storageKey) || defaultTab);
     }
 
-    tabs.forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        activate(tab.getAttribute('data-tab'));
-      });
-    });
-
-    activate(window.localStorage.getItem(storageKey) || 'overview');
+    document.querySelectorAll('[data-tabs]').forEach(initTabGroup);
   })();
 </script>
 {{end}}
