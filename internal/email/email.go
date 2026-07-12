@@ -239,6 +239,62 @@ func (c *Client) SendLeadNotification(to, businessName, visitorName, visitorEmai
 	return c.sendWithReplyTo(to, fmt.Sprintf("New enquiry from your website - %s", businessName), wrap("New enquiry", content), visitorEmail)
 }
 
+// SendLeadAutoReply is sent to the visitor immediately after they submit a
+// contact form, confirming receipt and surfacing the business's opening
+// hours and phone number so they know when to expect a response or can call
+// straight away. It must never include visitor-controlled content — the
+// visitor's own submission (name, message, etc.) is never echoed back.
+func (c *Client) SendLeadAutoReply(to, businessName string, hours []domain.BusinessHours, phone, siteURL string) error {
+	content := h1(fmt.Sprintf("Thanks for contacting %s", businessName)) +
+		p("We've received your message and will get back to you as soon as possible.")
+
+	if phone != "" {
+		content += p(fmt.Sprintf(`Need a quicker answer? Call us on <strong>%s</strong>.`, html.EscapeString(phone)))
+	}
+
+	if hoursCard := formatHoursCard(hours); hoursCard != "" {
+		content += hoursCard
+	}
+
+	if siteURL != "" {
+		content += button(siteURL, "Visit our website")
+	}
+
+	return c.Send(to, fmt.Sprintf("We got your message - %s", businessName), wrap("Message received", content))
+}
+
+// formatHoursCard renders a site's weekly opening hours as an infoCard, one
+// row per configured day. Returns "" if no hours are configured, so callers
+// can skip the section entirely.
+func formatHoursCard(hours []domain.BusinessHours) string {
+	if len(hours) == 0 {
+		return ""
+	}
+	rows := ""
+	first := true
+	for _, h := range hours {
+		value := "Closed"
+		if !h.Closed && h.OpensAt != "" && h.ClosesAt != "" {
+			value = friendlyClockTime(h.OpensAt) + " - " + friendlyClockTime(h.ClosesAt)
+		}
+		rows += infoRow(h.Weekday.String(), value, first)
+		first = false
+	}
+	return sectionLabel("Opening hours") + infoCard(rows)
+}
+
+// friendlyClockTime turns "09:00" into "9am" and "13:30" into "1:30pm".
+func friendlyClockTime(hhmm string) string {
+	t, err := time.Parse("15:04", hhmm)
+	if err != nil {
+		return hhmm
+	}
+	if t.Minute() == 0 {
+		return t.Format("3pm")
+	}
+	return t.Format("3:04pm")
+}
+
 func (c *Client) SendPaymentConfirmation(to, businessName string, plan domain.Plan) error {
 	planLabel := "Starter"
 	if plan == domain.PlanPro {

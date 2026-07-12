@@ -21,9 +21,11 @@ func NewLeads(store *postgres.Store, mailer *email.Client, sms *notify.SMSClient
 }
 
 // SubmitLead records a contact-form submission and forwards it to the
-// business owner by email, with the visitor's address set as reply-to. It
-// also best-effort texts the owner if they've opted into SMS lead alerts.
-func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, phone, message, serviceLabel, preferredTime string) error {
+// business owner by email, with the visitor's address set as reply-to. If
+// the visitor supplied their own email, it also sends them an instant
+// auto-reply confirming receipt. It also best-effort texts the owner if
+// they've opted into SMS lead alerts.
+func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, phone, message, serviceLabel, preferredTime, siteURL string) error {
 	lead := &domain.Lead{SiteID: siteID, Name: name, Email: emailAddr, Phone: phone, Message: message, ServiceLabel: serviceLabel, PreferredTime: preferredTime}
 	if err := postgres.CreateLead(ctx, l.store.DB(), lead); err != nil {
 		return err
@@ -37,14 +39,25 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 	if err != nil {
 		return err
 	}
-	contactEmail := ""
+	contactEmail, contactPhone := "", ""
 	if contact != nil {
 		contactEmail = contact.Email
+		contactPhone = contact.Phone
 	}
 	to := notifyEmail(ctx, l.store, site.OwnerUserID, contactEmail)
 	if to != "" {
 		if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message, serviceLabel, preferredTime); err != nil {
 			slog.Error("send lead notification", "error", err)
+		}
+	}
+
+	if emailAddr != "" {
+		hours, err := postgres.GetSiteBusinessHours(ctx, l.store.DB(), siteID)
+		if err != nil {
+			slog.Error("get site business hours for auto-reply", "error", err)
+		}
+		if err := l.mailer.SendLeadAutoReply(emailAddr, site.BusinessName, hours, contactPhone, siteURL); err != nil {
+			slog.Error("send lead auto-reply", "error", err)
 		}
 	}
 
