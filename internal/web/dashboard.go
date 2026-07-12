@@ -70,6 +70,10 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	since7 := time.Now().UTC().Add(-7 * 24 * time.Hour)
 	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7)
 	allTimeStats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, site.CreatedAt)
+	var chartPoints []dailyViewPoint
+	if stats != nil {
+		chartPoints = last7DayPoints(stats.ViewsByDay)
+	}
 
 	tmpl, _ := findTemplate(site.TemplateID)
 
@@ -95,6 +99,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"NewLeadCount":  newLeadCount,
 		"Stats":         stats,
 		"AllTimeStats":  allTimeStats,
+		"ChartPoints":   chartPoints,
 		"SiteURL":       h.siteURL(site.Slug),
 		"Flash":         middleware.GetFlash(w, r),
 		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
@@ -115,6 +120,62 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Domain":           h.cfg.Domain,
 		"DomainData":       domainData,
 	})
+}
+
+// dailyViewPoint is one bar in the 7-day page-views chart on the site
+// overview: a day label/date and its view count, plus a precomputed bar
+// height so the template does no charting math.
+type dailyViewPoint struct {
+	Label    string // weekday, e.g. "Mon"
+	Date     string // e.g. "9 Jul"
+	Count    int
+	HeightPx int
+}
+
+// chartHeight and chartMinBarHeight size the 7-day page-views chart's bars —
+// kept small since this is a compact dashboard card, not a full chart page.
+// dashboard/site.html hardcodes chartHeight+16px (room for the day label) as
+// the chart row's fixed height — keep that in sync if this changes.
+const (
+	chartHeight       = 80
+	chartMinBarHeight = 4
+)
+
+// last7DayPoints turns ViewsByDay — which only has rows for days that had at
+// least one view — into a dense 7-day series ending today, so the chart
+// always renders 7 bars in the right position instead of shifting to fill
+// gaps. Bar heights are scaled against the week's own peak day.
+func last7DayPoints(viewsByDay []domain.DayCount) []dailyViewPoint {
+	counts := make(map[string]int, len(viewsByDay))
+	for _, dc := range viewsByDay {
+		counts[dc.Day.UTC().Format("2006-01-02")] = dc.Count
+	}
+
+	now := time.Now().UTC()
+	points := make([]dailyViewPoint, 7)
+	max := 0
+	for i := range points {
+		day := now.AddDate(0, 0, -(6 - i))
+		count := counts[day.Format("2006-01-02")]
+		points[i] = dailyViewPoint{Label: day.Format("Mon"), Date: day.Format("2 Jan"), Count: count}
+		if count > max {
+			max = count
+		}
+	}
+	if max == 0 {
+		return points
+	}
+	for i := range points {
+		if points[i].Count == 0 {
+			continue
+		}
+		h := points[i].Count * chartHeight / max
+		if h < chartMinBarHeight {
+			h = chartMinBarHeight
+		}
+		points[i].HeightPx = h
+	}
+	return points
 }
 
 // Account shows the logged-in user's email and account-level actions

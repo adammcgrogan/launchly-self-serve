@@ -54,6 +54,24 @@
           <p class="text-sm text-slate-500">Unique visitors</p>
         </div>
       </div>
+      {{if .ChartPoints}}
+      <div class="mt-5 pt-4 border-t border-slate-100">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Page views by day</p>
+        <div class="flex items-end justify-between gap-1" style="height:96px">
+          {{range .ChartPoints}}
+          <div class="group relative flex flex-1 flex-col items-center" tabindex="0">
+            <div class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs text-white group-hover:block group-focus:block">
+              <span class="font-semibold">{{.Count}}</span> view{{if ne .Count 1}}s{{end}} · {{.Date}}
+            </div>
+            <div class="flex w-full flex-1 items-end justify-center">
+              <div class="w-full max-w-[24px] rounded-t bg-brand/70 transition-colors group-hover:bg-brand group-focus:bg-brand" style="height:{{.HeightPx}}px"></div>
+            </div>
+            <span class="mt-1.5 text-[10px] text-slate-400">{{.Label}}</span>
+          </div>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
       <div class="mt-5 pt-4 border-t border-slate-100">
         <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Conversions</p>
         <ul class="space-y-1.5 text-sm text-slate-600">
