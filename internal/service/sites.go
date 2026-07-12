@@ -16,11 +16,12 @@ import (
 // Sites owns the create/edit/publish lifecycle of a site and assembling the
 // full SiteAggregate from the many tables it spans.
 type Sites struct {
-	store *postgres.Store
+	store   *postgres.Store
+	billing *Billing
 }
 
-func NewSites(store *postgres.Store) *Sites {
-	return &Sites{store: store}
+func NewSites(store *postgres.Store, billing *Billing) *Sites {
+	return &Sites{store: store, billing: billing}
 }
 
 var (
@@ -455,6 +456,13 @@ func (s *Sites) Unpublish(ctx context.Context, siteID int) error {
 	return postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusDraft)
 }
 
+// Delete removes a site and, if it had an active paid subscription,
+// cancels it in Stripe first — otherwise the customer keeps being billed
+// for a site that no longer exists, with no dashboard page left to cancel
+// it from themselves.
 func (s *Sites) Delete(ctx context.Context, siteID int) error {
+	if err := s.billing.CancelSubscriptionIfActive(ctx, siteID); err != nil {
+		return fmt.Errorf("cancel subscription: %w", err)
+	}
 	return postgres.DeleteSite(ctx, s.store.DB(), siteID)
 }

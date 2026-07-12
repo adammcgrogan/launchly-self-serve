@@ -208,3 +208,22 @@ func (b *Billing) CancelSubscription(ctx context.Context, siteID int) error {
 	}
 	return postgres.SetSiteCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID)
 }
+
+// CancelSubscriptionIfActive cancels a site's Stripe subscription if one
+// exists, and is a no-op (not an error) if the site was never upgraded — so
+// callers like Sites.Delete can call it unconditionally before a site (and
+// its billing row) disappears, instead of leaving an orphaned subscription
+// that keeps charging a customer for a site that no longer exists.
+func (b *Billing) CancelSubscriptionIfActive(ctx context.Context, siteID int) error {
+	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)
+	if err != nil {
+		return err
+	}
+	if billing == nil || billing.StripeSubscriptionID == "" {
+		return nil
+	}
+	if err := b.pay.CancelSubscription(billing.StripeSubscriptionID); err != nil {
+		return err
+	}
+	return postgres.SetSiteCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID)
+}
