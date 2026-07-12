@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -249,8 +250,26 @@ func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		}
 		expiresAt = &d
 	}
+	tone := domain.AnnouncementTone(r.FormValue("announcement_tone"))
+	switch tone {
+	case domain.AnnouncementInfo, domain.AnnouncementPromo, domain.AnnouncementUrgent:
+	default:
+		tone = domain.AnnouncementInfo
+	}
+	linkURL := strings.TrimSpace(r.FormValue("announcement_link_url"))
+	linkLabel := strings.TrimSpace(r.FormValue("announcement_link_label"))
+	if linkURL != "" {
+		u, err := url.Parse(linkURL)
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			http.Error(w, "invalid link URL", http.StatusBadRequest)
+			return
+		}
+	}
+	if linkURL == "" {
+		linkLabel = ""
+	}
 
-	if err := h.sites.UpdateAnnouncement(r.Context(), site.ID, text, expiresAt); err != nil {
+	if err := h.sites.UpdateAnnouncement(r.Context(), site.ID, text, expiresAt, tone, linkURL, linkLabel); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}

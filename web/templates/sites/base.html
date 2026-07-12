@@ -25,9 +25,34 @@
 </head>
 <body class="antialiased">
   {{if .Site.Announcement.Active}}
-  <div class="text-center text-sm font-medium px-4 py-2.5" style="background:var(--accent);color:var(--accent-ink);">
-    {{.Site.Announcement.Text}}
+  <div
+    id="announcement-banner"
+    data-announcement-id="{{.Site.Announcement.Text}}|{{.Site.Announcement.ExpiresAt}}"
+    class="hidden items-center justify-center gap-3 text-center text-sm font-medium px-4 py-2.5"
+    style="{{if eq .Site.Announcement.Tone "urgent"}}background:#DC2626;color:#ffffff;{{else if eq .Site.Announcement.Tone "promo"}}background:var(--accent);color:var(--accent-ink);{{else}}background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);{{end}}"
+  >
+    <span>
+      {{.Site.Announcement.Text}}
+      {{if .Site.Announcement.LinkURL}}<a href="{{.Site.Announcement.LinkURL}}" class="underline font-semibold whitespace-nowrap" target="_blank" rel="noopener">{{if .Site.Announcement.LinkLabel}}{{.Site.Announcement.LinkLabel}}{{else}}Learn more{{end}}</a>{{end}}
+    </span>
+    <button type="button" data-announcement-dismiss aria-label="Dismiss announcement" class="shrink-0 opacity-70 hover:opacity-100">✕</button>
   </div>
+  <script>
+  (function(){
+    var el = document.getElementById('announcement-banner');
+    if (!el) return;
+    var key = 'announcement-dismissed:' + el.getAttribute('data-announcement-id');
+    if (localStorage.getItem(key)) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+    var btn = el.querySelector('[data-announcement-dismiss]');
+    if (btn) btn.addEventListener('click', function(){
+      localStorage.setItem(key, '1');
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    });
+  })();
+  </script>
   {{end}}
   {{template "site-content" .}}
 

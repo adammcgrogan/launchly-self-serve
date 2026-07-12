@@ -131,6 +131,16 @@ type SiteNotifySettings struct {
 	SMSAlertsEnabled bool
 }
 
+// AnnouncementTone selects the preset colour treatment a banner is shown
+// with, so owners can signal urgency without a free-form colour picker.
+type AnnouncementTone string
+
+const (
+	AnnouncementInfo   AnnouncementTone = "info"
+	AnnouncementPromo  AnnouncementTone = "promo"
+	AnnouncementUrgent AnnouncementTone = "urgent"
+)
+
 // SiteAnnouncement is a temporary banner an owner can set from the
 // dashboard (e.g. "Closed for holidays until 4 Aug"), shown on every page
 // until it's cleared or ExpiresAt passes. 1:1 with Site.
@@ -138,6 +148,9 @@ type SiteAnnouncement struct {
 	SiteID    int
 	Text      string
 	ExpiresAt *time.Time
+	Tone      AnnouncementTone
+	LinkURL   string
+	LinkLabel string
 }
 
 // Active reports whether the announcement should currently be shown.

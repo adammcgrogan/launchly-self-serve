@@ -150,7 +150,24 @@
       <form method="POST" action="/dashboard/sites/{{.Site.ID}}/announcement" class="space-y-3">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <textarea name="announcement_text" rows="2" placeholder="Fully booked until September" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{.Site.Announcement.Text}}</textarea>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Link URL (optional)</label>
+            <input type="url" name="announcement_link_url" value="{{.Site.Announcement.LinkURL}}" placeholder="https://..." class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Link text (optional)</label>
+            <input type="text" name="announcement_link_label" value="{{.Site.Announcement.LinkLabel}}" placeholder="Learn more" class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+          </div>
+        </div>
         <div class="flex flex-wrap items-center gap-3">
+          <label class="text-sm text-slate-500">Tone
+            <select name="announcement_tone" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
+              <option value="info" {{if eq .Site.Announcement.Tone "info"}}selected{{end}}>Info</option>
+              <option value="promo" {{if eq .Site.Announcement.Tone "promo"}}selected{{end}}>Promo</option>
+              <option value="urgent" {{if eq .Site.Announcement.Tone "urgent"}}selected{{end}}>Urgent</option>
+            </select>
+          </label>
           <label class="text-sm text-slate-500">Expires
             <input type="date" name="announcement_expires_at" value="{{if .Site.Announcement.ExpiresAt}}{{.Site.Announcement.ExpiresAt.Format "2006-01-02"}}{{end}}" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
           </label>

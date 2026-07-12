@@ -458,9 +458,9 @@ func (s *Sites) ResolveSlugRedirect(ctx context.Context, oldSlug string) (string
 
 // UpdateAnnouncement sets or clears a site's temporary banner. An empty
 // text clears it regardless of expiresAt.
-func (s *Sites) UpdateAnnouncement(ctx context.Context, siteID int, text string, expiresAt *time.Time) error {
+func (s *Sites) UpdateAnnouncement(ctx context.Context, siteID int, text string, expiresAt *time.Time, tone domain.AnnouncementTone, linkURL, linkLabel string) error {
 	return postgres.UpsertSiteAnnouncement(ctx, s.store.DB(), &domain.SiteAnnouncement{
-		SiteID: siteID, Text: text, ExpiresAt: expiresAt,
+		SiteID: siteID, Text: text, ExpiresAt: expiresAt, Tone: tone, LinkURL: linkURL, LinkLabel: linkLabel,
 	})
 }
 
