@@ -180,7 +180,9 @@ func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+	// Called via fetch() from the lead-status pill, not a form submit, so
+	// there's no page to redirect back to.
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {

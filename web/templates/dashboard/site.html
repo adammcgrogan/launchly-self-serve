@@ -105,15 +105,18 @@
           {{if .Message}}<p class="text-sm text-slate-500 mt-1">{{.Message}}</p>{{end}}
           <p class="text-xs text-slate-400 mt-1">{{.CreatedAt.Format "2 Jan 2006, 15:04"}}</p>
         </div>
-        <form method="POST" action="/dashboard/sites/{{$.Site.ID}}/leads/{{.ID}}/status" class="shrink-0">
-          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-          <select name="status" onchange="this.form.submit()" class="appearance-none cursor-pointer rounded-full pl-3 pr-7 py-1.5 text-xs font-semibold bg-[right_0.5rem_center] bg-no-repeat bg-[length:0.6rem] focus:outline-none focus:ring-2 focus:ring-offset-1 {{if eq (print .Status) "contacted"}}bg-amber-50 text-amber-700 focus:ring-amber-300{{else if eq (print .Status) "won"}}bg-emerald-50 text-emerald-700 focus:ring-emerald-300{{else if eq (print .Status) "lost"}}bg-red-50 text-red-600 focus:ring-red-300{{else}}bg-slate-100 text-slate-600 focus:ring-slate-300{{end}}" style="background-image:url('data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 12 12%22 fill=%22none%22&gt;&lt;path d=%22M2.5 4.5L6 8l3.5-3.5%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/&gt;&lt;/svg&gt;')">
-            <option value="new" {{if eq (print .Status) "new"}}selected{{end}}>New</option>
-            <option value="contacted" {{if eq (print .Status) "contacted"}}selected{{end}}>Contacted</option>
-            <option value="won" {{if eq (print .Status) "won"}}selected{{end}}>Won</option>
-            <option value="lost" {{if eq (print .Status) "lost"}}selected{{end}}>Lost</option>
-          </select>
-        </form>
+        <div class="relative shrink-0" data-lead-status data-status="{{.Status}}" data-update-url="/dashboard/sites/{{$.Site.ID}}/leads/{{.ID}}/status" data-csrf="{{$.CSRFToken}}">
+          <button type="button" data-lead-status-trigger class="inline-flex items-center gap-1.5 rounded-full pl-3 pr-2 py-1.5 text-xs font-semibold capitalize focus:outline-none focus:ring-2 focus:ring-offset-1">
+            <span data-lead-status-label>{{.Status}}</span>
+            <svg class="h-3 w-3 opacity-60" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div data-lead-status-menu class="hidden absolute right-0 z-10 mt-1 w-32 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+            <button type="button" data-value="new" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>New</button>
+            <button type="button" data-value="contacted" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>Contacted</button>
+            <button type="button" data-value="won" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>Won</button>
+            <button type="button" data-value="lost" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>Lost</button>
+          </div>
+        </div>
       </div>
       {{end}}
     </div>
@@ -536,6 +539,70 @@
     }
 
     document.querySelectorAll('[data-tabs]').forEach(initTabGroup);
+  })();
+
+  (function () {
+    // Custom lead-status pill: a button + menu (not a native <select>, so it
+    // can be fully styled) that PATCHes the status via fetch instead of a
+    // form submit, so picking a status doesn't reload the whole dashboard.
+    var STYLES = {
+      new: ['bg-slate-100', 'text-slate-600', 'focus:ring-slate-300'],
+      contacted: ['bg-amber-50', 'text-amber-700', 'focus:ring-amber-300'],
+      won: ['bg-emerald-50', 'text-emerald-700', 'focus:ring-emerald-300'],
+      lost: ['bg-red-50', 'text-red-600', 'focus:ring-red-300'],
+    };
+    var ALL_STYLE_CLASSES = Object.keys(STYLES).reduce(function (acc, key) {
+      return acc.concat(STYLES[key]);
+    }, []);
+
+    function applyStyle(root, status) {
+      var trigger = root.querySelector('[data-lead-status-trigger]');
+      var label = root.querySelector('[data-lead-status-label]');
+      trigger.classList.remove.apply(trigger.classList, ALL_STYLE_CLASSES);
+      trigger.classList.add.apply(trigger.classList, STYLES[status] || STYLES.new);
+      label.textContent = status;
+      root.setAttribute('data-status', status);
+    }
+
+    function closeAllMenus() {
+      document.querySelectorAll('[data-lead-status-menu]').forEach(function (menu) {
+        menu.classList.add('hidden');
+      });
+    }
+
+    document.querySelectorAll('[data-lead-status]').forEach(function (root) {
+      applyStyle(root, root.getAttribute('data-status'));
+      var trigger = root.querySelector('[data-lead-status-trigger]');
+      var menu = root.querySelector('[data-lead-status-menu]');
+
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var wasOpen = !menu.classList.contains('hidden');
+        closeAllMenus();
+        menu.classList.toggle('hidden', wasOpen);
+      });
+
+      menu.querySelectorAll('[data-value]').forEach(function (option) {
+        option.addEventListener('click', function () {
+          var status = option.getAttribute('data-value');
+          closeAllMenus();
+          var previous = root.getAttribute('data-status');
+          if (status === previous) return;
+          applyStyle(root, status);
+          fetch(root.getAttribute('data-update-url'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ status: status, csrf_token: root.getAttribute('data-csrf') }),
+          }).then(function (res) {
+            if (!res.ok) throw new Error('status update failed');
+          }).catch(function () {
+            applyStyle(root, previous);
+          });
+        });
+      });
+    });
+
+    document.addEventListener('click', closeAllMenus);
   })();
 </script>
 {{end}}
