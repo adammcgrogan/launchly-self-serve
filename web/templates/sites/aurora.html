@@ -136,7 +136,7 @@
         <input type="text" name="name" placeholder="Your name" required class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
         <input type="email" name="email" placeholder="Email" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
         <input type="tel" name="phone" placeholder="Phone" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
-        {{if eq (print .Site.FormType) "booking"}}
+        {{if or (eq (print .Site.FormType) "booking") .Site.Services}}
         <select name="service_label" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
           <option value="">What do you need?</option>
           {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
