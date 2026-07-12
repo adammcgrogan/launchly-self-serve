@@ -23,9 +23,13 @@
       <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
         <a href="/templates" class="hover:text-slate-900">Templates</a>
         <a href="/pricing" class="hover:text-slate-900">Pricing</a>
-        <a href="/login" class="hover:text-slate-900">Log in</a>
+        {{if not .LoggedIn}}<a href="/login" class="hover:text-slate-900">Log in</a>{{end}}
       </nav>
+      {{if .LoggedIn}}
+      <a href="/dashboard" class="inline-flex items-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark transition">Dashboard</a>
+      {{else}}
       <a href="/signup" class="inline-flex items-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark transition">Start free</a>
+      {{end}}
     </div>
   </header>
   <main>

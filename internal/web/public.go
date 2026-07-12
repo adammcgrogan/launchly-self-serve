@@ -7,7 +7,8 @@ import (
 )
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "home", map[string]any{"Templates": siteTemplates})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "home", map[string]any{"Templates": siteTemplates, "LoggedIn": loggedIn})
 }
 
 func (h *Handler) Pricing(w http.ResponseWriter, r *http.Request) {

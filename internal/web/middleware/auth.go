@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/supabase"
+	"github.com/google/uuid"
 )
 
 const (
@@ -82,4 +83,27 @@ func (a *Auth) RequireUser(next http.HandlerFunc) http.HandlerFunc {
 		a.ClearSessionCookies(w)
 		http.Redirect(w, r, "/login?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusSeeOther)
 	}
+}
+
+// CheckUser verifies the session cookies for pages that render differently
+// for a logged-in visitor but don't require login. Unlike RequireUser, it
+// never redirects — it just reports whether there's a valid session,
+// silently refreshing an expired access token via the refresh cookie first.
+func (a *Auth) CheckUser(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	if c, err := r.Cookie(accessTokenCookie); err == nil {
+		if claims, err := supabase.VerifyAccessToken(c.Value, a.jwtSecret); err == nil {
+			return claims.UserID, true
+		}
+	}
+
+	if rc, err := r.Cookie(refreshTokenCookie); err == nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		if sess, err := a.supa.RefreshSession(ctx, rc.Value); err == nil {
+			a.SetSessionCookies(w, sess)
+			return sess.UserID, true
+		}
+	}
+
+	return uuid.UUID{}, false
 }
