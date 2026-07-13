@@ -74,10 +74,10 @@ func (s *Store) Ping() error {
 // automatically on every server startup — there is no separate manual
 // migration step to remember to run.
 func (s *Store) Migrate() error {
-	ctx, cancel := dbCtx()
-	defer cancel()
+	setupCtx, setupCancel := dbCtx()
+	defer setupCancel()
 
-	if _, err := s.db.ExecContext(ctx, `
+	if _, err := s.db.ExecContext(setupCtx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version    TEXT PRIMARY KEY,
 			applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -92,12 +92,20 @@ func (s *Store) Migrate() error {
 	}
 	sort.Strings(entries)
 
+	// Each migration gets its own timeout window rather than sharing one
+	// budget across the whole run — on a fresh environment with many
+	// migrations to apply, a single shared deadline can expire mid-run,
+	// which poisons the pooled connection ("driver: bad connection") for
+	// whatever migration runs next.
 	for _, path := range entries {
 		version := path
+		checkCtx, checkCancel := dbCtx()
 		var applied bool
-		if err := s.db.QueryRowContext(ctx,
+		err := s.db.QueryRowContext(checkCtx,
 			`SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = $1)`, version,
-		).Scan(&applied); err != nil {
+		).Scan(&applied)
+		checkCancel()
+		if err != nil {
 			return fmt.Errorf("check migration %s: %w", version, err)
 		}
 		if applied {
@@ -109,22 +117,30 @@ func (s *Store) Migrate() error {
 			return fmt.Errorf("read migration %s: %w", version, err)
 		}
 
-		tx, err := s.db.BeginTx(ctx, nil)
-		if err != nil {
-			return fmt.Errorf("begin migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx, string(sqlBytes)); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("apply migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO schema_migrations (version) VALUES ($1)`, version,
-		); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("record migration %s: %w", version, err)
-		}
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("commit migration %s: %w", version, err)
+		applyCtx, applyCancel := dbCtx()
+		if err := func() error {
+			defer applyCancel()
+
+			tx, err := s.db.BeginTx(applyCtx, nil)
+			if err != nil {
+				return fmt.Errorf("begin migration %s: %w", version, err)
+			}
+			if _, err := tx.ExecContext(applyCtx, string(sqlBytes)); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("apply migration %s: %w", version, err)
+			}
+			if _, err := tx.ExecContext(applyCtx,
+				`INSERT INTO schema_migrations (version) VALUES ($1)`, version,
+			); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("record migration %s: %w", version, err)
+			}
+			if err := tx.Commit(); err != nil {
+				return fmt.Errorf("commit migration %s: %w", version, err)
+			}
+			return nil
+		}(); err != nil {
+			return err
 		}
 	}
 
