@@ -33,7 +33,7 @@ func main() {
 		slog.Error("config load failed", "error", err)
 		os.Exit(1)
 	}
-	slog.SetDefault(slog.New(alert.New(slog.NewJSONHandler(os.Stdout, nil), cfg.AlertWebhookURL)))
+	slog.SetDefault(slog.New(alert.New(slog.NewJSONHandler(os.Stdout, nil), cfg.AlertWebhookURL, alert.ParseLevel(cfg.AlertMinLevel))))
 
 	store, err := postgres.New(cfg.DatabaseURL)
 	if err != nil {

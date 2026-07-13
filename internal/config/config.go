@@ -41,7 +41,8 @@ type Config struct {
 	CloudflareZoneID         string
 	CloudflareFallbackOrigin string // fixed hostname customer domains are CNAME'd to, e.g. "origin.launchly.ltd"
 
-	AlertWebhookURL string // Slack/Discord/Google Chat incoming webhook posted to on Error-level logs; unset disables alerting
+	AlertWebhookURL string // Slack/Discord/Google Chat incoming webhook posted to on log records at or above AlertMinLevel; unset disables alerting
+	AlertMinLevel   string // minimum slog level to post to the webhook: "info", "warn", or "error" (default)
 }
 
 // Load reads configuration from the environment, loading a local .env file
@@ -82,6 +83,7 @@ func Load() (*Config, error) {
 		CloudflareFallbackOrigin: getEnv("CLOUDFLARE_FALLBACK_ORIGIN", ""),
 
 		AlertWebhookURL: getEnv("ALERT_WEBHOOK_URL", ""),
+		AlertMinLevel:   getEnv("ALERT_MIN_LEVEL", "error"),
 	}
 
 	required := map[string]string{
