@@ -299,9 +299,19 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 	cw := csv.NewWriter(w)
 	cw.Write([]string{"Name", "Email", "Phone", "Service", "Preferred time", "Message", "Status", "Date"})
 	for _, l := range leads {
-		cw.Write([]string{l.Name, l.Email, l.Phone, l.ServiceLabel, l.PreferredTime, l.Message, string(l.Status), l.CreatedAt.Format("2006-01-02 15:04")})
+		cw.Write([]string{csvSafe(l.Name), csvSafe(l.Email), csvSafe(l.Phone), csvSafe(l.ServiceLabel), csvSafe(l.PreferredTime), csvSafe(l.Message), string(l.Status), l.CreatedAt.Format("2006-01-02 15:04")})
 	}
 	cw.Flush()
+}
+
+// csvSafe neutralises CSV formula injection: visitor-controlled lead fields
+// are attacker input, and a leading =, +, -, @, tab, or CR makes Excel/Sheets
+// evaluate the cell as a formula when the owner opens their export.
+func csvSafe(s string) string {
+	if s != "" && strings.ContainsRune("=+-@\t\r", rune(s[0])) {
+		return "'" + s
+	}
+	return s
 }
 
 // SiteQRCode renders a PNG QR code encoding the site's public URL, for the
