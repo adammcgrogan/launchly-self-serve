@@ -91,7 +91,7 @@
 <section class="max-w-6xl mx-auto px-6 py-16">
   <h2 class="font-display text-3xl mb-8">In the gym</h2>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-    {{range .Site.GalleryImages}}<img src="{{.URL}}" alt="{{.AltText}}" class="aspect-square w-full object-cover rounded">{{end}}
+    {{range .Site.GalleryImages}}<img src="{{.URL}}" alt="{{if .AltText}}{{.AltText}}{{else}}{{$.Site.BusinessName}} gallery photo{{end}}" class="aspect-square w-full object-cover rounded">{{end}}
   </div>
 </section>
 {{end}}
