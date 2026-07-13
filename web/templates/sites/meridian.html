@@ -26,6 +26,7 @@
   <nav class="hidden md:flex items-center gap-10 text-sm tracking-wide" style="color:var(--muted);">
     {{if .Site.About}}<a href="#about" class="hover:opacity-70">About</a>{{end}}
     {{if .Site.Services}}<a href="#services" class="hover:opacity-70">Services</a>{{end}}
+    {{if .Site.FAQItems}}<a href="#faq" class="hover:opacity-70">FAQ</a>{{end}}
     <a href="#contact" class="hover:opacity-70">Contact</a>
   </nav>
 </header>
@@ -88,6 +89,36 @@
     <div>
       <p class="font-display italic text-xl leading-relaxed">“{{.Quote}}”</p>
       <p class="mt-3 text-sm tracking-wide" style="color:var(--brass);">{{.AuthorName}}{{if .AuthorRole}}, {{.AuthorRole}}{{end}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.StaffMembers}}
+<section class="max-w-3xl mx-auto px-6 py-16 border-t text-center" style="border-color:var(--line);">
+  <h2 class="font-display italic text-2xl mb-10">Meet the team</h2>
+  <div class="grid sm:grid-cols-2 gap-10">
+    {{range .Site.StaffMembers}}
+    <div>
+      {{if .PhotoURL}}<img src="{{.PhotoURL}}" alt="{{.Name}}" class="mx-auto h-24 w-24 rounded-full object-cover">{{end}}
+      <p class="mt-4 font-display italic text-lg">{{.Name}}</p>
+      {{if .Role}}<p class="text-sm tracking-wide" style="color:var(--brass);">{{.Role}}</p>{{end}}
+      {{if .Bio}}<p class="mt-2 text-sm" style="color:var(--muted);">{{.Bio}}</p>{{end}}
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.FAQItems}}
+<section id="faq" class="max-w-3xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display italic text-2xl mb-10 text-center">Frequently asked questions</h2>
+  <div class="divide-y" style="border-color:var(--line);">
+    {{range .Site.FAQItems}}
+    <div class="py-4">
+      <p class="font-medium">{{.Question}}</p>
+      {{if .Answer}}<p class="mt-1 text-sm" style="color:var(--muted);">{{.Answer}}</p>{{end}}
     </div>
     {{end}}
   </div>

@@ -98,6 +98,77 @@ func serviceRowsForDisplay(services []domain.Service) []domain.Service {
 	return services
 }
 
+// parseFAQRows reads the repeatable FAQ cards — faq_question and faq_answer
+// are each submitted as one value per row, in the same order, so the i-th
+// value of each names one row. Rows with no question are dropped.
+func parseFAQRows(r *http.Request) []domain.FAQItem {
+	questions := r.Form["faq_question"]
+	answers := r.Form["faq_answer"]
+	var out []domain.FAQItem
+	for i, question := range questions {
+		question = strings.TrimSpace(question)
+		if question == "" {
+			continue
+		}
+		f := domain.FAQItem{Question: question, SortOrder: len(out)}
+		if i < len(answers) {
+			f.Answer = strings.TrimSpace(answers[i])
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// faqRowsForDisplay adapts a site's stored FAQ items to the repeatable FAQ
+// card form, always returning at least one (possibly empty) row so the edit
+// form has one to render.
+func faqRowsForDisplay(items []domain.FAQItem) []domain.FAQItem {
+	if len(items) == 0 {
+		return []domain.FAQItem{{}}
+	}
+	return items
+}
+
+// parseStaffRows reads the repeatable staff cards — staff_name, staff_role,
+// staff_photo_url, and staff_bio are each submitted as one value per row, in
+// the same order, so the i-th value of each names one row. Rows with no name
+// are dropped.
+func parseStaffRows(r *http.Request) []domain.StaffMember {
+	names := r.Form["staff_name"]
+	roles := r.Form["staff_role"]
+	photoURLs := r.Form["staff_photo_url"]
+	bios := r.Form["staff_bio"]
+	var out []domain.StaffMember
+	for i, name := range names {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		m := domain.StaffMember{Name: name, SortOrder: len(out)}
+		if i < len(roles) {
+			m.Role = strings.TrimSpace(roles[i])
+		}
+		if i < len(photoURLs) {
+			m.PhotoURL = strings.TrimSpace(photoURLs[i])
+		}
+		if i < len(bios) {
+			m.Bio = strings.TrimSpace(bios[i])
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+// staffRowsForDisplay adapts a site's stored staff members to the repeatable
+// staff card form, always returning at least one (possibly empty) row so the
+// edit form has one to render.
+func staffRowsForDisplay(members []domain.StaffMember) []domain.StaffMember {
+	if len(members) == 0 {
+		return []domain.StaffMember{{}}
+	}
+	return members
+}
+
 func parseCertifications(s string) []domain.Certification {
 	var out []domain.Certification
 	for i, label := range splitLines(s) {

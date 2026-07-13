@@ -280,6 +280,36 @@
           <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.GalleryText}}</textarea>
         </div>
         <div>
+          <p class="block text-sm font-medium text-slate-700 mb-2">FAQs</p>
+          <div data-faq-list class="space-y-3">
+            {{range $i, $f := .FAQRows}}
+            <div class="faq-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-faq-row>
+              <button type="button" data-remove-faq class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove FAQ">✕</button>
+              <input type="text" name="faq_question" value="{{$f.Question}}" placeholder="e.g. Do you offer parking?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm pr-6">
+              <textarea name="faq_answer" rows="2" placeholder="Answer" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$f.Answer}}</textarea>
+            </div>
+            {{end}}
+          </div>
+          <button type="button" data-add-faq class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another FAQ</button>
+        </div>
+        <div>
+          <p class="block text-sm font-medium text-slate-700 mb-2">Meet the team</p>
+          <div data-staff-list class="space-y-3">
+            {{range $i, $m := .StaffRows}}
+            <div class="staff-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-staff-row>
+              <button type="button" data-remove-staff class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove staff member">✕</button>
+              <div class="grid sm:grid-cols-2 gap-3 pr-6">
+                <input type="text" name="staff_name" value="{{$m.Name}}" placeholder="Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="staff_role" value="{{$m.Role}}" placeholder="Role (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              </div>
+              <input type="url" name="staff_photo_url" value="{{$m.PhotoURL}}" placeholder="Photo URL (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <textarea name="staff_bio" rows="2" placeholder="Short bio (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$m.Bio}}</textarea>
+            </div>
+            {{end}}
+          </div>
+          <button type="button" data-add-staff class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another team member</button>
+        </div>
+        <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Timezone</label>
           <select name="timezone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             {{$tz := .Site.Timezone}}
@@ -637,6 +667,56 @@
       }
     });
     updateServiceRemoveButtons();
+  })();
+
+  (function () {
+    var faqList = document.querySelector('[data-faq-list]');
+    if (!faqList) return;
+    function updateFAQRemoveButtons() {
+      var rows = faqList.querySelectorAll('[data-faq-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-faq]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-faq]').addEventListener('click', function () {
+      var rows = faqList.querySelectorAll('[data-faq-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      faqList.appendChild(clone);
+      updateFAQRemoveButtons();
+    });
+    faqList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-faq]')) {
+        e.target.closest('[data-faq-row]').remove();
+        updateFAQRemoveButtons();
+      }
+    });
+    updateFAQRemoveButtons();
+  })();
+
+  (function () {
+    var staffList = document.querySelector('[data-staff-list]');
+    if (!staffList) return;
+    function updateStaffRemoveButtons() {
+      var rows = staffList.querySelectorAll('[data-staff-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-staff]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-staff]').addEventListener('click', function () {
+      var rows = staffList.querySelectorAll('[data-staff-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      staffList.appendChild(clone);
+      updateStaffRemoveButtons();
+    });
+    staffList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-staff]')) {
+        e.target.closest('[data-staff-row]').remove();
+        updateStaffRemoveButtons();
+      }
+    });
+    updateStaffRemoveButtons();
   })();
 
   (function () {

@@ -97,7 +97,7 @@ func checkPhone(field, value string) error {
 // validateSiteContent checks format (email/phone/logo/map/gallery URLs) and
 // length limits across every editable content field, shared by CreateSite
 // and UpdateContent so the builder and editor enforce the same rules.
-func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, contact domain.SiteContact, social []domain.SocialLink, services []domain.Service, certs []domain.Certification, testimonials []domain.Testimonial, gallery []domain.GalleryImage) error {
+func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, contact domain.SiteContact, social []domain.SocialLink, services []domain.Service, certs []domain.Certification, testimonials []domain.Testimonial, gallery []domain.GalleryImage, faqItems []domain.FAQItem, staff []domain.StaffMember) error {
 	checks := []error{
 		checkLen("business name", businessName, maxShortField),
 		checkLen("tagline", tagline, maxMediumField),
@@ -138,6 +138,21 @@ func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, 
 			checkLen("gallery image URL", g.URL, maxMediumField),
 			checkURL("gallery image URL", g.URL),
 			checkLen("gallery image alt text", g.AltText, maxMediumField),
+		)
+	}
+	for _, f := range faqItems {
+		checks = append(checks,
+			checkLen("FAQ question", f.Question, maxMediumField),
+			checkLen("FAQ answer", f.Answer, maxLongField),
+		)
+	}
+	for _, m := range staff {
+		checks = append(checks,
+			checkLen("staff name", m.Name, maxShortField),
+			checkLen("staff role", m.Role, maxShortField),
+			checkLen("staff photo URL", m.PhotoURL, maxMediumField),
+			checkURL("staff photo URL", m.PhotoURL),
+			checkLen("staff bio", m.Bio, maxLongField),
 		)
 	}
 	for _, err := range checks {
@@ -218,6 +233,8 @@ type CreateSiteInput struct {
 	Certifications []domain.Certification
 	Testimonials   []domain.Testimonial
 	GalleryImages  []domain.GalleryImage
+	FAQItems       []domain.FAQItem
+	StaffMembers   []domain.StaffMember
 	BusinessHours  []domain.BusinessHours
 }
 
@@ -234,7 +251,7 @@ const maxCreateSiteSlugAttempts = 5
 // slug's unique constraint, we regenerate and retry rather than surfacing a
 // 500.
 func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.SiteAggregate, error) {
-	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages); err != nil {
+	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers); err != nil {
 		return nil, err
 	}
 
@@ -327,6 +344,12 @@ func (s *Sites) createSiteTx(ctx context.Context, in CreateSiteInput, slug strin
 	if err := postgres.ReplaceSiteGalleryImages(ctx, tx, siteID, in.GalleryImages); err != nil {
 		return 0, fmt.Errorf("save gallery: %w", err)
 	}
+	if err := postgres.ReplaceSiteFAQItems(ctx, tx, siteID, in.FAQItems); err != nil {
+		return 0, fmt.Errorf("save FAQ items: %w", err)
+	}
+	if err := postgres.ReplaceSiteStaffMembers(ctx, tx, siteID, in.StaffMembers); err != nil {
+		return 0, fmt.Errorf("save staff members: %w", err)
+	}
 	if err := postgres.ReplaceSiteBusinessHours(ctx, tx, siteID, in.BusinessHours); err != nil {
 		return 0, fmt.Errorf("save business hours: %w", err)
 	}
@@ -392,6 +415,8 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		certifications []domain.Certification
 		testimonials   []domain.Testimonial
 		gallery        []domain.GalleryImage
+		faqItems       []domain.FAQItem
+		staffMembers   []domain.StaffMember
 		hours          []domain.BusinessHours
 	)
 
@@ -406,6 +431,8 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 	g.Go(func() (err error) { certifications, err = postgres.GetSiteCertifications(gctx, q, id); return })
 	g.Go(func() (err error) { testimonials, err = postgres.GetSiteTestimonials(gctx, q, id); return })
 	g.Go(func() (err error) { gallery, err = postgres.GetSiteGalleryImages(gctx, q, id); return })
+	g.Go(func() (err error) { faqItems, err = postgres.GetSiteFAQItems(gctx, q, id); return })
+	g.Go(func() (err error) { staffMembers, err = postgres.GetSiteStaffMembers(gctx, q, id); return })
 	g.Go(func() (err error) { hours, err = postgres.GetSiteBusinessHours(gctx, q, id); return })
 	if err := g.Wait(); err != nil {
 		return nil, err
@@ -427,6 +454,8 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		Certifications: certifications,
 		Testimonials:   testimonials,
 		GalleryImages:  gallery,
+		FAQItems:       faqItems,
+		StaffMembers:   staffMembers,
 		BusinessHours:  hours,
 	}, nil
 }
@@ -485,12 +514,14 @@ type UpdateContentInput struct {
 	Certifications []domain.Certification
 	Testimonials   []domain.Testimonial
 	GalleryImages  []domain.GalleryImage
+	FAQItems       []domain.FAQItem
+	StaffMembers   []domain.StaffMember
 	BusinessHours  []domain.BusinessHours
 }
 
 // UpdateContent saves every editable content field for a site in one transaction.
 func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error {
-	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages); err != nil {
+	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers); err != nil {
 		return err
 	}
 
@@ -522,6 +553,12 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 	if err := postgres.ReplaceSiteGalleryImages(ctx, tx, in.SiteID, in.GalleryImages); err != nil {
 		return fmt.Errorf("save gallery: %w", err)
+	}
+	if err := postgres.ReplaceSiteFAQItems(ctx, tx, in.SiteID, in.FAQItems); err != nil {
+		return fmt.Errorf("save FAQ items: %w", err)
+	}
+	if err := postgres.ReplaceSiteStaffMembers(ctx, tx, in.SiteID, in.StaffMembers); err != nil {
+		return fmt.Errorf("save staff members: %w", err)
 	}
 	if err := postgres.ReplaceSiteBusinessHours(ctx, tx, in.SiteID, in.BusinessHours); err != nil {
 		return fmt.Errorf("save business hours: %w", err)

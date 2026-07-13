@@ -29,6 +29,7 @@
   <nav class="hidden md:flex items-center gap-8 text-sm font-medium" style="color:var(--muted);">
     {{if .Site.About}}<a href="#about" class="hover:opacity-70">Our story</a>{{end}}
     {{if .Site.Services}}<a href="#services" class="hover:opacity-70">Menu</a>{{end}}
+    {{if .Site.FAQItems}}<a href="#faq" class="hover:opacity-70">FAQ</a>{{end}}
     <a href="#contact" class="hover:opacity-70">Visit</a>
   </nav>
   <a href="#contact" class="hidden sm:inline-flex items-center rounded-sm px-5 py-2.5 text-sm font-semibold" style="background:var(--accent);color:var(--accent-ink);">
@@ -99,6 +100,36 @@
     <div>
       <p class="font-display italic text-xl leading-relaxed">“{{.Quote}}”</p>
       <p class="mt-3 text-sm" style="color:var(--rule);">{{.AuthorName}}{{if .AuthorRole}}, {{.AuthorRole}}{{end}}</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.StaffMembers}}
+<section class="max-w-4xl mx-auto px-6 py-16 border-t text-center" style="border-color:var(--line);">
+  <h2 class="font-display text-3xl italic mb-10">Meet the team</h2>
+  <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
+    {{range .Site.StaffMembers}}
+    <div>
+      {{if .PhotoURL}}<img src="{{.PhotoURL}}" alt="{{.Name}}" class="mx-auto h-24 w-24 rounded-full object-cover">{{end}}
+      <p class="mt-4 font-semibold">{{.Name}}</p>
+      {{if .Role}}<p class="text-sm" style="color:var(--rule);">{{.Role}}</p>{{end}}
+      {{if .Bio}}<p class="mt-2 text-sm" style="color:var(--muted);">{{.Bio}}</p>{{end}}
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.FAQItems}}
+<section id="faq" class="max-w-3xl mx-auto px-6 py-16 border-t" style="border-color:var(--line);">
+  <h2 class="font-display text-3xl italic text-center mb-10">Frequently asked questions</h2>
+  <div class="space-y-6">
+    {{range .Site.FAQItems}}
+    <div>
+      <p class="font-medium">{{.Question}}</p>
+      {{if .Answer}}<p class="mt-2 text-sm" style="color:var(--muted);">{{.Answer}}</p>{{end}}
     </div>
     {{end}}
   </div>

@@ -12,6 +12,7 @@
   {{if .Site.LogoURL}}<meta property="og:image" content="{{.Site.LogoURL}}">{{end}}
   <link rel="canonical" href="https://{{.Site.Slug}}.launchly.ltd">
   <script type="application/ld+json">{{.JSONLD}}</script>
+  {{if .FAQJSONLD}}<script type="application/ld+json">{{.FAQJSONLD}}</script>{{end}}
   <script src="https://cdn.tailwindcss.com"></script>
   {{template "theme" .}}
   {{if eq .Site.HeadingFont "sans"}}

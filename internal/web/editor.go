@@ -67,6 +67,8 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		Certifications: parseCertifications(r.FormValue("certifications")),
 		Testimonials:   parseTestimonials(r.FormValue("testimonials")),
 		GalleryImages:  parseGallery(r.FormValue("gallery")),
+		FAQItems:       parseFAQRows(r),
+		StaffMembers:   parseStaffRows(r),
 		BusinessHours:  parseBusinessHours(r),
 	}
 

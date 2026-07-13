@@ -100,6 +100,38 @@
 </section>
 {{end}}
 
+{{if .Site.StaffMembers}}
+<section class="max-w-6xl mx-auto px-6 py-16">
+  <h2 class="font-display text-2xl font-bold mb-8">The crew</h2>
+  <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-1" style="background:var(--line);">
+    {{range .Site.StaffMembers}}
+    <div class="p-6" style="background:var(--paper);">
+      {{if .PhotoURL}}<img src="{{.PhotoURL}}" alt="{{.Name}}" class="h-20 w-20 object-cover">{{end}}
+      <p class="mt-4 font-display font-semibold">{{.Name}}</p>
+      {{if .Role}}<p class="text-sm" style="color:var(--safety);">{{.Role}}</p>{{end}}
+      {{if .Bio}}<p class="mt-2 text-sm" style="color:var(--muted);">{{.Bio}}</p>{{end}}
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Site.FAQItems}}
+<section id="faq" class="border-t-4" style="border-color:var(--accent);background:var(--surface);">
+  <div class="max-w-6xl mx-auto px-6 py-16">
+    <h2 class="font-display text-2xl font-bold mb-8">Frequently asked questions</h2>
+    <div class="divide-y-2" style="border-color:var(--line);">
+      {{range .Site.FAQItems}}
+      <div class="py-4">
+        <p class="font-semibold">{{.Question}}</p>
+        {{if .Answer}}<p class="mt-1 text-sm" style="color:var(--muted);">{{.Answer}}</p>{{end}}
+      </div>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}
+
 <section id="contact" class="border-t-4" style="border-color:var(--accent);background:var(--surface);">
   <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12">
     <div>

@@ -242,6 +242,26 @@ type GalleryImage struct {
 	SortOrder int
 }
 
+// FAQItem is one question/answer pair in a site's FAQ section.
+type FAQItem struct {
+	ID        int
+	SiteID    int
+	Question  string
+	Answer    string
+	SortOrder int
+}
+
+// StaffMember is one team member profile shown on a site.
+type StaffMember struct {
+	ID        int
+	SiteID    int
+	Name      string
+	Role      string
+	PhotoURL  string
+	Bio       string
+	SortOrder int
+}
+
 // BusinessHours is one day's opening hours, in the site's own Timezone.
 // OpensAt/ClosesAt are "HH:MM" 24-hour (e.g. "09:00"), empty when Closed.
 type BusinessHours struct {
@@ -268,6 +288,8 @@ type SiteAggregate struct {
 	Certifications []Certification
 	Testimonials   []Testimonial
 	GalleryImages  []GalleryImage
+	FAQItems       []FAQItem
+	StaffMembers   []StaffMember
 	BusinessHours  []BusinessHours
 }
 

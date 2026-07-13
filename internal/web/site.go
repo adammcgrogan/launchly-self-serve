@@ -76,14 +76,15 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 	tmplKey := "site:" + site.TemplateID
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	h.render.Render(w, tmplKey, map[string]any{
-		"Site":           site,
-		"LeadSent":       r.URL.Query().Get("lead") == "1",
-		"FormAction":     formAction,
-		"EventAction":    strings.TrimSuffix(formAction, "/contact") + "/e",
-		"Socials":        socialLinksMap(site.SocialLinks),
-		"Open":           open,
-		"OpenLabel":      openLabel,
-		"JSONLD":         localBusinessJSONLD(site, h.siteURL(site.Slug)),
+		"Site":        site,
+		"LeadSent":    r.URL.Query().Get("lead") == "1",
+		"FormAction":  formAction,
+		"EventAction": strings.TrimSuffix(formAction, "/contact") + "/e",
+		"Socials":     socialLinksMap(site.SocialLinks),
+		"Open":        open,
+		"OpenLabel":   openLabel,
+		"JSONLD":      localBusinessJSONLD(site, h.siteURL(site.Slug)),
+		"FAQJSONLD":   faqPageJSONLD(site),
 	})
 }
 
@@ -194,6 +195,53 @@ func localBusinessJSONLD(site *domain.SiteAggregate, siteURL string) template.JS
 	out, err := json.Marshal(biz)
 	if err != nil {
 		slog.Error("marshal local business json-ld", "site_id", site.ID, "error", err)
+		return ""
+	}
+	return template.JS(out)
+}
+
+type jsonLDAnswer struct {
+	Type string `json:"@type"`
+	Text string `json:"text"`
+}
+
+type jsonLDQuestion struct {
+	Type           string       `json:"@type"`
+	Name           string       `json:"name"`
+	AcceptedAnswer jsonLDAnswer `json:"acceptedAnswer"`
+}
+
+type jsonLDFAQPage struct {
+	Context    string           `json:"@context"`
+	Type       string           `json:"@type"`
+	MainEntity []jsonLDQuestion `json:"mainEntity"`
+}
+
+// faqPageJSONLD builds an FAQPage structured data block from a site's FAQ
+// items, emitted as its own <script> tag alongside the LocalBusiness block
+// since FAQPage is a distinct top-level schema.org type. Returns "" when the
+// site has no FAQ items, so the template can skip the tag entirely.
+func faqPageJSONLD(site *domain.SiteAggregate) template.JS {
+	if len(site.FAQItems) == 0 {
+		return ""
+	}
+	page := jsonLDFAQPage{Context: "https://schema.org", Type: "FAQPage"}
+	for _, f := range site.FAQItems {
+		if f.Question == "" {
+			continue
+		}
+		page.MainEntity = append(page.MainEntity, jsonLDQuestion{
+			Type:           "Question",
+			Name:           f.Question,
+			AcceptedAnswer: jsonLDAnswer{Type: "Answer", Text: f.Answer},
+		})
+	}
+	if len(page.MainEntity) == 0 {
+		return ""
+	}
+	out, err := json.Marshal(page)
+	if err != nil {
+		slog.Error("marshal faq page json-ld", "site_id", site.ID, "error", err)
 		return ""
 	}
 	return template.JS(out)

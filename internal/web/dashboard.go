@@ -121,6 +121,8 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"CertsText":        certificationsToLines(site.Certifications),
 		"TestimonialsText": testimonialsToLines(site.Testimonials),
 		"GalleryText":      galleryToLines(site.GalleryImages),
+		"FAQRows":          faqRowsForDisplay(site.FAQItems),
+		"StaffRows":        staffRowsForDisplay(site.StaffMembers),
 		"HoursByDay":       businessHoursByDay(site.BusinessHours),
 		"Weekdays":         weekdays,
 		"Timezones":        timezones,
