@@ -98,7 +98,20 @@ func SubdomainRouter(domain string, h *Handler, fallback http.Handler) http.Hand
 		isSubdomain := strings.HasSuffix(host, "."+domain)
 		isLocalhost := host == "localhost" || host == "127.0.0.1"
 		isMainDomain := host == domain || host == "www."+domain || isLocalhost
-		isSiteDomain := isSubdomain || (!isMainDomain && host != "")
+		isUnrecognizedHost := !isSubdomain && !isMainDomain && host != ""
+
+		// An unrecognized host is either a site's connected custom domain or
+		// an unrelated fallback host (e.g. a platform-assigned *.up.railway.app
+		// URL) — only route it to ServeSite if it actually resolves to a site,
+		// otherwise show the marketing site rather than 404ing.
+		if isUnrecognizedHost {
+			site, err := h.sites.GetSiteAggregateByCustomDomain(r.Context(), host)
+			if err != nil || site == nil {
+				fallback.ServeHTTP(w, r)
+				return
+			}
+		}
+		isSiteDomain := isSubdomain || isUnrecognizedHost
 
 		if isSiteDomain {
 			if strings.HasPrefix(r.URL.Path, "/static/") {
