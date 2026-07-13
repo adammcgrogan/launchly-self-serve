@@ -43,6 +43,8 @@ type Config struct {
 
 	AlertWebhookURL string // Slack/Discord/Google Chat incoming webhook posted to on log records at or above AlertMinLevel; unset disables alerting
 	AlertMinLevel   string // minimum slog level to post to the webhook: "info", "warn", or "error" (default)
+
+	GeminiAPIKey string // Google Gemini API key for AI-drafted site copy; unset disables the feature
 }
 
 // Load reads configuration from the environment, loading a local .env file
@@ -84,6 +86,8 @@ func Load() (*Config, error) {
 
 		AlertWebhookURL: getEnv("ALERT_WEBHOOK_URL", ""),
 		AlertMinLevel:   getEnv("ALERT_MIN_LEVEL", "error"),
+
+		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
 	}
 
 	required := map[string]string{
@@ -109,6 +113,12 @@ func Load() (*Config, error) {
 // change.
 func (c *Config) SMSAlertsAvailable() bool {
 	return c.TwilioAccountSID != "" && c.TwilioAuthToken != "" && c.TwilioFromNumber != ""
+}
+
+// AIContentAvailable reports whether AI-drafted site copy is available —
+// the feature flag for the "Generate for me" button in the builder wizard.
+func (c *Config) AIContentAvailable() bool {
+	return c.GeminiAPIKey != ""
 }
 
 func getEnv(key, fallback string) string {

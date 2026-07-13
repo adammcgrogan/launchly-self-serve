@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/ai"
 	"github.com/adammcgrogan/launchly-self-serve/internal/config"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
@@ -31,11 +32,13 @@ type Handler struct {
 	analytics *service.Analytics
 	cron      *service.Cron
 	domains   *service.Domains
+	ai        *ai.Client
 
 	loginLimiter              *middleware.RateLimiter
 	signupLimiter             *middleware.RateLimiter
 	contactLimiter            *middleware.RateLimiter
 	resendVerificationLimiter *middleware.RateLimiter
+	aiGenerateLimiter         *middleware.RateLimiter
 }
 
 // Deps bundles everything main.go constructs so the Handler constructor
@@ -51,6 +54,7 @@ type Deps struct {
 	Analytics *service.Analytics
 	Cron      *service.Cron
 	Domains   *service.Domains
+	AI        *ai.Client
 
 	Auth       *middleware.Auth
 	Superadmin *middleware.Superadmin
@@ -58,23 +62,25 @@ type Deps struct {
 
 func New(d Deps) (*Handler, error) {
 	h := &Handler{
-		cfg:            d.Cfg,
-		store:          d.Store,
-		auth:           d.Auth,
-		superadmin:     d.Superadmin,
-		ownership:      middleware.NewOwnership(d.Sites),
-		csrf:           middleware.NewCSRF(d.Cfg.CookieSigningKey),
-		accounts:       d.Accounts,
-		sites:          d.Sites,
-		billing:        d.Billing,
-		leads:          d.Leads,
-		analytics:      d.Analytics,
-		cron:           d.Cron,
-		domains:        d.Domains,
+		cfg:                       d.Cfg,
+		store:                     d.Store,
+		auth:                      d.Auth,
+		superadmin:                d.Superadmin,
+		ownership:                 middleware.NewOwnership(d.Sites),
+		csrf:                      middleware.NewCSRF(d.Cfg.CookieSigningKey),
+		accounts:                  d.Accounts,
+		sites:                     d.Sites,
+		billing:                   d.Billing,
+		leads:                     d.Leads,
+		analytics:                 d.Analytics,
+		cron:                      d.Cron,
+		domains:                   d.Domains,
+		ai:                        d.AI,
 		loginLimiter:              middleware.NewRateLimiter(10, 15*time.Minute),
 		signupLimiter:             middleware.NewRateLimiter(5, 15*time.Minute),
 		contactLimiter:            middleware.NewRateLimiter(5, time.Minute),
 		resendVerificationLimiter: middleware.NewRateLimiter(5, 15*time.Minute),
+		aiGenerateLimiter:         middleware.NewRateLimiter(10, time.Hour),
 	}
 
 	h.render = NewRenderer()

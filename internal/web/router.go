@@ -53,6 +53,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/account/delete", h.auth.RequireUser(h.DeleteAccount))
 	mux.HandleFunc("GET /dashboard/sites/new", h.auth.RequireUser(h.NewSiteForm))
 	mux.HandleFunc("POST /dashboard/sites/new", h.auth.RequireUser(h.NewSiteSubmit))
+	mux.HandleFunc("POST /dashboard/sites/new/generate-copy", h.auth.RequireUser(h.GenerateCopy))
 	mux.HandleFunc("GET /dashboard/sites/{id}", owned(h.SiteOverview))
 	mux.HandleFunc("POST /dashboard/sites/{id}/edit", owned(h.EditSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{id}/appearance", owned(h.AppearanceSubmit))

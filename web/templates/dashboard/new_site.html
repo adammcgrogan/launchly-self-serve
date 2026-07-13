@@ -39,7 +39,7 @@
     {{$selPalette := .Values.Get "palette"}}
     {{$selFont := .Values.Get "heading_font"}}
 
-    <form method="POST" action="/dashboard/sites/new" id="wizard-form" novalidate>
+    <form method="POST" action="/dashboard/sites/new" id="wizard-form" data-generate-copy-url="/dashboard/sites/new/generate-copy" novalidate>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <input type="hidden" name="palette" id="field-palette" value="{{$selPalette}}">
       <input type="hidden" name="heading_font" id="field-heading_font" value="{{$selFont}}">
@@ -64,6 +64,12 @@
           <label class="block text-sm font-medium text-slate-700 mb-1">Where are you based?</label>
           <input type="text" name="location" value="{{.Values.Get "location"}}" placeholder="e.g. Belfast, NI" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
         </div>
+        {{if .AIAvailable}}
+        <div>
+          <button type="button" data-generate-copy class="text-sm font-medium text-brand hover:text-brand-dark">✨ Generate tagline &amp; about text for me</button>
+          <p class="mt-1 text-sm text-slate-400" data-generate-copy-status></p>
+        </div>
+        {{end}}
         <div class="pt-2 flex justify-end">
           <button type="button" data-next class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Continue</button>
         </div>
@@ -142,7 +148,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
-          <input type="text" name="tagline" value="{{.Values.Get "tagline"}}" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-preview-tagline-source>
+          <input type="text" name="tagline" value="{{.Values.Get "tagline"}}" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-preview-tagline-source data-generated-tagline>
         </div>
         <div class="pt-2 flex justify-between">
           <button type="button" data-prev class="rounded-full border border-slate-200 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 transition">Back</button>
@@ -161,12 +167,12 @@
           <div class="px-5 pb-5 space-y-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
-              <textarea name="about" rows="4" placeholder="A few sentences about who you are, how long you've been going, and why customers pick you." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Values.Get "about"}}</textarea>
+              <textarea name="about" rows="4" placeholder="A few sentences about who you are, how long you've been going, and why customers pick you." class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-generated-about>{{.Values.Get "about"}}</textarea>
             </div>
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
-                <input type="text" name="cta_text" value="{{.Values.Get "cta_text"}}" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+                <input type="text" name="cta_text" value="{{.Values.Get "cta_text"}}" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-generated-cta>
               </div>
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
@@ -499,6 +505,43 @@
     updatePalettePreview();
     updatePreviewFont();
     showStep(1);
+
+    var generateBtn = form.querySelector('[data-generate-copy]');
+    if (generateBtn) {
+      generateBtn.addEventListener('click', function () {
+        var nameField = form.querySelector('[name="business_name"]');
+        var businessName = nameField.value.trim();
+        var status = form.querySelector('[data-generate-copy-status]');
+        if (!businessName) {
+          status.textContent = 'Enter a business name first.';
+          return;
+        }
+        generateBtn.disabled = true;
+        status.textContent = 'Generating…';
+        fetch(form.getAttribute('data-generate-copy-url'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            business_name: businessName,
+            business_type: form.querySelector('[name="business_type"]').value,
+            csrf_token: form.querySelector('[name="csrf_token"]').value,
+          }),
+        }).then(function (res) {
+          if (!res.ok) throw new Error('generate failed');
+          return res.json();
+        }).then(function (copy) {
+          form.querySelector('[data-generated-tagline]').value = copy.tagline || '';
+          form.querySelector('[data-generated-about]').value = copy.about || '';
+          form.querySelector('[data-generated-cta]').value = copy.cta_text || '';
+          updateSlugAndHeading();
+          status.textContent = 'Draft added to the Tagline and About & branding fields — review and edit before publishing.';
+        }).catch(function () {
+          status.textContent = "Couldn't generate content, please try again.";
+        }).finally(function () {
+          generateBtn.disabled = false;
+        });
+      });
+    }
   })();
 </script>
 {{end}}

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,6 +31,7 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		"ServiceRows":     serviceRowsForForm(values),
 		"CSRFToken":       h.csrf.Token(middleware.UserID(r).String()),
 		"EmailVerified":   h.emailVerified(r),
+		"AIAvailable":     h.ai.Configured(),
 	})
 }
 
@@ -120,4 +122,44 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d?launched=1", site.ID), http.StatusSeeOther)
+}
+
+// GenerateCopy drafts a tagline/about/CTA from a business name + type for
+// the "Generate for me" button in the builder wizard. The owner reviews and
+// can edit the draft before it's ever saved — this endpoint never writes to
+// the database.
+func (h *Handler) GenerateCopy(w http.ResponseWriter, r *http.Request) {
+	if !h.ai.Configured() {
+		http.Error(w, "not available", http.StatusServiceUnavailable)
+		return
+	}
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
+	if !h.aiGenerateLimiter.Allow(middleware.UserID(r).String()) {
+		http.Error(w, "too many requests, try again shortly", http.StatusTooManyRequests)
+		return
+	}
+
+	businessName := strings.TrimSpace(r.FormValue("business_name"))
+	if businessName == "" {
+		http.Error(w, "business name is required", http.StatusBadRequest)
+		return
+	}
+	businessType := "general business or trade"
+	for _, bt := range businessTypes {
+		if bt.ID == r.FormValue("business_type") {
+			businessType = bt.Label
+			break
+		}
+	}
+
+	copy, err := h.ai.GenerateSiteCopy(r.Context(), businessName, businessType)
+	if err != nil {
+		http.Error(w, "couldn't generate content, please try again", http.StatusBadGateway)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(copy)
 }

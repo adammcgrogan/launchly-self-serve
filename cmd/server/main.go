@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/ai"
 	"github.com/adammcgrogan/launchly-self-serve/internal/alert"
 	"github.com/adammcgrogan/launchly-self-serve/internal/cloudflare"
 	"github.com/adammcgrogan/launchly-self-serve/internal/config"
@@ -49,6 +50,7 @@ func main() {
 	mailer := email.New(cfg.ResendAPIKey, cfg.EmailFrom)
 	sms := notify.NewSMSClient(cfg.TwilioAccountSID, cfg.TwilioAuthToken, cfg.TwilioFromNumber)
 	pay := payment.New(cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripeStarterPriceID, cfg.StripeProPriceID)
+	aiClient := ai.New(cfg.GeminiAPIKey)
 
 	baseURL := "https://" + cfg.Domain
 	if strings.Contains(cfg.Domain, "localhost") {
@@ -71,7 +73,7 @@ func main() {
 
 	h, err := web.New(web.Deps{
 		Cfg: cfg, Store: store,
-		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains,
+		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains, AI: aiClient,
 		Auth: auth, Superadmin: superadmin,
 	})
 	if err != nil {
