@@ -13,6 +13,7 @@ import (
 const (
 	accessTokenCookie  = "sb_access_token"
 	refreshTokenCookie = "sb_refresh_token"
+	rememberMeCookie   = "sb_remember_me"
 )
 
 // Auth verifies Supabase-issued session cookies for customer-facing routes.
@@ -27,8 +28,10 @@ func NewAuth(jwtSecret string, supa *supabase.Client, secureCookies bool) *Auth 
 }
 
 // SetSessionCookies stores a Supabase session as httpOnly cookies after
-// signup/login (or a transparent refresh).
-func (a *Auth) SetSessionCookies(w http.ResponseWriter, sess *supabase.Session) {
+// signup/login (or a transparent refresh). When rememberMe is false, the
+// refresh-token cookie is set without MaxAge so it's cleared when the
+// browser closes instead of persisting for 30 days.
+func (a *Auth) SetSessionCookies(w http.ResponseWriter, sess *supabase.Session, rememberMe bool) {
 	maxAge := sess.ExpiresIn
 	if maxAge <= 0 {
 		maxAge = 3600
@@ -37,15 +40,40 @@ func (a *Auth) SetSessionCookies(w http.ResponseWriter, sess *supabase.Session) 
 		Name: accessTokenCookie, Value: sess.AccessToken, Path: "/",
 		HttpOnly: true, Secure: a.secureCookies, SameSite: http.SameSiteLaxMode, MaxAge: maxAge,
 	})
+	refreshMaxAge := 0
+	if rememberMe {
+		refreshMaxAge = 60 * 60 * 24 * 30
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name: refreshTokenCookie, Value: sess.RefreshToken, Path: "/",
-		HttpOnly: true, Secure: a.secureCookies, SameSite: http.SameSiteLaxMode, MaxAge: 60 * 60 * 24 * 30,
+		HttpOnly: true, Secure: a.secureCookies, SameSite: http.SameSiteLaxMode, MaxAge: refreshMaxAge,
+	})
+	rememberValue := "0"
+	if rememberMe {
+		rememberValue = "1"
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: rememberMeCookie, Value: rememberValue, Path: "/",
+		HttpOnly: true, Secure: a.secureCookies, SameSite: http.SameSiteLaxMode, MaxAge: refreshMaxAge,
 	})
 }
 
 func (a *Auth) ClearSessionCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{Name: accessTokenCookie, Path: "/", MaxAge: -1})
 	http.SetCookie(w, &http.Cookie{Name: refreshTokenCookie, Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: rememberMeCookie, Path: "/", MaxAge: -1})
+}
+
+// rememberMe reports whether the session should persist across browser
+// restarts, based on the choice recorded at login. Missing cookie (e.g. a
+// session established before this cookie existed) defaults to true to
+// preserve prior always-30-days behavior.
+func (a *Auth) rememberMe(r *http.Request) bool {
+	c, err := r.Cookie(rememberMeCookie)
+	if err != nil {
+		return true
+	}
+	return c.Value == "1"
 }
 
 // AccessToken returns the raw access token cookie value, if present — used
@@ -74,7 +102,7 @@ func (a *Auth) RequireUser(next http.HandlerFunc) http.HandlerFunc {
 			ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 			defer cancel()
 			if sess, err := a.supa.RefreshSession(ctx, rc.Value); err == nil {
-				a.SetSessionCookies(w, sess)
+				a.SetSessionCookies(w, sess, a.rememberMe(r))
 				next(w, withUserID(r, sess.UserID))
 				return
 			}
@@ -100,7 +128,7 @@ func (a *Auth) CheckUser(w http.ResponseWriter, r *http.Request) (uuid.UUID, boo
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
 		if sess, err := a.supa.RefreshSession(ctx, rc.Value); err == nil {
-			a.SetSessionCookies(w, sess)
+			a.SetSessionCookies(w, sess, a.rememberMe(r))
 			return sess.UserID, true
 		}
 	}

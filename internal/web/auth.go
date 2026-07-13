@@ -43,7 +43,7 @@ func (h *Handler) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.auth.SetSessionCookies(w, sess)
+	h.auth.SetSessionCookies(w, sess, true)
 	next := r.FormValue("next")
 	if next == "" || !strings.HasPrefix(next, "/dashboard") {
 		next = "/dashboard/sites/new"
@@ -67,6 +67,7 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	emailAddr := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
 	password := r.FormValue("password")
 	next := r.FormValue("next")
+	rememberMe := r.FormValue("remember_me") != ""
 
 	sess, err := h.accounts.Login(r.Context(), emailAddr, password)
 	if err != nil {
@@ -74,7 +75,7 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.auth.SetSessionCookies(w, sess)
+	h.auth.SetSessionCookies(w, sess, rememberMe)
 	if next == "" || !strings.HasPrefix(next, "/dashboard") {
 		next = "/dashboard"
 	}
