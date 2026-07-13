@@ -1,11 +1,12 @@
 // Package alert wraps an slog.Handler so that log records at or above a
-// configurable minimum level also get posted to a chat webhook
-// (Slack/Discord/Google Chat all accept the same {"text": "..."} payload
-// shape). It's entirely optional: with no webhook URL configured, Handler
-// behaves exactly like the handler it wraps — same "unset key = feature
-// off" pattern as internal/notify and internal/email. This gives
-// production alerting (errors, or general logs if the level is lowered)
-// without paying for a hosted APM vendor.
+// configurable minimum level also get posted to a Discord incoming
+// webhook (payload shape is Discord's {"content": "..."} — not Slack's
+// {"text": "..."}, the two aren't interchangeable). It's entirely
+// optional: with no webhook URL configured, Handler behaves exactly like
+// the handler it wraps — same "unset key = feature off" pattern as
+// internal/notify and internal/email. This gives production alerting
+// (errors, or general logs if the level is lowered) without paying for a
+// hosted APM vendor.
 package alert
 
 import (
@@ -91,7 +92,7 @@ func (h *Handler) notify(r slog.Record) {
 		text += " (" + strings.Join(fields, ", ") + ")"
 	}
 
-	payload, err := json.Marshal(map[string]string{"text": text})
+	payload, err := json.Marshal(map[string]string{"content": text})
 	if err != nil {
 		return
 	}
