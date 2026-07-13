@@ -43,8 +43,16 @@ func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.next.Enabled(ctx, level)
 }
 
+// skipMessages are high-volume, low-value log lines that should never be
+// forwarded to the webhook regardless of level — per-request access logs
+// (message "request", logged once per HTTP request in cmd/server/main.go)
+// would otherwise flood the channel at ALERT_MIN_LEVEL=info.
+var skipMessages = map[string]bool{
+	"request": true,
+}
+
 func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
-	if h.webhookURL != "" && r.Level >= h.minLevel {
+	if h.webhookURL != "" && r.Level >= h.minLevel && !skipMessages[r.Message] {
 		h.notify(r)
 	}
 	return h.next.Handle(ctx, r)
@@ -74,25 +82,50 @@ func ParseLevel(s string) slog.Level {
 	}
 }
 
+// discordEmbedColor maps an slog level to a Discord embed sidebar color.
+func discordEmbedColor(level slog.Level) int {
+	switch {
+	case level >= slog.LevelError:
+		return 0xE74C3C // red
+	case level >= slog.LevelWarn:
+		return 0xF1C40F // yellow
+	case level >= slog.LevelInfo:
+		return 0x3498DB // blue
+	default:
+		return 0x95A5A6 // gray (debug)
+	}
+}
+
+type discordEmbedField struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline bool   `json:"inline"`
+}
+
+type discordEmbed struct {
+	Title     string              `json:"title"`
+	Color     int                 `json:"color"`
+	Fields    []discordEmbedField `json:"fields,omitempty"`
+	Timestamp string              `json:"timestamp"`
+}
+
 // notify posts the record to the webhook in the background so logging
 // never blocks on a slow/unreachable webhook endpoint.
 func (h *Handler) notify(r slog.Record) {
-	var fields []string
+	var fields []discordEmbedField
 	r.Attrs(func(a slog.Attr) bool {
-		fields = append(fields, a.Key+"="+a.Value.String())
+		fields = append(fields, discordEmbedField{Name: a.Key, Value: a.Value.String(), Inline: true})
 		return true
 	})
 
-	emoji := "🚨"
-	if r.Level < slog.LevelError {
-		emoji = "ℹ️"
-	}
-	text := emoji + " " + r.Message
-	if len(fields) > 0 {
-		text += " (" + strings.Join(fields, ", ") + ")"
+	embed := discordEmbed{
+		Title:     r.Message,
+		Color:     discordEmbedColor(r.Level),
+		Fields:    fields,
+		Timestamp: r.Time.Format(time.RFC3339),
 	}
 
-	payload, err := json.Marshal(map[string]string{"content": text})
+	payload, err := json.Marshal(map[string]any{"embeds": []discordEmbed{embed}})
 	if err != nil {
 		return
 	}
