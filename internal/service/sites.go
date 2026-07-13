@@ -14,6 +14,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -213,9 +214,18 @@ type CreateSiteInput struct {
 	BusinessHours  []domain.BusinessHours
 }
 
+// maxCreateSiteSlugAttempts bounds how many times CreateSite retries after
+// losing a slug-uniqueness race, so a pathological case fails loudly instead
+// of looping forever.
+const maxCreateSiteSlugAttempts = 5
+
 // CreateSite generates a unique slug, inserts the site and all related rows
 // in one transaction, and sets it live immediately with a 14-day trial —
-// there is no draft/review step.
+// there is no draft/review step. uniqueSlug's read happens outside the
+// insert transaction, so two concurrent creates for the same business name
+// can both pick the same slug; if the insert then loses that race on the
+// slug's unique constraint, we regenerate and retry rather than surfacing a
+// 500.
 func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.SiteAggregate, error) {
 	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages); err != nil {
 		return nil, err
@@ -229,14 +239,41 @@ func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.Sit
 		return nil, ErrSiteLimitReached
 	}
 
-	slug, err := s.uniqueSlug(ctx, in.BusinessName)
-	if err != nil {
-		return nil, fmt.Errorf("generate slug: %w", err)
+	var siteID int
+	for attempt := 1; ; attempt++ {
+		slug, err := s.uniqueSlug(ctx, in.BusinessName)
+		if err != nil {
+			return nil, fmt.Errorf("generate slug: %w", err)
+		}
+
+		siteID, err = s.createSiteTx(ctx, in, slug)
+		if err == nil {
+			slog.Info("site created", "site_id", siteID, "owner_id", in.OwnerUserID, "slug", slug)
+			break
+		}
+		if !isUniqueSlugViolation(err) || attempt >= maxCreateSiteSlugAttempts {
+			return nil, err
+		}
 	}
 
+	return s.GetSiteAggregate(ctx, siteID)
+}
+
+// isUniqueSlugViolation reports whether err is a Postgres unique-constraint
+// violation (23505) on the sites table's slug column.
+func isUniqueSlugViolation(err error) bool {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+	return pqErr.Code == "23505" && pqErr.Constraint == "sites_slug_key"
+}
+
+// createSiteTx inserts a site and all its related rows in one transaction.
+func (s *Sites) createSiteTx(ctx context.Context, in CreateSiteInput, slug string) (int, error) {
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	defer tx.Rollback()
 
@@ -255,44 +292,42 @@ func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.Sit
 	}
 	siteID, err := postgres.CreateSite(ctx, tx, site)
 	if err != nil {
-		return nil, fmt.Errorf("create site: %w", err)
+		return 0, fmt.Errorf("create site: %w", err)
 	}
 
 	if err := postgres.CreateSiteBilling(ctx, tx, siteID, domain.PlanStarter); err != nil {
-		return nil, fmt.Errorf("create billing: %w", err)
+		return 0, fmt.Errorf("create billing: %w", err)
 	}
 	in.Contact.SiteID = siteID
 	if err := postgres.UpsertSiteContact(ctx, tx, &in.Contact); err != nil {
-		return nil, fmt.Errorf("save contact: %w", err)
+		return 0, fmt.Errorf("save contact: %w", err)
 	}
 	if err := postgres.UpsertSiteAnalyticsSettings(ctx, tx, &domain.SiteAnalyticsSettings{SiteID: siteID, AnalyticsFrequency: "off"}); err != nil {
-		return nil, fmt.Errorf("save analytics settings: %w", err)
+		return 0, fmt.Errorf("save analytics settings: %w", err)
 	}
 	if err := postgres.ReplaceSiteSocialLinks(ctx, tx, siteID, in.SocialLinks); err != nil {
-		return nil, fmt.Errorf("save social links: %w", err)
+		return 0, fmt.Errorf("save social links: %w", err)
 	}
 	if err := postgres.ReplaceSiteServices(ctx, tx, siteID, in.Services); err != nil {
-		return nil, fmt.Errorf("save services: %w", err)
+		return 0, fmt.Errorf("save services: %w", err)
 	}
 	if err := postgres.ReplaceSiteCertifications(ctx, tx, siteID, in.Certifications); err != nil {
-		return nil, fmt.Errorf("save certifications: %w", err)
+		return 0, fmt.Errorf("save certifications: %w", err)
 	}
 	if err := postgres.ReplaceSiteTestimonials(ctx, tx, siteID, in.Testimonials); err != nil {
-		return nil, fmt.Errorf("save testimonials: %w", err)
+		return 0, fmt.Errorf("save testimonials: %w", err)
 	}
 	if err := postgres.ReplaceSiteGalleryImages(ctx, tx, siteID, in.GalleryImages); err != nil {
-		return nil, fmt.Errorf("save gallery: %w", err)
+		return 0, fmt.Errorf("save gallery: %w", err)
 	}
 	if err := postgres.ReplaceSiteBusinessHours(ctx, tx, siteID, in.BusinessHours); err != nil {
-		return nil, fmt.Errorf("save business hours: %w", err)
+		return 0, fmt.Errorf("save business hours: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit: %w", err)
+		return 0, fmt.Errorf("commit: %w", err)
 	}
-	slog.Info("site created", "site_id", siteID, "owner_id", in.OwnerUserID, "slug", slug)
-
-	return s.GetSiteAggregate(ctx, siteID)
+	return siteID, nil
 }
 
 // canCreateSite enforces the per-account site cap: an account with no
