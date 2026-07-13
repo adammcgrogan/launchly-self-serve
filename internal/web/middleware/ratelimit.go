@@ -10,6 +10,13 @@ import (
 // RateLimiter is a fixed-window, in-memory rate limiter keyed by an
 // arbitrary string. Stale windows are cleaned up periodically so memory
 // doesn't grow unboundedly.
+//
+// State is per-process: each instance tracks its own counters, so if the
+// app is ever scaled to more than one instance behind a load balancer, the
+// effective limit becomes (limit * instance count) with no warning. This
+// is a deliberate tradeoff for a single-instance deployment — if/when this
+// app runs on multiple instances, replace this with a shared store (e.g.
+// Redis or Postgres-backed) instead of adding synchronization here.
 type RateLimiter struct {
 	mu      sync.Mutex
 	windows map[string]*rateWindow
