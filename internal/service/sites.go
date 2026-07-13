@@ -35,7 +35,14 @@ var (
 	e164Re      = regexp.MustCompile(`^\+[1-9]\d{6,14}$`)
 	emailRe     = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 	phoneRe     = regexp.MustCompile(`^[0-9+()\-.\s]{7,25}$`)
+	hexColorRe  = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 )
+
+// IsValidHexColor reports whether s is a 6-digit hex colour in "#RRGGBB"
+// form, the format brand-colour input is normalized to before saving.
+func IsValidHexColor(s string) bool {
+	return hexColorRe.MatchString(s)
+}
 
 // Server-side max lengths for site content fields, generous enough for real
 // business content but bounded so a pasted wall of text can't bloat a row or
@@ -523,8 +530,8 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	return tx.Commit()
 }
 
-func (s *Sites) UpdateAppearance(ctx context.Context, siteID int, palette, headingFont string) error {
-	return postgres.UpdateSiteAppearance(ctx, s.store.DB(), siteID, palette, headingFont)
+func (s *Sites) UpdateAppearance(ctx context.Context, siteID int, palette, headingFont, brandColor string) error {
+	return postgres.UpdateSiteAppearance(ctx, s.store.DB(), siteID, palette, headingFont, brandColor)
 }
 
 // UpdateFormType switches a site's public form between the plain contact
@@ -535,8 +542,8 @@ func (s *Sites) UpdateFormType(ctx context.Context, siteID int, formType domain.
 
 // SwitchTemplate changes a site's design. The palette is reset (not carried
 // over) since palette IDs are template-specific — a palette valid for the
-// old template may not exist on the new one. Heading font is a
-// template-agnostic choice, so it's left as-is.
+// old template may not exist on the new one. Heading font and brand colour
+// are template-agnostic choices, so they're left as-is.
 func (s *Sites) SwitchTemplate(ctx context.Context, siteID int, templateID string) error {
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -554,7 +561,7 @@ func (s *Sites) SwitchTemplate(ctx context.Context, siteID int, templateID strin
 	if err := postgres.UpdateSiteTemplate(ctx, tx, siteID, templateID); err != nil {
 		return fmt.Errorf("update template: %w", err)
 	}
-	if err := postgres.UpdateSiteAppearance(ctx, tx, siteID, "", current.HeadingFont); err != nil {
+	if err := postgres.UpdateSiteAppearance(ctx, tx, siteID, "", current.HeadingFont, current.BrandColor); err != nil {
 		return fmt.Errorf("reset palette: %w", err)
 	}
 	return tx.Commit()

@@ -96,6 +96,10 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	palette := r.FormValue("palette")
 	headingFont := r.FormValue("heading_font")
+	brandColor := strings.ToUpper(strings.TrimSpace(r.FormValue("brand_color")))
+	if brandColor != "" && !strings.HasPrefix(brandColor, "#") {
+		brandColor = "#" + brandColor
+	}
 
 	tmpl, _ := findTemplate(site.TemplateID)
 	paletteValid := palette == ""
@@ -111,8 +115,13 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	if headingFont != "" && headingFont != "sans" && headingFont != "serif" {
 		headingFont = ""
 	}
+	if brandColor != "" && !service.IsValidHexColor(brandColor) {
+		middleware.SetFlash(w, "Brand colour must be a 6-digit hex code, e.g. #4F46E5.")
+		http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+		return
+	}
 
-	if err := h.sites.UpdateAppearance(r.Context(), site.ID, palette, headingFont); err != nil {
+	if err := h.sites.UpdateAppearance(r.Context(), site.ID, palette, headingFont, brandColor); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}

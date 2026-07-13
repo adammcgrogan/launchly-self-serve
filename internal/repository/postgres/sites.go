@@ -10,7 +10,7 @@ import (
 )
 
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
-	template_id, form_type, palette, heading_font, status, created_at, published_at, updated_at, slug_changed_at,
+	template_id, form_type, palette, heading_font, brand_color, status, created_at, published_at, updated_at, slug_changed_at,
 	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at, timezone`
 
 func scanSite(row *sql.Row) (*domain.Site, error) {
@@ -18,7 +18,7 @@ func scanSite(row *sql.Row) (*domain.Site, error) {
 	var customDomain, customDomainCFID sql.NullString
 	err := row.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
-		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
+		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
 	)
 	if err == sql.ErrNoRows {
@@ -37,7 +37,7 @@ func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 	var customDomain, customDomainCFID sql.NullString
 	err := rows.Scan(
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
-		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
+		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
 	)
 	s.CustomDomain = customDomain.String
@@ -139,8 +139,8 @@ func UpdateSiteContent(ctx context.Context, q querier, site *domain.Site) error 
 	return err
 }
 
-func UpdateSiteAppearance(ctx context.Context, q querier, id int, palette, headingFont string) error {
-	_, err := q.ExecContext(ctx, `UPDATE sites SET palette = $1, heading_font = $2, updated_at = now() WHERE id = $3`, palette, headingFont, id)
+func UpdateSiteAppearance(ctx context.Context, q querier, id int, palette, headingFont, brandColor string) error {
+	_, err := q.ExecContext(ctx, `UPDATE sites SET palette = $1, heading_font = $2, brand_color = $3, updated_at = now() WHERE id = $4`, palette, headingFont, brandColor, id)
 	return err
 }
 

@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,18 +64,22 @@ const (
 // belongs to a site (contact info, billing, social links, etc.) lives in
 // its own table/struct and is loaded alongside it as a SiteAggregate.
 type Site struct {
-	ID            int
-	OwnerUserID   uuid.UUID
-	Slug          string
-	BusinessName  string
-	Tagline       string
-	About         string
-	LogoURL       string
-	CTAText       string
-	TemplateID    string
-	FormType      FormType
-	Palette       string
-	HeadingFont   string
+	ID           int
+	OwnerUserID  uuid.UUID
+	Slug         string
+	BusinessName string
+	Tagline      string
+	About        string
+	LogoURL      string
+	CTAText      string
+	TemplateID   string
+	FormType     FormType
+	Palette      string
+	HeadingFont  string
+	// BrandColor is an optional exact hex colour (e.g. "#4F46E5") that
+	// overrides the accent colour of the chosen preset palette, so an owner
+	// can match their existing branding instead of picking "close enough".
+	BrandColor    string
 	Status        SiteStatus
 	CreatedAt     time.Time
 	PublishedAt   *time.Time
@@ -88,6 +94,35 @@ type Site struct {
 	// Timezone is the IANA zone opening hours (and the "Open now" badge) are
 	// evaluated in, e.g. "Europe/London".
 	Timezone string
+}
+
+// BrandColorInk returns the readable foreground colour ("#000000" or
+// "#FFFFFF") to pair with BrandColor, chosen by relative luminance so text
+// and icons stay legible against any custom accent the owner picks.
+func (s Site) BrandColorInk() string {
+	r, g, b, ok := parseHexColor(s.BrandColor)
+	if !ok {
+		return "#FFFFFF"
+	}
+	// Perceived (relative) luminance — same weighting used for WCAG
+	// contrast checks.
+	luminance := 0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)
+	if luminance > 150 {
+		return "#000000"
+	}
+	return "#FFFFFF"
+}
+
+func parseHexColor(s string) (r, g, b int, ok bool) {
+	s = strings.TrimPrefix(s, "#")
+	if len(s) != 6 {
+		return 0, 0, 0, false
+	}
+	v, err := strconv.ParseInt(s, 16, 32)
+	if err != nil {
+		return 0, 0, 0, false
+	}
+	return int(v >> 16 & 0xFF), int(v >> 8 & 0xFF), int(v & 0xFF), true
 }
 
 // SiteContact holds a site's public contact details. 1:1 with Site.

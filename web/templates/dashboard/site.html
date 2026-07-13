@@ -338,6 +338,19 @@
         </div>
       </section>
       <section>
+        <h2 class="font-semibold text-slate-900 mb-2">Brand colour</h2>
+        <p class="text-sm text-slate-500 mb-4">Optional — overrides the palette's accent colour with your exact brand hex.</p>
+        <div class="flex items-center gap-3">
+          <input type="color" value="{{if .Site.BrandColor}}{{.Site.BrandColor}}{{else}}#4338CA{{end}}"
+                 oninput="this.nextElementSibling.value = this.value"
+                 class="h-11 w-14 rounded-lg border border-slate-200 cursor-pointer">
+          <input type="text" name="brand_color" value="{{.Site.BrandColor}}" placeholder="e.g. #4F46E5"
+                 pattern="^#?[0-9A-Fa-f]{6}$" maxlength="7"
+                 oninput="this.previousElementSibling.value = this.value.startsWith('#') ? this.value : '#' + this.value"
+                 class="flex-1 rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+      </section>
+      <section>
         <h2 class="font-semibold text-slate-900 mb-4">Heading font</h2>
         <select name="heading_font" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           <option value="" {{if eq .Site.HeadingFont ""}}selected{{end}}>Design default</option>

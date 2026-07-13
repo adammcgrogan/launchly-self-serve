@@ -9,6 +9,7 @@
     {{else}}
       --ink:#F4F4F5; --surface:#26272B; --paper:#1C1B1A; --accent:#C2410C; --accent-ink:#FFFFFF; --muted:#A6A6AC; --line:#3A3B40; --safety:#EAB308;
     {{end}}
+    {{if .Site.BrandColor}}--accent:{{.Site.BrandColor}}; --accent-ink:{{.Site.BrandColorInk}};{{end}}
   }
   body{font-family:var(--font-body);background:var(--paper);color:var(--ink);}
   .font-display{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.02em;}
