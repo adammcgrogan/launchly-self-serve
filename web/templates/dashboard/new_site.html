@@ -64,12 +64,6 @@
           <label class="block text-sm font-medium text-slate-700 mb-1">Where are you based?</label>
           <input type="text" name="location" value="{{.Values.Get "location"}}" placeholder="e.g. Belfast, NI" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
         </div>
-        {{if .AIAvailable}}
-        <div>
-          <button type="button" data-generate-copy class="text-sm font-medium text-brand hover:text-brand-dark">✨ Generate tagline &amp; about text for me</button>
-          <p class="mt-1 text-sm text-slate-400" data-generate-copy-status></p>
-        </div>
-        {{end}}
         <div class="pt-2 flex justify-end">
           <button type="button" data-next class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Continue</button>
         </div>
@@ -140,14 +134,24 @@
                 <input type="text" name="service_label" value="{{$s.Label}}" placeholder="e.g. Boiler repair" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
                 <input type="text" name="service_price" value="{{$s.PriceText}}" placeholder="Price (optional)" class="w-full sm:w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm">
               </div>
-              <input type="text" name="service_description" value="{{$s.Description}}" placeholder="Short description (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <div class="flex items-center gap-2">
+                <input type="text" name="service_description" value="{{$s.Description}}" placeholder="Short description (optional)" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" data-generated-service-description>
+                {{if $.AIAvailable}}
+                <button type="button" data-generate="service_description" class="shrink-0 text-xs font-medium text-brand hover:text-brand-dark whitespace-nowrap">✨ Generate</button>
+                {{end}}
+              </div>
             </div>
             {{end}}
           </div>
           <button type="button" data-add-service class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another service</button>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-sm font-medium text-slate-700">Tagline</label>
+            {{if .AIAvailable}}
+            <button type="button" data-generate="tagline" class="text-xs font-medium text-brand hover:text-brand-dark">✨ Generate</button>
+            {{end}}
+          </div>
           <input type="text" name="tagline" value="{{.Values.Get "tagline"}}" placeholder="e.g. Quality work, done right" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-preview-tagline-source data-generated-tagline>
         </div>
         <div class="pt-2 flex justify-between">
@@ -166,13 +170,18 @@
           <summary class="cursor-pointer select-none px-5 py-4 font-medium text-slate-800 flex items-center justify-between">About &amp; branding <span class="text-xs text-slate-400">optional</span></summary>
           <div class="px-5 pb-5 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-slate-700">About</label>
+                {{if .AIAvailable}}
+                <button type="button" data-generate="about" class="text-xs font-medium text-brand hover:text-brand-dark">✨ Generate</button>
+                {{end}}
+              </div>
               <textarea name="about" rows="4" placeholder="A few sentences about who you are, how long you've been going, and why customers pick you." class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-generated-about>{{.Values.Get "about"}}</textarea>
             </div>
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
-                <input type="text" name="cta_text" value="{{.Values.Get "cta_text"}}" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5" data-generated-cta>
+                <input type="text" name="cta_text" value="{{.Values.Get "cta_text"}}" placeholder="Get a Quote" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
               </div>
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
@@ -506,42 +515,67 @@
     updatePreviewFont();
     showStep(1);
 
-    var generateBtn = form.querySelector('[data-generate-copy]');
-    if (generateBtn) {
-      generateBtn.addEventListener('click', function () {
-        var nameField = form.querySelector('[name="business_name"]');
-        var businessName = nameField.value.trim();
-        var status = form.querySelector('[data-generate-copy-status]');
-        if (!businessName) {
-          status.textContent = 'Enter a business name first.';
+    form.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-generate]');
+      if (!btn) return;
+
+      var field = btn.getAttribute('data-generate');
+      var originalLabel = btn.textContent;
+
+      function flash(message) {
+        btn.textContent = message;
+        setTimeout(function () { btn.textContent = originalLabel; }, 2000);
+      }
+
+      var businessName = form.querySelector('[name="business_name"]').value.trim();
+      if (!businessName) {
+        flash('Enter business name first');
+        return;
+      }
+
+      var params = {
+        field: field,
+        business_name: businessName,
+        business_type: form.querySelector('[name="business_type"]').value,
+        csrf_token: form.querySelector('[name="csrf_token"]').value,
+      };
+      var target;
+      if (field === 'tagline') {
+        target = form.querySelector('[data-generated-tagline]');
+      } else if (field === 'about') {
+        target = form.querySelector('[data-generated-about]');
+      } else if (field === 'service_description') {
+        var row = btn.closest('[data-service-row]');
+        var serviceName = row.querySelector('[name="service_label"]').value.trim();
+        if (!serviceName) {
+          flash('Enter service name first');
           return;
         }
-        generateBtn.disabled = true;
-        status.textContent = 'Generating…';
-        fetch(form.getAttribute('data-generate-copy-url'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            business_name: businessName,
-            business_type: form.querySelector('[name="business_type"]').value,
-            csrf_token: form.querySelector('[name="csrf_token"]').value,
-          }),
-        }).then(function (res) {
-          if (!res.ok) throw new Error('generate failed');
-          return res.json();
-        }).then(function (copy) {
-          form.querySelector('[data-generated-tagline]').value = copy.tagline || '';
-          form.querySelector('[data-generated-about]').value = copy.about || '';
-          form.querySelector('[data-generated-cta]').value = copy.cta_text || '';
-          updateSlugAndHeading();
-          status.textContent = 'Draft added to the Tagline and About & branding fields — review and edit before publishing.';
-        }).catch(function () {
-          status.textContent = "Couldn't generate content, please try again.";
-        }).finally(function () {
-          generateBtn.disabled = false;
-        });
+        params.service_name = serviceName;
+        target = row.querySelector('[data-generated-service-description]');
+      } else {
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+      fetch(form.getAttribute('data-generate-copy-url'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(params),
+      }).then(function (res) {
+        if (!res.ok) throw new Error('generate failed');
+        return res.json();
+      }).then(function (data) {
+        target.value = data.text || '';
+        if (field === 'tagline') updateSlugAndHeading();
+        btn.textContent = originalLabel;
+      }).catch(function () {
+        flash("Couldn't generate, try again");
+      }).finally(function () {
+        btn.disabled = false;
       });
-    }
+    });
   })();
 </script>
 {{end}}

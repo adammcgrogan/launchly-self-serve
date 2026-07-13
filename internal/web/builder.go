@@ -124,8 +124,9 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d?launched=1", site.ID), http.StatusSeeOther)
 }
 
-// GenerateCopy drafts a tagline/about/CTA from a business name + type for
-// the "Generate for me" button in the builder wizard. The owner reviews and
+// GenerateCopy drafts a single content field — tagline, about text, or one
+// service's description — from a business name + type for the "Generate"
+// buttons next to those fields in the builder wizard. The owner reviews and
 // can edit the draft before it's ever saved — this endpoint never writes to
 // the database.
 func (h *Handler) GenerateCopy(w http.ResponseWriter, r *http.Request) {
@@ -154,12 +155,29 @@ func (h *Handler) GenerateCopy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	copy, err := h.ai.GenerateSiteCopy(r.Context(), businessName, businessType)
+	var text string
+	var err error
+	switch r.FormValue("field") {
+	case "tagline":
+		text, err = h.ai.GenerateTagline(r.Context(), businessName, businessType)
+	case "about":
+		text, err = h.ai.GenerateAbout(r.Context(), businessName, businessType)
+	case "service_description":
+		serviceName := strings.TrimSpace(r.FormValue("service_name"))
+		if serviceName == "" {
+			http.Error(w, "service name is required", http.StatusBadRequest)
+			return
+		}
+		text, err = h.ai.GenerateServiceDescription(r.Context(), businessName, businessType, serviceName)
+	default:
+		http.Error(w, "unknown field", http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		http.Error(w, "couldn't generate content, please try again", http.StatusBadGateway)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(copy)
+	json.NewEncoder(w).Encode(map[string]string{"text": text})
 }
