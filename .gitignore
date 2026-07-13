@@ -8,6 +8,7 @@
 
 # local claude code tooling — not part of the project itself
 .claude/
+CLAUDE.md
 
 # build output
 /bin/
