@@ -41,6 +41,7 @@ func (a *Accounts) SignUp(ctx context.Context, emailAddr, password string) (*sup
 	if _, err := postgres.UpsertProfile(ctx, a.store.DB(), sess.UserID, sess.Email); err != nil {
 		return nil, fmt.Errorf("create profile: %w", err)
 	}
+	slog.Info("account created", "user_id", sess.UserID, "email", sess.Email)
 
 	go func() {
 		if err := a.mailer.SendWelcomeEmail(sess.Email, a.baseURL+"/dashboard"); err != nil {
@@ -92,5 +93,9 @@ func (a *Accounts) GetProfile(ctx context.Context, userID uuid.UUID) (*domain.Pr
 // hanging off those sites — cascades away via ON DELETE CASCADE once the
 // auth.users row is gone, so there's nothing further to clean up locally.
 func (a *Accounts) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
-	return a.supa.DeleteUser(ctx, userID)
+	if err := a.supa.DeleteUser(ctx, userID); err != nil {
+		return err
+	}
+	slog.Info("account deleted", "user_id", userID)
+	return nil
 }

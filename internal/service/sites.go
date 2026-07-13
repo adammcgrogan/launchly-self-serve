@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
@@ -289,6 +290,7 @@ func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.Sit
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
+	slog.Info("site created", "site_id", siteID, "owner_id", in.OwnerUserID, "slug", slug)
 
 	return s.GetSiteAggregate(ctx, siteID)
 }
@@ -652,5 +654,9 @@ func (s *Sites) Delete(ctx context.Context, siteID int) error {
 	if err := s.billing.CancelSubscriptionIfActive(ctx, siteID); err != nil {
 		return fmt.Errorf("cancel subscription: %w", err)
 	}
-	return postgres.DeleteSite(ctx, s.store.DB(), siteID)
+	if err := postgres.DeleteSite(ctx, s.store.DB(), siteID); err != nil {
+		return err
+	}
+	slog.Info("site deleted", "site_id", siteID)
+	return nil
 }
