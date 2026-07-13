@@ -81,7 +81,6 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		"FormAction":     formAction,
 		"EventAction":    strings.TrimSuffix(formAction, "/contact") + "/e",
 		"Socials":        socialLinksMap(site.SocialLinks),
-		"UmamiScriptURL": h.cfg.UmamiScriptURL,
 		"Open":           open,
 		"OpenLabel":      openLabel,
 		"JSONLD":         localBusinessJSONLD(site, h.siteURL(site.Slug)),

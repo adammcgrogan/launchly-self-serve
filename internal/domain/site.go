@@ -118,7 +118,6 @@ type SiteBilling struct {
 // SiteAnalyticsSettings holds a site's analytics preferences. 1:1 with Site.
 type SiteAnalyticsSettings struct {
 	SiteID              int
-	UmamiWebsiteID      string
 	AnalyticsFrequency  string // "off", "weekly", "monthly"
 	AnalyticsLastSentAt *time.Time
 }

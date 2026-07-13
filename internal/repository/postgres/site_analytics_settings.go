@@ -9,20 +9,20 @@ import (
 
 func UpsertSiteAnalyticsSettings(ctx context.Context, q querier, a *domain.SiteAnalyticsSettings) error {
 	_, err := q.ExecContext(ctx, `
-		INSERT INTO site_analytics_settings (site_id, umami_website_id, analytics_frequency)
-		VALUES ($1, $2, $3)
+		INSERT INTO site_analytics_settings (site_id, analytics_frequency)
+		VALUES ($1, $2)
 		ON CONFLICT (site_id) DO UPDATE SET
-			umami_website_id = EXCLUDED.umami_website_id, analytics_frequency = EXCLUDED.analytics_frequency
-	`, a.SiteID, a.UmamiWebsiteID, a.AnalyticsFrequency)
+			analytics_frequency = EXCLUDED.analytics_frequency
+	`, a.SiteID, a.AnalyticsFrequency)
 	return err
 }
 
 func GetSiteAnalyticsSettings(ctx context.Context, q querier, siteID int) (*domain.SiteAnalyticsSettings, error) {
 	a := &domain.SiteAnalyticsSettings{SiteID: siteID, AnalyticsFrequency: "off"}
 	err := q.QueryRowContext(ctx, `
-		SELECT umami_website_id, analytics_frequency, analytics_last_sent_at
+		SELECT analytics_frequency, analytics_last_sent_at
 		FROM site_analytics_settings WHERE site_id = $1
-	`, siteID).Scan(&a.UmamiWebsiteID, &a.AnalyticsFrequency, &a.AnalyticsLastSentAt)
+	`, siteID).Scan(&a.AnalyticsFrequency, &a.AnalyticsLastSentAt)
 	if err == sql.ErrNoRows {
 		return a, nil
 	}

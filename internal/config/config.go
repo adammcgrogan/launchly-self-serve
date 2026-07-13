@@ -35,8 +35,6 @@ type Config struct {
 	SuperadminPassword string
 	CookieSigningKey   string // HMAC key for CSRF/flash cookies (not auth — auth uses Supabase JWTs)
 
-	UmamiScriptURL string
-
 	CloudflareAPIToken       string
 	CloudflareZoneID         string
 	CloudflareFallbackOrigin string // fixed hostname customer domains are CNAME'd to, e.g. "origin.launchly.ltd"
@@ -77,8 +75,6 @@ func Load() (*Config, error) {
 
 		SuperadminPassword: os.Getenv("SUPERADMIN_PASSWORD"),
 		CookieSigningKey:   os.Getenv("COOKIE_SIGNING_KEY"),
-
-		UmamiScriptURL: getEnv("UMAMI_SCRIPT_URL", ""),
 
 		CloudflareAPIToken:       getEnv("CLOUDFLARE_API_TOKEN", ""),
 		CloudflareZoneID:         getEnv("CLOUDFLARE_ZONE_ID", ""),
