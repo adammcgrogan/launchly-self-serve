@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	qrcode "github.com/skip2/go-qrcode"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
+	"github.com/adammcgrogan/launchly-self-serve/internal/service"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
@@ -63,17 +65,23 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	leads, err := h.leads.ListBySite(r.Context(), site.ID)
+	leadStatus := domain.LeadStatus(r.URL.Query().Get("lead_status"))
+	leadSearch := strings.TrimSpace(r.URL.Query().Get("lead_q"))
+	leadPage, _ := strconv.Atoi(r.URL.Query().Get("lead_page"))
+	if leadPage < 1 {
+		leadPage = 1
+	}
+	leads, leadTotal, err := h.leads.ListBySiteFiltered(r.Context(), site.ID, leadStatus, leadSearch, leadPage)
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
-	newLeadCount := 0
-	for _, l := range leads {
-		if l.Status == domain.LeadStatusNew {
-			newLeadCount++
-		}
+	leadCounts, err := h.leads.Counts(r.Context(), site.ID)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
 	}
+	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
 	since7 := time.Now().UTC().Add(-7 * 24 * time.Hour)
 	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7)
 	allTimeStats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, site.CreatedAt)
@@ -100,18 +108,26 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render.Render(w, "dashboard:site", map[string]any{
-		"Site":          site,
-		"Leads":         leads,
-		"LeadCount":     len(leads),
-		"NewLeadCount":  newLeadCount,
-		"Stats":         stats,
-		"AllTimeStats":  allTimeStats,
-		"ChartPoints":   chartPoints,
-		"SiteURL":       h.siteURL(site.Slug),
-		"Flash":         middleware.GetFlash(w, r),
-		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
-		"Upgraded":      r.URL.Query().Get("upgraded") == "1",
-		"EmailVerified": h.emailVerified(r),
+		"Site":           site,
+		"Leads":          leads,
+		"LeadCount":      leadCounts.Total,
+		"NewLeadCount":   leadCounts.New,
+		"LeadStatus":     leadStatus,
+		"LeadSearch":     leadSearch,
+		"LeadPage":       leadPage,
+		"LeadTotalPages": leadTotalPages,
+		"LeadHasPrev":    leadPage > 1,
+		"LeadHasNext":    leadPage < leadTotalPages,
+		"LeadPrevPage":   leadPage - 1,
+		"LeadNextPage":   leadPage + 1,
+		"Stats":          stats,
+		"AllTimeStats":   allTimeStats,
+		"ChartPoints":    chartPoints,
+		"SiteURL":        h.siteURL(site.Slug),
+		"Flash":          middleware.GetFlash(w, r),
+		"CSRFToken":      h.csrf.Token(middleware.UserID(r).String()),
+		"Upgraded":       r.URL.Query().Get("upgraded") == "1",
+		"EmailVerified":  h.emailVerified(r),
 
 		"Design":           tmpl,
 		"Templates":        siteTemplates,

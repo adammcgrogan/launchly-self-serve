@@ -117,11 +117,25 @@
 
   <div class="rounded-2xl border border-slate-200 bg-white p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold text-slate-900">Recent leads</h2>
+      <h2 class="font-semibold text-slate-900">Leads</h2>
       {{if .NewLeadCount}}<span class="rounded-full bg-brand/10 text-brand px-3 py-1 text-xs font-medium">{{.NewLeadCount}} new</span>{{end}}
     </div>
+
+    <form method="GET" action="/dashboard/sites/{{.Site.ID}}" class="flex flex-wrap gap-3 mb-4">
+      <input type="hidden" name="tab" value="overview">
+      <input type="search" name="lead_q" value="{{.LeadSearch}}" placeholder="Search name or email" class="flex-1 min-w-[10rem] rounded-lg border border-slate-200 px-3 py-2 text-sm">
+      <select name="lead_status" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <option value="" {{if eq (print .LeadStatus) ""}}selected{{end}}>All statuses</option>
+        <option value="new" {{if eq (print .LeadStatus) "new"}}selected{{end}}>New</option>
+        <option value="contacted" {{if eq (print .LeadStatus) "contacted"}}selected{{end}}>Contacted</option>
+        <option value="won" {{if eq (print .LeadStatus) "won"}}selected{{end}}>Won</option>
+        <option value="lost" {{if eq (print .LeadStatus) "lost"}}selected{{end}}>Lost</option>
+      </select>
+      <button type="submit" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Filter</button>
+    </form>
+
     {{if not .Leads}}
-    <p class="text-sm text-slate-500">No enquiries yet. They'll show up here as visitors contact you.</p>
+    <p class="text-sm text-slate-500">{{if or .LeadSearch (ne (print .LeadStatus) "")}}No leads match this filter.{{else}}No enquiries yet. They'll show up here as visitors contact you.{{end}}</p>
     {{else}}
     <div class="divide-y divide-slate-100">
       {{range .Leads}}
@@ -147,6 +161,17 @@
       </div>
       {{end}}
     </div>
+    {{if gt .LeadTotalPages 1}}
+    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+      {{if .LeadHasPrev}}
+      <a href="/dashboard/sites/{{.Site.ID}}?tab=overview&lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadPrevPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Previous</a>
+      {{else}}<span></span>{{end}}
+      <span class="text-xs text-slate-400">Page {{.LeadPage}} of {{.LeadTotalPages}}</span>
+      {{if .LeadHasNext}}
+      <a href="/dashboard/sites/{{.Site.ID}}?tab=overview&lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadNextPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Next</a>
+      {{else}}<span></span>{{end}}
+    </div>
+    {{end}}
     {{end}}
   </div>
 </div>

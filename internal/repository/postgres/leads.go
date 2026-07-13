@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
@@ -31,6 +32,70 @@ func ListLeadsBySite(ctx context.Context, q querier, siteID int) ([]domain.Lead,
 		out = append(out, l)
 	}
 	return out, rows.Err()
+}
+
+// LeadFilter narrows ListLeadsBySiteFiltered's results to a status and/or a
+// name/email search term, and pages through them with Limit/Offset.
+type LeadFilter struct {
+	Status domain.LeadStatus
+	Search string
+	Limit  int
+	Offset int
+}
+
+// ListLeadsBySiteFiltered lists a page of a site's leads matching the given
+// filter, along with the total count of leads matching that filter (for
+// pagination), computed in the same query via COUNT(*) OVER().
+func ListLeadsBySiteFiltered(ctx context.Context, q querier, siteID int, filter LeadFilter) ([]domain.Lead, int, error) {
+	where := "WHERE site_id = $1"
+	args := []any{siteID}
+	if filter.Status != "" {
+		args = append(args, filter.Status)
+		where += fmt.Sprintf(" AND status = $%d", len(args))
+	}
+	if filter.Search != "" {
+		args = append(args, "%"+filter.Search+"%")
+		where += fmt.Sprintf(" AND (name ILIKE $%d OR email ILIKE $%d)", len(args), len(args))
+	}
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+	args = append(args, limit, filter.Offset)
+	limitPos := len(args) - 1
+	offsetPos := len(args)
+
+	rows, err := q.QueryContext(ctx, fmt.Sprintf(`
+		SELECT id, site_id, name, email, phone, message, service_label, preferred_time, status, created_at, COUNT(*) OVER() AS total_count
+		FROM leads %s
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, where, limitPos, offsetPos), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var out []domain.Lead
+	total := 0
+	for rows.Next() {
+		var l domain.Lead
+		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.Status, &l.CreatedAt, &total); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, l)
+	}
+	return out, total, rows.Err()
+}
+
+// GetLeadCounts returns a site's total and new lead counts, unaffected by any
+// list filter, for the dashboard's "leads received" stat and "N new" badge.
+func GetLeadCounts(ctx context.Context, q querier, siteID int) (domain.LeadCounts, error) {
+	var c domain.LeadCounts
+	err := q.QueryRowContext(ctx,
+		`SELECT COUNT(*), COUNT(*) FILTER (WHERE status = $2) FROM leads WHERE site_id = $1`,
+		siteID, domain.LeadStatusNew).Scan(&c.Total, &c.New)
+	return c, err
 }
 
 // UpdateLeadStatus sets a lead's status, scoped to siteID so a caller can't

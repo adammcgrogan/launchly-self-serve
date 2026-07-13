@@ -92,6 +92,30 @@ func (l *Leads) ListBySite(ctx context.Context, siteID int) ([]domain.Lead, erro
 	return postgres.ListLeadsBySite(ctx, l.store.DB(), siteID)
 }
 
+// ListBySiteFiltered returns page (1-indexed) of a site's leads narrowed by
+// status (empty = all) and a name/email search term, along with the total
+// count of leads matching that filter (for pagination).
+func (l *Leads) ListBySiteFiltered(ctx context.Context, siteID int, status domain.LeadStatus, search string, page int) ([]domain.Lead, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	filter := postgres.LeadFilter{
+		Status: status,
+		Search: search,
+		Limit:  LeadsPageSize,
+		Offset: (page - 1) * LeadsPageSize,
+	}
+	return postgres.ListLeadsBySiteFiltered(ctx, l.store.DB(), siteID, filter)
+}
+
+// LeadsPageSize is how many leads ListBySiteFiltered returns per page.
+const LeadsPageSize = 20
+
+// Counts returns a site's total and new lead counts, unaffected by any list filter.
+func (l *Leads) Counts(ctx context.Context, siteID int) (domain.LeadCounts, error) {
+	return postgres.GetLeadCounts(ctx, l.store.DB(), siteID)
+}
+
 // UpdateStatus sets a lead's follow-up status, scoped to siteID so an owner
 // can't update a lead belonging to a site they don't own.
 func (l *Leads) UpdateStatus(ctx context.Context, siteID, leadID int, status domain.LeadStatus) error {

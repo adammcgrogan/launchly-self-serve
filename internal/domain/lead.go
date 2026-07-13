@@ -12,6 +12,13 @@ const (
 	LeadStatusLost      LeadStatus = "lost"
 )
 
+// LeadCounts summarizes a site's leads regardless of any list filter, for the
+// dashboard's "leads received" stat and "N new" badge.
+type LeadCounts struct {
+	Total int
+	New   int
+}
+
 // Lead is a contact form submission from a site visitor.
 type Lead struct {
 	ID            int
