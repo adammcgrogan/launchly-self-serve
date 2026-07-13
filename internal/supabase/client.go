@@ -9,9 +9,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -121,13 +123,21 @@ func toSession(t gotrueTokenResponse) (*Session, error) {
 	}, nil
 }
 
+// ErrUserAlreadyExists is returned by SignUp when the email is already
+// registered, so callers can show a friendly "log in instead" message
+// rather than a raw GoTrue error string.
+var ErrUserAlreadyExists = errors.New("user already registered")
+
 // SignUp creates a new Supabase auth user and, if email confirmation is
 // disabled on the project, returns an active session. If confirmation is
 // required, AccessToken will be empty — the caller should treat this as
-// "account created, check your email" rather than an error.
-func (c *Client) SignUp(ctx context.Context, email, password string) (*Session, error) {
+// "account created, check your email" rather than an error. redirectTo
+// tells Supabase where the confirmation link should land — without it,
+// Supabase falls back to its project-level default, which may not be our
+// login page.
+func (c *Client) SignUp(ctx context.Context, email, password, redirectTo string) (*Session, error) {
 	respBody, status, err := c.do(ctx, http.MethodPost, "/auth/v1/signup", map[string]string{
-		"email": email, "password": password,
+		"email": email, "password": password, "redirect_to": redirectTo,
 	}, "")
 	if err != nil {
 		return nil, err
@@ -135,6 +145,11 @@ func (c *Client) SignUp(ctx context.Context, email, password string) (*Session, 
 	if status >= 400 {
 		var gErr gotrueError
 		json.Unmarshal(respBody, &gErr)
+		msg := strings.ToLower(gErr.String())
+		if gErr.ErrorCode == "user_already_exists" || gErr.ErrorCode == "email_exists" ||
+			strings.Contains(msg, "already registered") || strings.Contains(msg, "already exists") {
+			return nil, ErrUserAlreadyExists
+		}
 		return nil, fmt.Errorf("supabase signup failed: %s", gErr.String())
 	}
 	var t gotrueTokenResponse
@@ -271,10 +286,12 @@ func (c *Client) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-// ResendVerificationEmail re-sends the signup confirmation email.
-func (c *Client) ResendVerificationEmail(ctx context.Context, email string) error {
+// ResendVerificationEmail re-sends the signup confirmation email. redirectTo
+// mirrors SignUp's — without it the link falls back to Supabase's
+// project-level default instead of our login page.
+func (c *Client) ResendVerificationEmail(ctx context.Context, email, redirectTo string) error {
 	respBody, status, err := c.do(ctx, http.MethodPost, "/auth/v1/resend", map[string]string{
-		"type": "signup", "email": email,
+		"type": "signup", "email": email, "redirect_to": redirectTo,
 	}, "")
 	if err != nil {
 		return err

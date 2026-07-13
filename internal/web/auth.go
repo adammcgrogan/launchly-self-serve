@@ -1,9 +1,13 @@
 package web
 
 import (
+	"errors"
+	"html/template"
 	"net/http"
+	"net/url"
 	"strings"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/supabase"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
@@ -12,8 +16,12 @@ func (h *Handler) SignupForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SignupSubmit(w http.ResponseWriter, r *http.Request) {
+	next := r.FormValue("next")
 	if !h.signupLimiter.Allow(middleware.ClientIP(r)) {
-		h.render.Render(w, "auth:signup", map[string]any{"Error": "Too many attempts. Please wait a moment and try again."})
+		h.render.Render(w, "auth:signup", map[string]any{
+			"Error": "Too many attempts. Please wait a moment and try again.",
+			"Email": strings.TrimSpace(strings.ToLower(r.FormValue("email"))), "Next": next,
+		})
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -24,27 +32,32 @@ func (h *Handler) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if emailAddr == "" || len(password) < 8 {
 		h.render.Render(w, "auth:signup", map[string]any{
-			"Error": "Enter a valid email and a password of at least 8 characters.", "Email": emailAddr,
+			"Error": "Enter a valid email and a password of at least 8 characters.", "Email": emailAddr, "Next": next,
 		})
 		return
 	}
 
-	sess, err := h.accounts.SignUp(r.Context(), emailAddr, password)
+	sess, err := h.accounts.SignUp(r.Context(), emailAddr, password, next)
 	if err != nil {
-		h.render.Render(w, "auth:signup", map[string]any{"Error": err.Error(), "Email": emailAddr})
+		errMsg := "Something went wrong creating your account. Please try again."
+		if errors.Is(err, supabase.ErrUserAlreadyExists) {
+			errMsg = `Looks like you already have an account — <a href="/login" class="underline font-medium">log in instead</a>.`
+		}
+		h.render.Render(w, "auth:signup", map[string]any{"Error": template.HTML(errMsg), "Email": emailAddr, "Next": next})
 		return
 	}
 
 	if sess.AccessToken == "" {
 		// Email confirmation required before a session exists.
-		h.render.Render(w, "auth:login", map[string]any{
-			"Info": "Account created — check your email to confirm it, then log in.",
-		})
+		resendURL := "/resend-verification?email=" + url.QueryEscape(emailAddr)
+		if next != "" {
+			resendURL += "&next=" + url.QueryEscape(next)
+		}
+		http.Redirect(w, r, resendURL, http.StatusSeeOther)
 		return
 	}
 
 	h.auth.SetSessionCookies(w, sess, true)
-	next := r.FormValue("next")
 	if next == "" || !strings.HasPrefix(next, "/dashboard") {
 		next = "/dashboard/sites/new"
 	}
@@ -52,12 +65,19 @@ func (h *Handler) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LoginForm(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "auth:login", map[string]any{"Next": r.URL.Query().Get("next")})
+	data := map[string]any{"Next": r.URL.Query().Get("next")}
+	if r.URL.Query().Get("verified") == "1" {
+		data["Info"] = "Email confirmed — log in below."
+	}
+	h.render.Render(w, "auth:login", data)
 }
 
 func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	if !h.loginLimiter.Allow(middleware.ClientIP(r)) {
-		h.render.Render(w, "auth:login", map[string]any{"Error": "Too many attempts. Please wait a moment and try again."})
+		h.render.Render(w, "auth:login", map[string]any{
+			"Error": "Too many attempts. Please wait a moment and try again.",
+			"Email": strings.TrimSpace(strings.ToLower(r.FormValue("email"))), "Next": r.FormValue("next"),
+		})
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -122,12 +142,21 @@ func (h *Handler) ResetPasswordForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ResendVerificationForm(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "auth:resend_verification", map[string]any{})
+	emailAddr := r.URL.Query().Get("email")
+	data := map[string]any{"Email": emailAddr, "Next": r.URL.Query().Get("next")}
+	if emailAddr != "" {
+		data["Info"] = "Account created — check " + emailAddr + " for a confirmation link, or resend it below."
+	}
+	h.render.Render(w, "auth:resend_verification", data)
 }
 
 func (h *Handler) ResendVerificationSubmit(w http.ResponseWriter, r *http.Request) {
+	next := r.FormValue("next")
 	if !h.resendVerificationLimiter.Allow(middleware.ClientIP(r)) {
-		h.render.Render(w, "auth:resend_verification", map[string]any{"Error": "Too many attempts. Please wait a moment and try again."})
+		h.render.Render(w, "auth:resend_verification", map[string]any{
+			"Error": "Too many attempts. Please wait a moment and try again.",
+			"Email": strings.TrimSpace(strings.ToLower(r.FormValue("email"))), "Next": next,
+		})
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -138,10 +167,11 @@ func (h *Handler) ResendVerificationSubmit(w http.ResponseWriter, r *http.Reques
 	if emailAddr != "" && h.resendVerificationLimiter.Allow("email:"+emailAddr) {
 		// Errors are intentionally swallowed: don't reveal whether an
 		// account exists or is already verified.
-		_ = h.accounts.ResendVerificationEmail(r.Context(), emailAddr)
+		_ = h.accounts.ResendVerificationEmail(r.Context(), emailAddr, next)
 	}
 	h.render.Render(w, "auth:resend_verification", map[string]any{
-		"Info": "If an account exists for that email and isn't verified yet, a confirmation link is on its way.",
+		"Info":  "If an account exists for that email and isn't verified yet, a confirmation link is on its way.",
+		"Email": emailAddr, "Next": next,
 	})
 }
 

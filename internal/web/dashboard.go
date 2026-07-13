@@ -14,11 +14,18 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
-// Dashboard lists every site the logged-in user owns.
+// Dashboard lists every site the logged-in user owns. A user with zero
+// sites is sent straight into the builder instead — this product's whole
+// promise is site-in-minutes, so there's no reason to make them find "+ New
+// site" themselves.
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	sites, err := h.sites.ListSitesByOwner(r.Context(), middleware.UserID(r))
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	if len(sites) == 0 {
+		http.Redirect(w, r, "/dashboard/sites/new", http.StatusSeeOther)
 		return
 	}
 	h.render.Render(w, "dashboard:sites", map[string]any{

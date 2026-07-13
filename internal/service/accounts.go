@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
@@ -32,9 +33,15 @@ func NewAccounts(store *postgres.Store, supa *supabase.Client, mailer *email.Cli
 // SignUp creates a new Supabase auth user, creates the matching local
 // profile row, and fires a welcome email. If the Supabase project requires
 // email confirmation, the returned session will have no access token —
-// callers should treat that as "check your email", not an error.
-func (a *Accounts) SignUp(ctx context.Context, emailAddr, password string) (*supabase.Session, error) {
-	sess, err := a.supa.SignUp(ctx, emailAddr, password)
+// callers should treat that as "check your email", not an error. next, if
+// set, survives the confirmation-email round trip by riding along on the
+// redirect_to URL so it's back in hand when the user lands on /login.
+func (a *Accounts) SignUp(ctx context.Context, emailAddr, password, next string) (*supabase.Session, error) {
+	redirectTo := a.baseURL + "/login?verified=1"
+	if next != "" {
+		redirectTo += "&next=" + url.QueryEscape(next)
+	}
+	sess, err := a.supa.SignUp(ctx, emailAddr, password, redirectTo)
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +81,12 @@ func (a *Accounts) RequestPasswordReset(ctx context.Context, emailAddr string) e
 	return a.supa.SendPasswordReset(ctx, emailAddr, a.baseURL+"/reset-password")
 }
 
-func (a *Accounts) ResendVerificationEmail(ctx context.Context, emailAddr string) error {
-	return a.supa.ResendVerificationEmail(ctx, emailAddr)
+func (a *Accounts) ResendVerificationEmail(ctx context.Context, emailAddr, next string) error {
+	redirectTo := a.baseURL + "/login?verified=1"
+	if next != "" {
+		redirectTo += "&next=" + url.QueryEscape(next)
+	}
+	return a.supa.ResendVerificationEmail(ctx, emailAddr, redirectTo)
 }
 
 // UpdatePassword completes a password-reset flow: accessToken is the
