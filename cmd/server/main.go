@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/alert"
 	"github.com/adammcgrogan/launchly-self-serve/internal/cloudflare"
 	"github.com/adammcgrogan/launchly-self-serve/internal/config"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
@@ -32,6 +33,7 @@ func main() {
 		slog.Error("config load failed", "error", err)
 		os.Exit(1)
 	}
+	slog.SetDefault(slog.New(alert.New(slog.NewJSONHandler(os.Stdout, nil), cfg.AlertWebhookURL)))
 
 	store, err := postgres.New(cfg.DatabaseURL)
 	if err != nil {
