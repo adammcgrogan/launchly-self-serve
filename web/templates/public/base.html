@@ -45,6 +45,26 @@
       </div>
     </div>
   </footer>
+
+  <div id="cookie-consent-banner" class="hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-600">
+      <p>We use cookies to keep you signed in and understand how Launchly is used. See our <a href="/privacy" class="underline hover:text-slate-900">Privacy Policy</a> for details.</p>
+      <button type="button" id="cookie-consent-accept" class="shrink-0 inline-flex items-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark transition">Got it</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var key = 'launchly-cookie-consent';
+    if (localStorage.getItem(key)) return;
+    var el = document.getElementById('cookie-consent-banner');
+    if (!el) return;
+    el.classList.remove('hidden');
+    document.getElementById('cookie-consent-accept').addEventListener('click', function(){
+      localStorage.setItem(key, '1');
+      el.classList.add('hidden');
+    });
+  })();
+  </script>
 </body>
 </html>
 {{end}}

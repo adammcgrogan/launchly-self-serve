@@ -89,6 +89,27 @@
     {{if .Site.Contact.Address}}<p class="mt-1">{{.Site.Contact.Address}}</p>{{end}}
     {{if ne .Site.Billing.Plan "pro"}}<p class="mt-3 text-xs opacity-70">Powered by <a href="https://launchly.ltd?utm_source=badge&amp;utm_medium=referral&amp;site={{.Site.Slug}}" class="underline">Launchly</a></p>{{end}}
   </footer>
+
+  {{if and .UmamiScriptURL .Site.Analytics.UmamiWebsiteID}}
+  <div id="cookie-consent-banner" class="hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-3 border-t px-4 py-3 text-sm" style="border-color:var(--line);background:var(--surface);color:var(--muted);">
+    <p>This site uses analytics cookies to understand visits.</p>
+    <button type="button" id="cookie-consent-accept" class="shrink-0 rounded-full px-4 py-2 text-sm font-semibold" style="background:var(--accent);color:var(--accent-ink);">Got it</button>
+  </div>
+  <script>
+  (function(){
+    var key = 'launchly-cookie-consent';
+    if (localStorage.getItem(key)) return;
+    var el = document.getElementById('cookie-consent-banner');
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+    document.getElementById('cookie-consent-accept').addEventListener('click', function(){
+      localStorage.setItem(key, '1');
+      el.classList.add('hidden');
+    });
+  })();
+  </script>
+  {{end}}
 </body>
 </html>
 {{end}}
