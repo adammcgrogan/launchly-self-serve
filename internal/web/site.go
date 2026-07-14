@@ -281,6 +281,9 @@ func (h *Handler) recordPageView(r *http.Request, siteID int, ownerUserID uuid.U
 	if u, err := url.Parse(ref); err == nil && u.Host != "" {
 		ref = u.Host
 	}
+	if h.isSelfReferral(ref, r.Host) {
+		ref = ""
+	}
 	path := r.URL.Path
 	if path == "" {
 		path = "/"
@@ -290,6 +293,20 @@ func (h *Handler) recordPageView(r *http.Request, siteID int, ownerUserID uuid.U
 	if err := h.analytics.RecordPageView(ctx, siteID, path, ref, middleware.ClientIP(r)); err != nil {
 		slog.Error("record page view", "error", err)
 	}
+}
+
+// isSelfReferral reports whether ref is the site's own host (in-site
+// navigation) or the platform domain — neither is a useful "top referrer"
+// for the site owner.
+func (h *Handler) isSelfReferral(ref, requestHost string) bool {
+	if ref == "" {
+		return false
+	}
+	if strings.EqualFold(ref, requestHost) {
+		return true
+	}
+	platform := h.cfg.Domain
+	return strings.EqualFold(ref, platform) || strings.EqualFold(ref, "www."+platform)
 }
 
 func isBot(ua string) bool {
