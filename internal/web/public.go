@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"sync"
+	"time"
 )
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +56,8 @@ func (h *Handler) Robots(w http.ResponseWriter, r *http.Request) {
 }
 
 type sitemapURL struct {
-	Loc string `xml:"loc"`
+	Loc     string `xml:"loc"`
+	LastMod string `xml:"lastmod,omitempty"`
 }
 
 type sitemapURLSet struct {
@@ -63,9 +66,31 @@ type sitemapURLSet struct {
 	URLs    []sitemapURL `xml:"url"`
 }
 
+// sitemapTTL is how long a rendered sitemap is served from cache before it's
+// rebuilt from a fresh live-site scan. Search engines don't need
+// second-fresh sitemaps, and this bounds the DB work a crawler can trigger
+// on the (unauthenticated) /sitemap.xml endpoint.
+const sitemapTTL = 5 * time.Minute
+
+var sitemapCache struct {
+	sync.Mutex
+	body      []byte
+	expiresAt time.Time
+}
+
 // Sitemap serves /sitemap.xml, listing the marketing homepage and every live
-// site's public URL for search engine discovery.
+// site's public URL (with a lastmod hint) for search engine discovery. The
+// rendered document is cached for sitemapTTL so repeated crawler hits don't
+// each trigger a full live-site scan.
 func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
+	sitemapCache.Lock()
+	defer sitemapCache.Unlock()
+
+	if sitemapCache.body != nil && time.Now().Before(sitemapCache.expiresAt) {
+		h.writeSitemap(w, sitemapCache.body)
+		return
+	}
+
 	sites, err := h.sites.ListLiveSites(r.Context())
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
@@ -77,7 +102,15 @@ func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 		URLs:  []sitemapURL{{Loc: fmt.Sprintf("https://%s/", h.cfg.Domain)}},
 	}
 	for _, s := range sites {
-		set.URLs = append(set.URLs, sitemapURL{Loc: fmt.Sprintf("https://%s.%s/", s.Slug, h.cfg.Domain)})
+		lastMod := s.UpdatedAt
+		if lastMod.IsZero() && s.PublishedAt != nil {
+			lastMod = *s.PublishedAt
+		}
+		u := sitemapURL{Loc: fmt.Sprintf("https://%s.%s/", s.Slug, h.cfg.Domain)}
+		if !lastMod.IsZero() {
+			u.LastMod = lastMod.UTC().Format("2006-01-02")
+		}
+		set.URLs = append(set.URLs, u)
 	}
 
 	body, err := xml.MarshalIndent(set, "", "  ")
@@ -85,7 +118,13 @@ func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	full := append([]byte(xml.Header), body...)
+	sitemapCache.body = full
+	sitemapCache.expiresAt = time.Now().Add(sitemapTTL)
+	h.writeSitemap(w, full)
+}
+
+func (h *Handler) writeSitemap(w http.ResponseWriter, body []byte) {
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-	w.Write([]byte(xml.Header))
 	w.Write(body)
 }
