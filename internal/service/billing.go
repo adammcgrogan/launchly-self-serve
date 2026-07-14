@@ -154,6 +154,11 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 	if site == nil {
 		return nil
 	}
+	if site.Status == domain.SiteStatusLive {
+		if err := postgres.SetSiteStatus(ctx, b.store.DB(), site.ID, domain.SiteStatusPaused); err != nil {
+			slog.Error("pause site on subscription cancellation", "site_id", site.ID, "error", err)
+		}
+	}
 	contactEmail := ""
 	if contact != nil {
 		contactEmail = contact.Email
@@ -222,7 +227,17 @@ func (b *Billing) CancelSubscription(ctx context.Context, siteID int) error {
 	if err := b.pay.CancelSubscription(billing.StripeSubscriptionID); err != nil {
 		return err
 	}
-	return postgres.SetSiteCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID)
+	if err := postgres.SetSiteCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID); err != nil {
+		return err
+	}
+	site, err := postgres.GetSiteByID(ctx, b.store.DB(), siteID)
+	if err != nil {
+		return err
+	}
+	if site != nil && site.Status == domain.SiteStatusLive {
+		return postgres.SetSiteStatus(ctx, b.store.DB(), siteID, domain.SiteStatusPaused)
+	}
+	return nil
 }
 
 // CancelSubscriptionIfActive cancels a site's Stripe subscription if one
