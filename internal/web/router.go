@@ -39,6 +39,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Path-based site routing (works without wildcard subdomains — useful for local dev).
 	mux.HandleFunc("GET /sites/{slug}", h.ServeSitePath)
+	mux.HandleFunc("GET /sites/{slug}/og.png", h.OGImagePath)
 	mux.HandleFunc("POST /sites/{slug}/contact", h.SubmitLeadPath)
 	mux.HandleFunc("POST /sites/{slug}/e", h.RecordSiteEventPath)
 
@@ -118,6 +119,10 @@ func SubdomainRouter(domain string, h *Handler, fallback http.Handler) http.Hand
 		if isSiteDomain {
 			if strings.HasPrefix(r.URL.Path, "/static/") {
 				fallback.ServeHTTP(w, r)
+				return
+			}
+			if r.Method == http.MethodGet && r.URL.Path == "/og.png" {
+				h.OGImage(w, r)
 				return
 			}
 			if r.Method == http.MethodPost && r.URL.Path == "/contact" {

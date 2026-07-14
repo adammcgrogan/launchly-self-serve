@@ -9,7 +9,7 @@
   <meta property="og:title" content="{{if .Site.MetaTitle}}{{.Site.MetaTitle}}{{else}}{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}{{end}}">
   <meta property="og:description" content="{{if .Site.MetaDescription}}{{.Site.MetaDescription}}{{else if .Site.Tagline}}{{.Site.Tagline}}{{else}}Contact {{.Site.BusinessName}} today.{{end}}">
   <meta property="og:type" content="website">
-  {{if .Site.OgImageURL}}<meta property="og:image" content="{{.Site.OgImageURL}}"><meta name="twitter:card" content="summary_large_image">{{else if .Site.LogoURL}}<meta property="og:image" content="{{.Site.LogoURL}}">{{end}}
+  {{if .Site.OgImageURL}}<meta property="og:image" content="{{.Site.OgImageURL}}"><meta name="twitter:card" content="summary_large_image">{{else if .Site.LogoURL}}<meta property="og:image" content="{{.Site.LogoURL}}"><meta name="twitter:card" content="summary">{{else}}<meta property="og:image" content="https://{{.Site.Slug}}.launchly.ltd/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">{{end}}
   <link rel="canonical" href="https://{{.Site.Slug}}.launchly.ltd">
   {{if .Site.LogoURL}}<link rel="icon" href="{{.Site.LogoURL}}">{{else}}<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234F46E5'/><circle cx='50' cy='50' r='20' fill='white'/></svg>">{{end}}
   <script type="application/ld+json">{{.JSONLD}}</script>

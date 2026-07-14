@@ -11,4 +11,9 @@ require (
 	github.com/stripe/stripe-go/v81 v81.4.0
 )
 
-require golang.org/x/sync v0.22.0
+require (
+	golang.org/x/image v0.44.0
+	golang.org/x/sync v0.22.0
+)
+
+require golang.org/x/text v0.40.0 // indirect
