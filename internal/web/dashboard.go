@@ -150,6 +150,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Timezones":        timezones,
 		"Domain":           h.cfg.Domain,
 		"DomainData":       domainData,
+		"UploadsAvailable": h.uploads.Available(),
 	})
 }
 

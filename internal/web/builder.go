@@ -20,18 +20,19 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		values = url.Values{}
 	}
 	h.render.Render(w, "dashboard:new_site", map[string]any{
-		"Templates":       siteTemplates,
-		"BusinessTypes":   businessTypes,
-		"PaletteColors":   paletteSwatchColors,
-		"Error":           errMsg,
-		"Values":          values,
-		"Weekdays":        weekdays,
-		"Timezones":       timezones,
-		"TestimonialRows": testimonialRowsForForm(values),
-		"ServiceRows":     serviceRowsForForm(values),
-		"CSRFToken":       h.csrf.Token(middleware.UserID(r).String()),
-		"EmailVerified":   h.emailVerified(r),
-		"AIAvailable":     h.ai.Configured(),
+		"Templates":        siteTemplates,
+		"BusinessTypes":    businessTypes,
+		"PaletteColors":    paletteSwatchColors,
+		"Error":            errMsg,
+		"Values":           values,
+		"Weekdays":         weekdays,
+		"Timezones":        timezones,
+		"TestimonialRows":  testimonialRowsForForm(values),
+		"ServiceRows":      serviceRowsForForm(values),
+		"CSRFToken":        h.csrf.Token(middleware.UserID(r).String()),
+		"EmailVerified":    h.emailVerified(r),
+		"AIAvailable":      h.ai.Configured(),
+		"UploadsAvailable": h.uploads.Available(),
 	})
 }
 

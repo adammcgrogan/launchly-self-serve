@@ -21,6 +21,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/payment"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
+	"github.com/adammcgrogan/launchly-self-serve/internal/storage"
 	"github.com/adammcgrogan/launchly-self-serve/internal/supabase"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
@@ -67,13 +68,16 @@ func main() {
 	cf := cloudflare.New(cfg.CloudflareAPIToken, cfg.CloudflareZoneID)
 	domains := service.NewDomains(store, cf, cfg.CloudflareFallbackOrigin, cfg.Domain)
 
+	imageStore := storage.New(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, cfg.SupabaseStorageBucket)
+	uploads := service.NewUploads(imageStore)
+
 	secureCookies := !strings.Contains(cfg.Domain, "localhost")
 	auth := middleware.NewAuth(cfg.SupabaseJWTSecret, supa, secureCookies)
 	superadmin := middleware.NewSuperadmin(cfg.SuperadminPassword, cfg.CookieSigningKey, secureCookies)
 
 	h, err := web.New(web.Deps{
 		Cfg: cfg, Store: store,
-		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains, AI: aiClient,
+		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains, Uploads: uploads, AI: aiClient,
 		Auth: auth, Superadmin: superadmin,
 	})
 	if err != nil {

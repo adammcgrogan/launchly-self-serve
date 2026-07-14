@@ -22,6 +22,7 @@ type Config struct {
 	SupabaseAnonKey        string
 	SupabaseServiceRoleKey string
 	SupabaseJWTSecret      string
+	SupabaseStorageBucket  string // public Storage bucket for user-uploaded logo/gallery images; unset disables uploads
 
 	StripeSecretKey      string
 	StripeWebhookSecret  string
@@ -64,6 +65,7 @@ func Load() (*Config, error) {
 		SupabaseAnonKey:        os.Getenv("SUPABASE_ANON_KEY"),
 		SupabaseServiceRoleKey: os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
 		SupabaseJWTSecret:      os.Getenv("SUPABASE_JWT_SECRET"),
+		SupabaseStorageBucket:  getEnv("SUPABASE_STORAGE_BUCKET", ""),
 
 		StripeSecretKey:      getEnv("STRIPE_SECRET_KEY", ""),
 		StripeWebhookSecret:  getEnv("STRIPE_WEBHOOK_SECRET", ""),
@@ -129,6 +131,14 @@ func (c *Config) SMSAlertsAvailable() bool {
 // the feature flag for the "Generate for me" button in the builder wizard.
 func (c *Config) AIContentAvailable() bool {
 	return c.GeminiAPIKey != ""
+}
+
+// ImageUploadsAvailable reports whether direct logo/gallery image uploads are
+// available — the feature flag for the file-picker next to the logo and
+// gallery fields. Requires a service-role key (to write to Storage) and a
+// public bucket name; unset either and the URL-only fields still work.
+func (c *Config) ImageUploadsAvailable() bool {
+	return c.SupabaseURL != "" && c.SupabaseServiceRoleKey != "" && c.SupabaseStorageBucket != ""
 }
 
 func getEnv(key, fallback string) string {

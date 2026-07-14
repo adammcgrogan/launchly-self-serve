@@ -32,6 +32,7 @@ type Handler struct {
 	analytics *service.Analytics
 	cron      *service.Cron
 	domains   *service.Domains
+	uploads   *service.Uploads
 	ai        *ai.Client
 
 	loginLimiter              *middleware.RateLimiter
@@ -40,6 +41,7 @@ type Handler struct {
 	beaconLimiter             *middleware.RateLimiter
 	resendVerificationLimiter *middleware.RateLimiter
 	aiGenerateLimiter         *middleware.RateLimiter
+	uploadLimiter             *middleware.RateLimiter
 }
 
 // Deps bundles everything main.go constructs so the Handler constructor
@@ -55,6 +57,7 @@ type Deps struct {
 	Analytics *service.Analytics
 	Cron      *service.Cron
 	Domains   *service.Domains
+	Uploads   *service.Uploads
 	AI        *ai.Client
 
 	Auth       *middleware.Auth
@@ -76,6 +79,7 @@ func New(d Deps) (*Handler, error) {
 		analytics:                 d.Analytics,
 		cron:                      d.Cron,
 		domains:                   d.Domains,
+		uploads:                   d.Uploads,
 		ai:                        d.AI,
 		loginLimiter:              middleware.NewRateLimiter(10, 15*time.Minute),
 		signupLimiter:             middleware.NewRateLimiter(5, 15*time.Minute),
@@ -83,6 +87,7 @@ func New(d Deps) (*Handler, error) {
 		beaconLimiter:             middleware.NewRateLimiter(20, time.Minute),
 		resendVerificationLimiter: middleware.NewRateLimiter(5, 15*time.Minute),
 		aiGenerateLimiter:         middleware.NewRateLimiter(10, time.Hour),
+		uploadLimiter:             middleware.NewRateLimiter(60, time.Hour),
 	}
 
 	h.render = NewRenderer()
