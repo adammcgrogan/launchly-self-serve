@@ -95,6 +95,12 @@ type Site struct {
 	// Timezone is the IANA zone opening hours (and the "Open now" badge) are
 	// evaluated in, e.g. "Europe/London".
 	Timezone string
+
+	// SEO overrides — all optional. When empty, the public templates fall
+	// back to business name/tagline/logo respectively.
+	MetaTitle       string
+	MetaDescription string
+	OgImageURL      string
 }
 
 // BrandColorInk returns the readable foreground colour ("#000000" or

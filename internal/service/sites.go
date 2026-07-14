@@ -169,6 +169,22 @@ func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, 
 	return nil
 }
 
+// validateSEO checks the optional per-site SEO overrides — meta title/
+// description length and that the OG image is a valid https URL.
+func validateSEO(metaTitle, metaDescription, ogImageURL string) error {
+	for _, err := range []error{
+		checkLen("meta title", metaTitle, maxMediumField),
+		checkLen("meta description", metaDescription, maxMediumField),
+		checkLen("share image URL", ogImageURL, maxMediumField),
+		checkURL("share image URL", ogImageURL),
+	} {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // validateReviews checks the owner-entered review rating badge: the rating
 // must be a number between 0 and 5, the count non-negative, and the review
 // link a valid https URL. All fields are optional (empty rating = no badge).
@@ -536,24 +552,27 @@ func (s *Sites) ListLiveSites(ctx context.Context) ([]domain.Site, error) {
 
 // UpdateContentInput is the full editable content form for an existing site.
 type UpdateContentInput struct {
-	SiteID         int
-	BusinessName   string
-	Tagline        string
-	About          string
-	LogoURL        string
-	CTAText        string
-	Timezone       string
-	Contact        domain.SiteContact
-	SocialLinks    []domain.SocialLink
-	Services       []domain.Service
-	Certifications []domain.Certification
-	Testimonials   []domain.Testimonial
-	GalleryImages  []domain.GalleryImage
-	FAQItems       []domain.FAQItem
-	StaffMembers   []domain.StaffMember
-	BusinessHours  []domain.BusinessHours
-	ServiceAreas   []domain.ServiceArea
-	Reviews        domain.SiteReviews
+	SiteID          int
+	BusinessName    string
+	Tagline         string
+	About           string
+	LogoURL         string
+	CTAText         string
+	Timezone        string
+	MetaTitle       string
+	MetaDescription string
+	OgImageURL      string
+	Contact         domain.SiteContact
+	SocialLinks     []domain.SocialLink
+	Services        []domain.Service
+	Certifications  []domain.Certification
+	Testimonials    []domain.Testimonial
+	GalleryImages   []domain.GalleryImage
+	FAQItems        []domain.FAQItem
+	StaffMembers    []domain.StaffMember
+	BusinessHours   []domain.BusinessHours
+	ServiceAreas    []domain.ServiceArea
+	Reviews         domain.SiteReviews
 }
 
 // UpdateContent saves every editable content field for a site in one transaction.
@@ -564,6 +583,9 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	if err := validateReviews(in.Reviews); err != nil {
 		return err
 	}
+	if err := validateSEO(in.MetaTitle, in.MetaDescription, in.OgImageURL); err != nil {
+		return err
+	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -571,7 +593,8 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 	defer tx.Rollback()
 
-	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText, Timezone: in.Timezone}
+	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText, Timezone: in.Timezone,
+		MetaTitle: in.MetaTitle, MetaDescription: in.MetaDescription, OgImageURL: in.OgImageURL}
 	if err := postgres.UpdateSiteContent(ctx, tx, site); err != nil {
 		return fmt.Errorf("update site: %w", err)
 	}

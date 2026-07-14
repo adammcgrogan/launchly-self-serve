@@ -46,13 +46,16 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	in := service.UpdateContentInput{
-		SiteID:       site.ID,
-		BusinessName: strings.TrimSpace(r.FormValue("business_name")),
-		Tagline:      strings.TrimSpace(r.FormValue("tagline")),
-		About:        strings.TrimSpace(r.FormValue("about")),
-		LogoURL:      strings.TrimSpace(r.FormValue("logo_url")),
-		CTAText:      strings.TrimSpace(r.FormValue("cta_text")),
-		Timezone:     resolveTimezone(r.FormValue("timezone")),
+		SiteID:          site.ID,
+		BusinessName:    strings.TrimSpace(r.FormValue("business_name")),
+		Tagline:         strings.TrimSpace(r.FormValue("tagline")),
+		About:           strings.TrimSpace(r.FormValue("about")),
+		LogoURL:         strings.TrimSpace(r.FormValue("logo_url")),
+		CTAText:         strings.TrimSpace(r.FormValue("cta_text")),
+		Timezone:        resolveTimezone(r.FormValue("timezone")),
+		MetaTitle:       strings.TrimSpace(r.FormValue("meta_title")),
+		MetaDescription: strings.TrimSpace(r.FormValue("meta_description")),
+		OgImageURL:      strings.TrimSpace(r.FormValue("og_image_url")),
 		Contact: domain.SiteContact{
 			SiteID:      site.ID,
 			Phone:       strings.TrimSpace(r.FormValue("phone")),

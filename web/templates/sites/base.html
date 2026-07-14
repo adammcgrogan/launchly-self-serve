@@ -4,12 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}{{if .Site.Tagline}} | {{.Site.Tagline}}{{end}}</title>
-  <meta name="description" content="{{if .Site.About}}{{.Site.About}}{{else if .Site.Tagline}}{{.Site.Tagline}}{{else}}{{.Site.BusinessName}}{{if .Site.Contact.Location}} based in {{.Site.Contact.Location}}{{end}}. Contact us today.{{end}}">
-  <meta property="og:title" content="{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}">
-  <meta property="og:description" content="{{if .Site.Tagline}}{{.Site.Tagline}}{{else}}Contact {{.Site.BusinessName}} today.{{end}}">
+  <title>{{if .Site.MetaTitle}}{{.Site.MetaTitle}}{{else}}{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}{{if .Site.Tagline}} | {{.Site.Tagline}}{{end}}{{end}}</title>
+  <meta name="description" content="{{if .Site.MetaDescription}}{{.Site.MetaDescription}}{{else if .Site.About}}{{.Site.About}}{{else if .Site.Tagline}}{{.Site.Tagline}}{{else}}{{.Site.BusinessName}}{{if .Site.Contact.Location}} based in {{.Site.Contact.Location}}{{end}}. Contact us today.{{end}}">
+  <meta property="og:title" content="{{if .Site.MetaTitle}}{{.Site.MetaTitle}}{{else}}{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}{{end}}">
+  <meta property="og:description" content="{{if .Site.MetaDescription}}{{.Site.MetaDescription}}{{else if .Site.Tagline}}{{.Site.Tagline}}{{else}}Contact {{.Site.BusinessName}} today.{{end}}">
   <meta property="og:type" content="website">
-  {{if .Site.LogoURL}}<meta property="og:image" content="{{.Site.LogoURL}}">{{end}}
+  {{if .Site.OgImageURL}}<meta property="og:image" content="{{.Site.OgImageURL}}"><meta name="twitter:card" content="summary_large_image">{{else if .Site.LogoURL}}<meta property="og:image" content="{{.Site.LogoURL}}">{{end}}
   <link rel="canonical" href="https://{{.Site.Slug}}.launchly.ltd">
   <script type="application/ld+json">{{.JSONLD}}</script>
   {{if .FAQJSONLD}}<script type="application/ld+json">{{.FAQJSONLD}}</script>{{end}}
