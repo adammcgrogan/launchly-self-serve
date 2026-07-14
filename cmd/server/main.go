@@ -85,7 +85,7 @@ func main() {
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 	h.RegisterRoutes(mux)
 
-	finalHandler := middleware.Recover(h.RenderError, loggingMiddleware(securityHeaders(web.SubdomainRouter(cfg.Domain, h, mux))))
+	finalHandler := middleware.RequestID(middleware.Recover(h.RenderError, loggingMiddleware(securityHeaders(web.SubdomainRouter(cfg.Domain, h, mux)))))
 
 	cron.Start()
 
@@ -144,15 +144,22 @@ func securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// loggingMiddleware logs each request with method, host, path, status, and duration.
+// loggingMiddleware logs each request with a request ID, method, host, path,
+// status, response size, and duration. The health-check endpoint is skipped
+// so platform liveness probes don't drown out real traffic in the logs.
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
+		if r.URL.Path == "/healthz" {
+			return
+		}
 		slog.Info("request",
+			"request_id", middleware.GetRequestID(r),
 			"method", r.Method, "host", r.Host, "path", r.URL.Path,
-			"status", rec.status, "duration", time.Since(start).Round(time.Millisecond).String(),
+			"status", rec.status, "bytes", rec.bytes,
+			"duration", time.Since(start).Round(time.Millisecond).String(),
 			"ip", middleware.ClientIP(r),
 		)
 	})
@@ -161,9 +168,16 @@ func loggingMiddleware(next http.Handler) http.Handler {
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
+	bytes  int
 }
 
 func (r *statusRecorder) WriteHeader(code int) {
 	r.status = code
 	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *statusRecorder) Write(b []byte) (int, error) {
+	n, err := r.ResponseWriter.Write(b)
+	r.bytes += n
+	return n, err
 }

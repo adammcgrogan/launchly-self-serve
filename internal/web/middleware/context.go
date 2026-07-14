@@ -16,6 +16,7 @@ type ctxKey int
 const (
 	userIDCtxKey ctxKey = iota
 	siteCtxKey
+	requestIDCtxKey
 )
 
 // UserID returns the authenticated user's ID, or the zero UUID if RequireUser
