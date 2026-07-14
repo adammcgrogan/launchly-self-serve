@@ -85,7 +85,7 @@ func main() {
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 	h.RegisterRoutes(mux)
 
-	finalHandler := loggingMiddleware(securityHeaders(web.SubdomainRouter(cfg.Domain, h, mux)))
+	finalHandler := middleware.Recover(h.RenderError, loggingMiddleware(securityHeaders(web.SubdomainRouter(cfg.Domain, h, mux))))
 
 	cron.Start()
 

@@ -91,6 +91,12 @@ func New(d Deps) (*Handler, error) {
 }
 
 // HealthCheck returns 200 if the database is reachable, 503 otherwise.
+// RenderError renders the branded error page with the given HTTP status
+// code. Exported so cmd/server can pass it to the panic-recovery middleware.
+func (h *Handler) RenderError(w http.ResponseWriter, status int) {
+	h.render.RenderError(w, status)
+}
+
 func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	if err := h.store.Ping(); err != nil {
 		http.Error(w, "db unavailable", http.StatusServiceUnavailable)
