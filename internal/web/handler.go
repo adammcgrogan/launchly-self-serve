@@ -37,6 +37,7 @@ type Handler struct {
 	loginLimiter              *middleware.RateLimiter
 	signupLimiter             *middleware.RateLimiter
 	contactLimiter            *middleware.RateLimiter
+	beaconLimiter             *middleware.RateLimiter
 	resendVerificationLimiter *middleware.RateLimiter
 	aiGenerateLimiter         *middleware.RateLimiter
 }
@@ -79,6 +80,7 @@ func New(d Deps) (*Handler, error) {
 		loginLimiter:              middleware.NewRateLimiter(10, 15*time.Minute),
 		signupLimiter:             middleware.NewRateLimiter(5, 15*time.Minute),
 		contactLimiter:            middleware.NewRateLimiter(5, time.Minute),
+		beaconLimiter:             middleware.NewRateLimiter(20, time.Minute),
 		resendVerificationLimiter: middleware.NewRateLimiter(5, 15*time.Minute),
 		aiGenerateLimiter:         middleware.NewRateLimiter(10, time.Hour),
 	}

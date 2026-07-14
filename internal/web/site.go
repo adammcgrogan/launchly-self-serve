@@ -366,7 +366,7 @@ func (h *Handler) recordSiteEvent(r *http.Request, site *domain.SiteAggregate) {
 	if site.Status != domain.SiteStatusLive {
 		return
 	}
-	if isBot(r.Header.Get("User-Agent")) || !h.contactLimiter.Allow(middleware.ClientIP(r)) {
+	if isBot(r.Header.Get("User-Agent")) || !h.beaconLimiter.Allow(middleware.ClientIP(r)) {
 		return
 	}
 	if uid, ok := h.auth.CurrentUserID(r); ok && uid == site.OwnerUserID {
