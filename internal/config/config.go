@@ -2,7 +2,10 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -34,6 +37,7 @@ type Config struct {
 
 	SuperadminPassword string
 	CookieSigningKey   string // HMAC key for CSRF/flash cookies (not auth — auth uses Supabase JWTs)
+	AnalyticsSalt      string // salts the visitor-IP hash; independent of CookieSigningKey so rotating one doesn't affect the other
 
 	CloudflareAPIToken       string
 	CloudflareZoneID         string
@@ -75,6 +79,7 @@ func Load() (*Config, error) {
 
 		SuperadminPassword: os.Getenv("SUPERADMIN_PASSWORD"),
 		CookieSigningKey:   os.Getenv("COOKIE_SIGNING_KEY"),
+		AnalyticsSalt:      os.Getenv("ANALYTICS_SALT"),
 
 		CloudflareAPIToken:       getEnv("CLOUDFLARE_API_TOKEN", ""),
 		CloudflareZoneID:         getEnv("CLOUDFLARE_ZONE_ID", ""),
@@ -84,6 +89,15 @@ func Load() (*Config, error) {
 		AlertMinLevel:   getEnv("ALERT_MIN_LEVEL", "error"),
 
 		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
+	}
+
+	if cfg.AnalyticsSalt == "" {
+		// Fall back to a value derived from CookieSigningKey rather than
+		// reusing it directly, so visitor-hash salting is still distinct
+		// from CSRF/session signing even when ANALYTICS_SALT isn't set.
+		slog.Warn("ANALYTICS_SALT not set — deriving a fallback from COOKIE_SIGNING_KEY; set ANALYTICS_SALT explicitly so rotating COOKIE_SIGNING_KEY doesn't re-bucket visitor hashes")
+		sum := sha256.Sum256([]byte("analytics-salt-v1:" + cfg.CookieSigningKey))
+		cfg.AnalyticsSalt = hex.EncodeToString(sum[:])
 	}
 
 	required := map[string]string{

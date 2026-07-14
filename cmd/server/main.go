@@ -58,7 +58,7 @@ func main() {
 	}
 
 	accounts := service.NewAccounts(store, supa, mailer, baseURL)
-	analytics := service.NewAnalytics(store, cfg.CookieSigningKey)
+	analytics := service.NewAnalytics(store, cfg.AnalyticsSalt)
 	billing := service.NewBilling(store, pay, mailer, baseURL)
 	sites := service.NewSites(store, billing)
 	leads := service.NewLeads(store, mailer, sms)
