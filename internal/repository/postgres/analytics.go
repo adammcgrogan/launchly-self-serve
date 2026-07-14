@@ -21,7 +21,12 @@ func RecordSiteEvent(ctx context.Context, q querier, e *domain.SiteEvent) error 
 	return err
 }
 
-func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time) (*domain.SiteStats, error) {
+func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time, timezone string) (*domain.SiteStats, error) {
+	// Postgres errors on an unrecognized zone name, so fall back the same
+	// way domain.SiteAggregate.OpenNow does for an unset/invalid Timezone.
+	if _, err := time.LoadLocation(timezone); err != nil {
+		timezone = "UTC"
+	}
 	stats := &domain.SiteStats{
 		PeriodDays: int(time.Since(since).Hours()/24) + 1,
 	}
@@ -59,10 +64,10 @@ func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time) (
 	}
 
 	dayRows, err := q.QueryContext(ctx, `
-		SELECT date_trunc('day', created_at AT TIME ZONE 'UTC') AS day, COUNT(*) AS cnt
+		SELECT date_trunc('day', created_at AT TIME ZONE $3) AS day, COUNT(*) AS cnt
 		FROM page_views WHERE site_id = $1 AND created_at > $2
 		GROUP BY day ORDER BY day
-	`, siteID, since)
+	`, siteID, since, timezone)
 	if err != nil {
 		return nil, err
 	}

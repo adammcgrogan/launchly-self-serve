@@ -172,7 +172,7 @@ func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 		days = 30
 	}
 	since := time.Now().UTC().Add(-time.Duration(days) * 24 * time.Hour)
-	stats, err := c.analytics.GetSiteStats(ctx, siteID, since)
+	stats, err := c.analytics.GetSiteStats(ctx, siteID, since, site.Timezone)
 	if err != nil {
 		return fmt.Errorf("get stats: %w", err)
 	}

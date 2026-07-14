@@ -83,8 +83,8 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
 	since7 := time.Now().UTC().Add(-7 * 24 * time.Hour)
-	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7)
-	allTimeStats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, site.CreatedAt)
+	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7, site.Timezone)
+	allTimeStats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, site.CreatedAt, site.Timezone)
 	var chartPoints []dailyViewPoint
 	if stats != nil {
 		chartPoints = last7DayPoints(stats.ViewsByDay)
