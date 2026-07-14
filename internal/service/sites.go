@@ -67,15 +67,17 @@ func checkLen(field, value string, max int) error {
 	return nil
 }
 
-// checkURL requires an absolute http(s) URL — empty is allowed since these
-// fields are optional.
+// checkURL requires an absolute https URL — empty is allowed since these
+// fields are optional. http is rejected outright: every published site is
+// served over https, so an http:// asset URL is silently blocked by the
+// browser as mixed content.
 func checkURL(field, value string) error {
 	if value == "" {
 		return nil
 	}
 	u, err := url.Parse(value)
-	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field)}
+	if err != nil || u.Host == "" || u.Scheme != "https" {
+		return &ValidationError{Message: fmt.Sprintf("enter a valid %s starting with https://.", field)}
 	}
 	return nil
 }
