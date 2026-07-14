@@ -116,12 +116,26 @@ func main() {
 	}
 }
 
+// contentSecurityPolicy is tuned for the Tailwind CDN build and inline
+// <script>/<style> usage across the dashboard, auth, and site templates —
+// none of it is nonce-based yet, so 'unsafe-inline' stays in for now.
+const contentSecurityPolicy = "default-src 'self'; " +
+	"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " +
+	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+	"font-src 'self' https://fonts.gstatic.com data:; " +
+	"img-src 'self' https: data:; " +
+	"connect-src 'self'; " +
+	"frame-ancestors 'self'; " +
+	"base-uri 'self'; " +
+	"form-action 'self'"
+
 // securityHeaders adds security-related HTTP response headers to every response.
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Content-Security-Policy", contentSecurityPolicy)
 		host := strings.Split(r.Host, ":")[0]
 		if host != "localhost" && host != "127.0.0.1" {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
