@@ -50,8 +50,8 @@ func TestSiteBadgeHiddenForProShownForStarter(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		plan       domain.Plan
-		wantBadge  bool
+		plan      domain.Plan
+		wantBadge bool
 	}{
 		{domain.PlanStarter, true},
 		{domain.PlanPro, false},
