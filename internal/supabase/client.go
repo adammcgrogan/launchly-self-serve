@@ -128,6 +128,13 @@ func toSession(t gotrueTokenResponse) (*Session, error) {
 // rather than a raw GoTrue error string.
 var ErrUserAlreadyExists = errors.New("user already registered")
 
+// ErrEmailNotConfirmed is returned by SignInWithPassword when the account's
+// email hasn't been confirmed yet (only possible if Supabase's "Confirm
+// email" project setting is enabled) — callers should point the user at
+// resending the confirmation email rather than showing a generic
+// wrong-password error.
+var ErrEmailNotConfirmed = errors.New("email not confirmed")
+
 // SignUp creates a new Supabase auth user and, if email confirmation is
 // disabled on the project, returns an active session. If confirmation is
 // required, AccessToken will be empty — the caller should treat this as
@@ -181,6 +188,9 @@ func (c *Client) SignInWithPassword(ctx context.Context, email, password string)
 	if status >= 400 {
 		var gErr gotrueError
 		json.Unmarshal(respBody, &gErr)
+		if gErr.ErrorCode == "email_not_confirmed" || strings.Contains(strings.ToLower(gErr.String()), "not confirmed") {
+			return nil, ErrEmailNotConfirmed
+		}
 		return nil, fmt.Errorf("supabase login failed: %s", gErr.String())
 	}
 	var t gotrueTokenResponse

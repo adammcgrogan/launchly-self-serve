@@ -91,7 +91,11 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	sess, err := h.accounts.Login(r.Context(), emailAddr, password)
 	if err != nil {
-		h.render.Render(w, "auth:login", map[string]any{"Error": "Incorrect email or password.", "Email": emailAddr, "Next": next})
+		msg := "Incorrect email or password."
+		if errors.Is(err, supabase.ErrEmailNotConfirmed) {
+			msg = `Please confirm your email before logging in — <a href="/resend-verification" class="underline font-medium">resend confirmation email</a>.`
+		}
+		h.render.Render(w, "auth:login", map[string]any{"Error": template.HTML(msg), "Email": emailAddr, "Next": next})
 		return
 	}
 
