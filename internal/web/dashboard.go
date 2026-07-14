@@ -91,6 +91,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl, _ := findTemplate(site.TemplateID)
+	checklist, checklistPercent := siteChecklist(site)
 
 	domainData := map[string]any{
 		"FallbackOrigin": h.domains.FallbackOrigin(),
@@ -129,6 +130,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Upgraded":       r.URL.Query().Get("upgraded") == "1",
 		"EmailVerified":  h.emailVerified(r),
 
+		"Checklist":        checklist,
+		"ChecklistPercent": checklistPercent,
+
 		"Design":           tmpl,
 		"Templates":        siteTemplates,
 		"Palettes":         tmpl.Palettes,
@@ -145,6 +149,40 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Domain":           h.cfg.Domain,
 		"DomainData":       domainData,
 	})
+}
+
+// checklistItem is one row of the site-completeness checklist shown on the
+// overview tab: a short label, whether it's satisfied, and a deep link into
+// the editor sub-tab where the owner can complete it.
+type checklistItem struct {
+	Label string
+	Done  bool
+	Link  string
+}
+
+// siteChecklist scores how complete a site is from its already-loaded
+// aggregate, returning the checklist rows and the percentage done. It nudges
+// a new owner toward the handful of things that most improve a site's
+// conversion — a logo, an intro, services, hours, contact details, and
+// actually publishing — without needing any extra queries.
+func siteChecklist(site *domain.SiteAggregate) (items []checklistItem, percent int) {
+	base := fmt.Sprintf("/dashboard/sites/%d?tab=settings&subtab=", site.ID)
+	items = []checklistItem{
+		{Label: "Add your logo", Done: site.LogoURL != "", Link: base + "content"},
+		{Label: "Write your intro (about)", Done: strings.TrimSpace(site.About) != "", Link: base + "content"},
+		{Label: "List at least one service", Done: len(site.Services) > 0, Link: base + "content"},
+		{Label: "Add a phone number or email", Done: site.Contact.Phone != "" || site.Contact.Email != "", Link: base + "content"},
+		{Label: "Set your opening hours", Done: len(site.BusinessHours) > 0, Link: base + "content"},
+		{Label: "Add a photo to your gallery", Done: len(site.GalleryImages) > 0, Link: base + "content"},
+		{Label: "Publish your site", Done: site.Status == domain.SiteStatusLive, Link: base + "publishing"},
+	}
+	done := 0
+	for _, it := range items {
+		if it.Done {
+			done++
+		}
+	}
+	return items, done * 100 / len(items)
 }
 
 // dailyViewPoint is one bar in the 7-day page-views chart on the site
