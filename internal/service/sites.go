@@ -383,6 +383,10 @@ func (s *Sites) uniqueSlug(ctx context.Context, businessName string) (string, er
 	}
 	slug := base
 	for i := 2; ; i++ {
+		if reservedSlugs[slug] {
+			slug = fmt.Sprintf("%s-%d", base, i)
+			continue
+		}
 		existing, err := postgres.GetSiteBySlug(ctx, s.store.DB(), slug)
 		if err != nil {
 			return "", err
