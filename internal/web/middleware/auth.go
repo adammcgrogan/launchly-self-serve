@@ -86,6 +86,23 @@ func (a *Auth) AccessToken(r *http.Request) string {
 	return c.Value
 }
 
+// CurrentUserID reports the session's user ID from the access token cookie
+// alone — no refresh, no cookie writes — so it's safe to call from a
+// background goroutine after the response has already started. Returns
+// false if the access token is missing or expired; callers that need a
+// refreshed session should use RequireUser or CheckUser instead.
+func (a *Auth) CurrentUserID(r *http.Request) (uuid.UUID, bool) {
+	c, err := r.Cookie(accessTokenCookie)
+	if err != nil {
+		return uuid.UUID{}, false
+	}
+	claims, err := supabase.VerifyAccessToken(c.Value, a.jwtSecret)
+	if err != nil {
+		return uuid.UUID{}, false
+	}
+	return claims.UserID, true
+}
+
 // RequireUser verifies the access token cookie, transparently refreshing it
 // via the refresh token cookie if expired, and stores the user ID in the
 // request context. Redirects to /login if there's no valid session at all.

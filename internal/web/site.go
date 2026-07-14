@@ -13,6 +13,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
+	"github.com/google/uuid"
 )
 
 // ServeSite handles subdomain requests (slug.launchly.ltd) and, when the
@@ -69,7 +70,7 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		h.render.RenderError(w, http.StatusNotFound)
 		return
 	}
-	go h.recordPageView(r, site.ID)
+	go h.recordPageView(r, site.ID, site.OwnerUserID)
 
 	open, openLabel := site.OpenNow()
 
@@ -264,9 +265,16 @@ func (h *Handler) renderClaimOrError(w http.ResponseWriter, slug string) {
 	})
 }
 
-func (h *Handler) recordPageView(r *http.Request, siteID int) {
+// recordPageView records a page view unless the visitor is the site's own
+// logged-in owner checking or editing their live site — otherwise owners
+// repeatedly opening their own site inflate the very numbers meant to prove
+// the product's value.
+func (h *Handler) recordPageView(r *http.Request, siteID int, ownerUserID uuid.UUID) {
 	ua := r.Header.Get("User-Agent")
 	if isBot(ua) {
+		return
+	}
+	if uid, ok := h.auth.CurrentUserID(r); ok && uid == ownerUserID {
 		return
 	}
 	ref := r.Referer()
@@ -342,6 +350,9 @@ func (h *Handler) recordSiteEvent(r *http.Request, site *domain.SiteAggregate) {
 		return
 	}
 	if isBot(r.Header.Get("User-Agent")) || !h.contactLimiter.Allow(middleware.ClientIP(r)) {
+		return
+	}
+	if uid, ok := h.auth.CurrentUserID(r); ok && uid == site.OwnerUserID {
 		return
 	}
 	kind, ok := siteEventKinds[r.URL.Query().Get("kind")]
