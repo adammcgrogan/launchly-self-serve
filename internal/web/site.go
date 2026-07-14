@@ -124,26 +124,34 @@ type jsonLDOfferCatalog struct {
 }
 
 type jsonLDLocalBusiness struct {
-	Context                   string               `json:"@context"`
-	Type                      string               `json:"@type"`
-	Name                      string               `json:"name"`
-	Description               string               `json:"description,omitempty"`
-	Telephone                 string               `json:"telephone,omitempty"`
-	Email                     string               `json:"email,omitempty"`
-	Image                     string               `json:"image,omitempty"`
-	URL                       string               `json:"url"`
-	Address                   *jsonLDAddress       `json:"address,omitempty"`
-	HasMap                    string               `json:"hasMap,omitempty"`
-	OpeningHoursSpecification []jsonLDOpeningHours `json:"openingHoursSpecification,omitempty"`
-	SameAs                    []string             `json:"sameAs,omitempty"`
-	HasOfferCatalog           *jsonLDOfferCatalog  `json:"hasOfferCatalog,omitempty"`
-	AreaServed                []string             `json:"areaServed,omitempty"`
+	Context                   string                 `json:"@context"`
+	Type                      string                 `json:"@type"`
+	Name                      string                 `json:"name"`
+	Description               string                 `json:"description,omitempty"`
+	Telephone                 string                 `json:"telephone,omitempty"`
+	Email                     string                 `json:"email,omitempty"`
+	Image                     string                 `json:"image,omitempty"`
+	URL                       string                 `json:"url"`
+	Address                   *jsonLDAddress         `json:"address,omitempty"`
+	HasMap                    string                 `json:"hasMap,omitempty"`
+	OpeningHoursSpecification []jsonLDOpeningHours   `json:"openingHoursSpecification,omitempty"`
+	SameAs                    []string               `json:"sameAs,omitempty"`
+	HasOfferCatalog           *jsonLDOfferCatalog    `json:"hasOfferCatalog,omitempty"`
+	AreaServed                []string               `json:"areaServed,omitempty"`
+	AggregateRating           *jsonLDAggregateRating `json:"aggregateRating,omitempty"`
+}
+
+type jsonLDAggregateRating struct {
+	Type        string `json:"@type"`
+	RatingValue string `json:"ratingValue"`
+	ReviewCount int    `json:"reviewCount,omitempty"`
+	BestRating  string `json:"bestRating"`
 }
 
 // localBusinessJSONLD builds the site's LocalBusiness structured data. Only
-// fields backed by genuine platform data are included — there's no rating
-// data behind testimonials, so no aggregateRating is emitted, and no
-// stored geo coordinates, so no geo property.
+// fields backed by genuine data are included — aggregateRating is emitted
+// only when the owner has entered a real Google/Facebook rating, and there
+// are no stored geo coordinates, so no geo property.
 func localBusinessJSONLD(site *domain.SiteAggregate, siteURL string) template.JS {
 	biz := jsonLDLocalBusiness{
 		Context:     "https://schema.org",
@@ -197,6 +205,18 @@ func localBusinessJSONLD(site *domain.SiteAggregate, siteURL string) template.JS
 	for _, a := range site.ServiceAreas {
 		if a.Area != "" {
 			biz.AreaServed = append(biz.AreaServed, a.Area)
+		}
+	}
+
+	// aggregateRating is owner-entered (Google/Facebook rating typed into the
+	// dashboard) rather than derived from on-site testimonials, so it's only
+	// emitted when the owner has actually set a rating.
+	if site.Reviews.HasBadge() {
+		biz.AggregateRating = &jsonLDAggregateRating{
+			Type:        "AggregateRating",
+			RatingValue: site.Reviews.Rating,
+			ReviewCount: site.Reviews.ReviewCount,
+			BestRating:  "5",
 		}
 	}
 

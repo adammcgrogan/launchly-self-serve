@@ -330,6 +330,22 @@
           <p class="mt-1 text-xs text-slate-400">For mobile/at-home trades — shown on your site and used to help you rank for local searches.</p>
         </div>
         <div>
+          <p class="block text-sm font-medium text-slate-700 mb-2">Reviews badge</p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Star rating (0–5)</label>
+              <input type="number" name="review_rating" value="{{.Reviews.Rating}}" min="0" max="5" step="0.1" placeholder="4.8" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Number of reviews</label>
+              <input type="number" name="review_count" value="{{if .Reviews.ReviewCount}}{{.Reviews.ReviewCount}}{{end}}" min="0" step="1" placeholder="127" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            </div>
+          </div>
+          <label class="block text-xs text-slate-500 mb-1 mt-3">"Leave us a review" link (e.g. your Google review page)</label>
+          <input type="url" name="review_url" value="{{.Reviews.ReviewURL}}" placeholder="https://g.page/r/..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <p class="mt-1 text-xs text-slate-400">Shows a star badge and a one-tap review button on your site. Leave the rating blank to hide the badge.</p>
+        </div>
+        <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials, one per line as "Name|Role|Quote"</label>
           <textarea name="testimonials" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.TestimonialsText}}</textarea>
         </div>

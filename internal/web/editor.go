@@ -71,6 +71,11 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		StaffMembers:   parseStaffRows(r),
 		BusinessHours:  parseBusinessHours(r),
 		ServiceAreas:   parseServiceAreas(r.FormValue("service_areas")),
+		Reviews: domain.SiteReviews{
+			Rating:      strings.TrimSpace(r.FormValue("review_rating")),
+			ReviewCount: atoiClamp(r.FormValue("review_count")),
+			ReviewURL:   strings.TrimSpace(r.FormValue("review_url")),
+		},
 	}
 
 	if err := h.sites.UpdateContent(r.Context(), in); err != nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -175,6 +176,16 @@ func parseCertifications(s string) []domain.Certification {
 		out = append(out, domain.Certification{Label: label, SortOrder: i})
 	}
 	return out
+}
+
+// atoiClamp parses a non-negative integer form field, returning 0 for empty
+// or malformed input rather than an error — used for optional count fields.
+func atoiClamp(s string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(s))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
 }
 
 func parseServiceAreas(s string) []domain.ServiceArea {

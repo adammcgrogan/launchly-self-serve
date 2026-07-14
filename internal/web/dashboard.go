@@ -140,6 +140,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"ServiceRows":      serviceRowsForDisplay(site.Services),
 		"CertsText":        certificationsToLines(site.Certifications),
 		"ServiceAreasText": serviceAreasToLines(site.ServiceAreas),
+		"Reviews":          site.Reviews,
 		"TestimonialsText": testimonialsToLines(site.Testimonials),
 		"GalleryText":      galleryToLines(site.GalleryImages),
 		"FAQRows":          faqRowsForDisplay(site.FAQItems),

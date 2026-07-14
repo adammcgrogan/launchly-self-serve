@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -157,6 +158,48 @@ type SiteAnalyticsSettings struct {
 	AnalyticsLastSentAt *time.Time
 }
 
+// SiteReviews holds an owner-entered review rating badge — a display star
+// rating, the number of reviews it's based on, and a link customers can tap
+// to leave their own review. 1:1 with a site. Rating is a free-text decimal
+// (e.g. "4.8"); an empty Rating means no badge is shown.
+type SiteReviews struct {
+	SiteID      int
+	Rating      string
+	ReviewCount int
+	ReviewURL   string
+}
+
+// HasBadge reports whether a star rating badge should be shown.
+func (r SiteReviews) HasBadge() bool { return r.Rating != "" }
+
+// RatingValue parses Rating into a float for star rendering and JSON-LD; it
+// returns 0 for an unset or malformed value.
+func (r SiteReviews) RatingValue() float64 {
+	v, err := strconv.ParseFloat(r.Rating, 64)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+// Stars returns exactly five entries — "full", "half", or "empty" — for
+// rendering the rating as a row of star icons, rounded to the nearest half.
+func (r SiteReviews) Stars() []string {
+	rounded := math.Round(r.RatingValue()*2) / 2
+	out := make([]string, 5)
+	for i := 0; i < 5; i++ {
+		switch {
+		case rounded >= float64(i+1):
+			out[i] = "full"
+		case rounded >= float64(i)+0.5:
+			out[i] = "half"
+		default:
+			out[i] = "empty"
+		}
+	}
+	return out
+}
+
 // SiteNotifySettings holds a site's opt-in SMS lead alert preferences. 1:1
 // with Site. SMS is a Pro perk on top of the always-on email notification.
 type SiteNotifySettings struct {
@@ -292,6 +335,7 @@ type SiteAggregate struct {
 	Analytics      SiteAnalyticsSettings
 	Notify         SiteNotifySettings
 	Announcement   SiteAnnouncement
+	Reviews        SiteReviews
 	SocialLinks    []SocialLink
 	Services       []Service
 	Certifications []Certification

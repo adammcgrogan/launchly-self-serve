@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -166,6 +167,25 @@ func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, 
 		}
 	}
 	return nil
+}
+
+// validateReviews checks the owner-entered review rating badge: the rating
+// must be a number between 0 and 5, the count non-negative, and the review
+// link a valid https URL. All fields are optional (empty rating = no badge).
+func validateReviews(r domain.SiteReviews) error {
+	if r.Rating != "" {
+		v, err := strconv.ParseFloat(r.Rating, 64)
+		if err != nil || v < 0 || v > 5 {
+			return &ValidationError{Message: "review rating must be a number between 0 and 5."}
+		}
+	}
+	if r.ReviewCount < 0 {
+		return &ValidationError{Message: "review count can't be negative."}
+	}
+	if err := checkLen("review link", r.ReviewURL, maxMediumField); err != nil {
+		return err
+	}
+	return checkURL("review link", r.ReviewURL)
 }
 
 // Errors returned by RenameSlug — web handlers show these directly to the
@@ -419,6 +439,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		analytics      *domain.SiteAnalyticsSettings
 		notify         *domain.SiteNotifySettings
 		announcement   *domain.SiteAnnouncement
+		reviews        *domain.SiteReviews
 		socialLinks    []domain.SocialLink
 		services       []domain.Service
 		certifications []domain.Certification
@@ -436,6 +457,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 	g.Go(func() (err error) { analytics, err = postgres.GetSiteAnalyticsSettings(gctx, q, id); return })
 	g.Go(func() (err error) { notify, err = postgres.GetSiteNotifySettings(gctx, q, id); return })
 	g.Go(func() (err error) { announcement, err = postgres.GetSiteAnnouncement(gctx, q, id); return })
+	g.Go(func() (err error) { reviews, err = postgres.GetSiteReviews(gctx, q, id); return })
 	g.Go(func() (err error) { socialLinks, err = postgres.GetSiteSocialLinks(gctx, q, id); return })
 	g.Go(func() (err error) { services, err = postgres.GetSiteServices(gctx, q, id); return })
 	g.Go(func() (err error) { certifications, err = postgres.GetSiteCertifications(gctx, q, id); return })
@@ -460,6 +482,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		Analytics:      *analytics,
 		Notify:         *notify,
 		Announcement:   *announcement,
+		Reviews:        *reviews,
 		SocialLinks:    socialLinks,
 		Services:       services,
 		Certifications: certifications,
@@ -530,11 +553,15 @@ type UpdateContentInput struct {
 	StaffMembers   []domain.StaffMember
 	BusinessHours  []domain.BusinessHours
 	ServiceAreas   []domain.ServiceArea
+	Reviews        domain.SiteReviews
 }
 
 // UpdateContent saves every editable content field for a site in one transaction.
 func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error {
 	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers, in.ServiceAreas); err != nil {
+		return err
+	}
+	if err := validateReviews(in.Reviews); err != nil {
 		return err
 	}
 
@@ -578,6 +605,10 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 	if err := postgres.ReplaceSiteServiceAreas(ctx, tx, in.SiteID, in.ServiceAreas); err != nil {
 		return fmt.Errorf("save service areas: %w", err)
+	}
+	in.Reviews.SiteID = in.SiteID
+	if err := postgres.UpsertSiteReviews(ctx, tx, &in.Reviews); err != nil {
+		return fmt.Errorf("save reviews: %w", err)
 	}
 
 	return tx.Commit()

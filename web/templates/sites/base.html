@@ -68,6 +68,26 @@
   </section>
   {{end}}
 
+  {{if or .Site.Reviews.HasBadge .Site.Reviews.ReviewURL}}
+  <section class="py-12 px-6" style="background:var(--paper);border-top:1px solid var(--line);">
+    <div class="max-w-2xl mx-auto text-center">
+      {{if .Site.Reviews.HasBadge}}
+      <div class="flex items-center justify-center gap-1" aria-label="Rated {{.Site.Reviews.Rating}} out of 5">
+        {{range .Site.Reviews.Stars}}
+        {{if eq . "full"}}<svg class="h-7 w-7" viewBox="0 0 24 24" fill="#F59E0B" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        {{else if eq . "half"}}<svg class="h-7 w-7" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="half"><stop offset="50%" stop-color="#F59E0B"/><stop offset="50%" stop-color="#D1D5DB"/></linearGradient></defs><path fill="url(#half)" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        {{else}}<svg class="h-7 w-7" viewBox="0 0 24 24" fill="#D1D5DB" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>{{end}}
+        {{end}}
+      </div>
+      <p class="mt-3 font-semibold" style="color:var(--ink);">{{.Site.Reviews.Rating}} out of 5{{if .Site.Reviews.ReviewCount}} · from {{.Site.Reviews.ReviewCount}} review{{if ne .Site.Reviews.ReviewCount 1}}s{{end}}{{end}}</p>
+      {{end}}
+      {{if .Site.Reviews.ReviewURL}}
+      <a href="{{.Site.Reviews.ReviewURL}}" target="_blank" rel="noopener" class="mt-4 inline-block rounded-full px-6 py-3 text-sm font-bold" style="background:var(--accent);color:var(--accent-ink);">Leave us a review</a>
+      {{end}}
+    </div>
+  </section>
+  {{end}}
+
   {{if or .Site.Contact.Phone (index .Socials "whatsapp") .Site.Contact.MapURL}}
   <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t shadow-lg" style="border-color:var(--line);background:var(--surface);">
     {{if .Site.Contact.Phone}}<a href="tel:{{.Site.Contact.Phone}}" data-event-kind="call" aria-label="Call now" class="flex-1 flex items-center justify-center gap-2 py-4 text-sm font-bold" style="background:var(--accent);color:var(--accent-ink);">
