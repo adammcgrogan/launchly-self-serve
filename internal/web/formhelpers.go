@@ -177,6 +177,22 @@ func parseCertifications(s string) []domain.Certification {
 	return out
 }
 
+func parseServiceAreas(s string) []domain.ServiceArea {
+	var out []domain.ServiceArea
+	for i, area := range splitLines(s) {
+		out = append(out, domain.ServiceArea{Area: area, SortOrder: i})
+	}
+	return out
+}
+
+func serviceAreasToLines(a []domain.ServiceArea) string {
+	lines := make([]string, len(a))
+	for i, x := range a {
+		lines[i] = x.Area
+	}
+	return strings.Join(lines, "\n")
+}
+
 func parseGallery(s string) []domain.GalleryImage {
 	var out []domain.GalleryImage
 	for i, url := range splitLines(s) {

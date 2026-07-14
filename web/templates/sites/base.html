@@ -54,6 +54,20 @@
   {{end}}
   {{template "site-content" .}}
 
+  {{if .Site.ServiceAreas}}
+  <section class="py-12 px-6" style="background:var(--surface);border-top:1px solid var(--line);">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-2xl font-bold" style="font-family:var(--font-display,inherit);color:var(--ink);">Areas we serve</h2>
+      <p class="mt-2 text-sm" style="color:var(--muted);">Proudly serving customers across:</p>
+      <ul class="mt-5 flex flex-wrap justify-center gap-2">
+        {{range .Site.ServiceAreas}}
+        <li class="rounded-full px-4 py-1.5 text-sm font-medium" style="background:var(--paper);color:var(--ink);border:1px solid var(--line);">{{.Area}}</li>
+        {{end}}
+      </ul>
+    </div>
+  </section>
+  {{end}}
+
   {{if or .Site.Contact.Phone (index .Socials "whatsapp") .Site.Contact.MapURL}}
   <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t shadow-lg" style="border-color:var(--line);background:var(--surface);">
     {{if .Site.Contact.Phone}}<a href="tel:{{.Site.Contact.Phone}}" data-event-kind="call" aria-label="Call now" class="flex-1 flex items-center justify-center gap-2 py-4 text-sm font-bold" style="background:var(--accent);color:var(--accent-ink);">

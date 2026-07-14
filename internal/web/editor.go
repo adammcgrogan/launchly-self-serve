@@ -70,6 +70,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		FAQItems:       parseFAQRows(r),
 		StaffMembers:   parseStaffRows(r),
 		BusinessHours:  parseBusinessHours(r),
+		ServiceAreas:   parseServiceAreas(r.FormValue("service_areas")),
 	}
 
 	if err := h.sites.UpdateContent(r.Context(), in); err != nil {

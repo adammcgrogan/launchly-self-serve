@@ -99,7 +99,7 @@ func checkPhone(field, value string) error {
 // validateSiteContent checks format (email/phone/logo/map/gallery URLs) and
 // length limits across every editable content field, shared by CreateSite
 // and UpdateContent so the builder and editor enforce the same rules.
-func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, contact domain.SiteContact, social []domain.SocialLink, services []domain.Service, certs []domain.Certification, testimonials []domain.Testimonial, gallery []domain.GalleryImage, faqItems []domain.FAQItem, staff []domain.StaffMember) error {
+func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, contact domain.SiteContact, social []domain.SocialLink, services []domain.Service, certs []domain.Certification, testimonials []domain.Testimonial, gallery []domain.GalleryImage, faqItems []domain.FAQItem, staff []domain.StaffMember, areas []domain.ServiceArea) error {
 	checks := []error{
 		checkLen("business name", businessName, maxShortField),
 		checkLen("tagline", tagline, maxMediumField),
@@ -156,6 +156,9 @@ func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, 
 			checkURL("staff photo URL", m.PhotoURL),
 			checkLen("staff bio", m.Bio, maxLongField),
 		)
+	}
+	for _, a := range areas {
+		checks = append(checks, checkLen("service area", a.Area, maxShortField))
 	}
 	for _, err := range checks {
 		if err != nil {
@@ -253,7 +256,7 @@ const maxCreateSiteSlugAttempts = 5
 // slug's unique constraint, we regenerate and retry rather than surfacing a
 // 500.
 func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.SiteAggregate, error) {
-	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers); err != nil {
+	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers, nil); err != nil {
 		return nil, err
 	}
 
@@ -424,6 +427,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		faqItems       []domain.FAQItem
 		staffMembers   []domain.StaffMember
 		hours          []domain.BusinessHours
+		serviceAreas   []domain.ServiceArea
 	)
 
 	g, gctx := errgroup.WithContext(ctx)
@@ -440,6 +444,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 	g.Go(func() (err error) { faqItems, err = postgres.GetSiteFAQItems(gctx, q, id); return })
 	g.Go(func() (err error) { staffMembers, err = postgres.GetSiteStaffMembers(gctx, q, id); return })
 	g.Go(func() (err error) { hours, err = postgres.GetSiteBusinessHours(gctx, q, id); return })
+	g.Go(func() (err error) { serviceAreas, err = postgres.GetSiteServiceAreas(gctx, q, id); return })
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
@@ -463,6 +468,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		FAQItems:       faqItems,
 		StaffMembers:   staffMembers,
 		BusinessHours:  hours,
+		ServiceAreas:   serviceAreas,
 	}, nil
 }
 
@@ -523,11 +529,12 @@ type UpdateContentInput struct {
 	FAQItems       []domain.FAQItem
 	StaffMembers   []domain.StaffMember
 	BusinessHours  []domain.BusinessHours
+	ServiceAreas   []domain.ServiceArea
 }
 
 // UpdateContent saves every editable content field for a site in one transaction.
 func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error {
-	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers); err != nil {
+	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers, in.ServiceAreas); err != nil {
 		return err
 	}
 
@@ -568,6 +575,9 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 	if err := postgres.ReplaceSiteBusinessHours(ctx, tx, in.SiteID, in.BusinessHours); err != nil {
 		return fmt.Errorf("save business hours: %w", err)
+	}
+	if err := postgres.ReplaceSiteServiceAreas(ctx, tx, in.SiteID, in.ServiceAreas); err != nil {
+		return fmt.Errorf("save service areas: %w", err)
 	}
 
 	return tx.Commit()

@@ -139,6 +139,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Socials":          socialLinksMap(site.SocialLinks),
 		"ServiceRows":      serviceRowsForDisplay(site.Services),
 		"CertsText":        certificationsToLines(site.Certifications),
+		"ServiceAreasText": serviceAreasToLines(site.ServiceAreas),
 		"TestimonialsText": testimonialsToLines(site.Testimonials),
 		"GalleryText":      galleryToLines(site.GalleryImages),
 		"FAQRows":          faqRowsForDisplay(site.FAQItems),

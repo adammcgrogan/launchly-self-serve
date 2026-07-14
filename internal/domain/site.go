@@ -262,6 +262,15 @@ type StaffMember struct {
 	SortOrder int
 }
 
+// ServiceArea is one town/region a site covers, for mobile/at-home trades
+// that serve an area rather than a single storefront address.
+type ServiceArea struct {
+	ID        int
+	SiteID    int
+	Area      string
+	SortOrder int
+}
+
 // BusinessHours is one day's opening hours, in the site's own Timezone.
 // OpensAt/ClosesAt are "HH:MM" 24-hour (e.g. "09:00"), empty when Closed.
 type BusinessHours struct {
@@ -291,6 +300,7 @@ type SiteAggregate struct {
 	FAQItems       []FAQItem
 	StaffMembers   []StaffMember
 	BusinessHours  []BusinessHours
+	ServiceAreas   []ServiceArea
 }
 
 // OpenDays returns the BusinessHours rows that are actually open — it

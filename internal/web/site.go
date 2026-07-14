@@ -137,6 +137,7 @@ type jsonLDLocalBusiness struct {
 	OpeningHoursSpecification []jsonLDOpeningHours `json:"openingHoursSpecification,omitempty"`
 	SameAs                    []string             `json:"sameAs,omitempty"`
 	HasOfferCatalog           *jsonLDOfferCatalog  `json:"hasOfferCatalog,omitempty"`
+	AreaServed                []string             `json:"areaServed,omitempty"`
 }
 
 // localBusinessJSONLD builds the site's LocalBusiness structured data. Only
@@ -191,6 +192,12 @@ func localBusinessJSONLD(site *domain.SiteAggregate, siteURL string) template.JS
 	}
 	if len(offers) > 0 {
 		biz.HasOfferCatalog = &jsonLDOfferCatalog{Type: "OfferCatalog", Name: "Services", ItemListElement: offers}
+	}
+
+	for _, a := range site.ServiceAreas {
+		if a.Area != "" {
+			biz.AreaServed = append(biz.AreaServed, a.Area)
+		}
 	}
 
 	out, err := json.Marshal(biz)
