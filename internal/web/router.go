@@ -74,6 +74,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/{id}/analytics-frequency", owned(h.UpdateAnalyticsFrequency))
 	mux.HandleFunc("POST /dashboard/sites/{id}/notify-settings", owned(h.UpdateNotifySettings))
 	mux.HandleFunc("POST /dashboard/sites/{id}/send-analytics", owned(h.SendAnalyticsNow))
+	mux.HandleFunc("POST /dashboard/sites/{id}/tracking-settings", owned(h.UpdateTrackingSettings))
 	mux.HandleFunc("POST /dashboard/sites/{id}/upgrade", owned(h.UpgradeCheckout))
 	mux.HandleFunc("POST /dashboard/sites/{id}/cancel-subscription", owned(h.CancelSubscription))
 

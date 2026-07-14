@@ -162,6 +162,10 @@ type SiteAnalyticsSettings struct {
 	SiteID              int
 	AnalyticsFrequency  string // "off", "weekly", "monthly"
 	AnalyticsLastSentAt *time.Time
+	// Owner-supplied third-party tracking IDs (Pro perk), rendered as
+	// GA4/Meta Pixel snippets on the public site. Empty when unset.
+	GAMeasurementID string
+	MetaPixelID     string
 }
 
 // SiteReviews holds an owner-entered review rating badge — a display star

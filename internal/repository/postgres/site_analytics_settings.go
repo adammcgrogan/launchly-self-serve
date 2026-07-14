@@ -20,9 +20,9 @@ func UpsertSiteAnalyticsSettings(ctx context.Context, q querier, a *domain.SiteA
 func GetSiteAnalyticsSettings(ctx context.Context, q querier, siteID int) (*domain.SiteAnalyticsSettings, error) {
 	a := &domain.SiteAnalyticsSettings{SiteID: siteID, AnalyticsFrequency: "off"}
 	err := q.QueryRowContext(ctx, `
-		SELECT analytics_frequency, analytics_last_sent_at
+		SELECT analytics_frequency, analytics_last_sent_at, ga_measurement_id, meta_pixel_id
 		FROM site_analytics_settings WHERE site_id = $1
-	`, siteID).Scan(&a.AnalyticsFrequency, &a.AnalyticsLastSentAt)
+	`, siteID).Scan(&a.AnalyticsFrequency, &a.AnalyticsLastSentAt, &a.GAMeasurementID, &a.MetaPixelID)
 	if err == sql.ErrNoRows {
 		return a, nil
 	}
@@ -30,6 +30,20 @@ func GetSiteAnalyticsSettings(ctx context.Context, q querier, siteID int) (*doma
 		return nil, err
 	}
 	return a, nil
+}
+
+// UpsertSiteTrackingIDs saves a site's third-party tracking IDs without
+// touching its analytics-report frequency, creating the settings row (with
+// the default "off" frequency) if the site doesn't have one yet.
+func UpsertSiteTrackingIDs(ctx context.Context, q querier, siteID int, gaMeasurementID, metaPixelID string) error {
+	_, err := q.ExecContext(ctx, `
+		INSERT INTO site_analytics_settings (site_id, analytics_frequency, ga_measurement_id, meta_pixel_id)
+		VALUES ($1, 'off', $2, $3)
+		ON CONFLICT (site_id) DO UPDATE SET
+			ga_measurement_id = EXCLUDED.ga_measurement_id,
+			meta_pixel_id = EXCLUDED.meta_pixel_id
+	`, siteID, gaMeasurementID, metaPixelID)
+	return err
 }
 
 func UpdateAnalyticsLastSent(ctx context.Context, q querier, siteID int) error {

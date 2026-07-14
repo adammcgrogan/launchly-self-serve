@@ -359,6 +359,29 @@ func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
 }
 
+func (h *Handler) UpdateTrackingSettings(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := h.sites.UpdateTrackingSettings(r.Context(), site.ID,
+		r.FormValue("ga_measurement_id"), r.FormValue("meta_pixel_id")); err != nil {
+		if err == service.ErrTrackingNotPro || err == service.ErrTrackingInvalid {
+			middleware.SetFlash(w, err.Error())
+			http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+			return
+		}
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	middleware.SetFlash(w, "Tracking settings saved.")
+	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+}
+
 func (h *Handler) SendAnalyticsNow(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
