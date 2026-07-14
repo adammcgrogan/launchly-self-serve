@@ -32,19 +32,39 @@ func New(apiKey, from string) *Client {
 }
 
 type sendRequest struct {
-	From    string   `json:"from"`
-	To      []string `json:"to"`
-	Subject string   `json:"subject"`
-	HTML    string   `json:"html"`
-	ReplyTo []string `json:"reply_to,omitempty"`
+	From    string            `json:"from"`
+	To      []string          `json:"to"`
+	Subject string            `json:"subject"`
+	HTML    string            `json:"html"`
+	ReplyTo []string          `json:"reply_to,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
+// unsubscribeMailto is the address a recipient's mail client hits when they
+// use the "unsubscribe" affordance Gmail/Yahoo surface from the
+// List-Unsubscribe header on our recurring (non-transactional) mail.
+const unsubscribeMailto = "mailto:unsubscribe@launchly.ltd?subject=unsubscribe"
+
 func (c *Client) Send(to, subject, html string) error {
-	return c.sendWithReplyTo(to, subject, html, "")
+	return c.send(to, subject, html, "", nil)
 }
 
 func (c *Client) sendWithReplyTo(to, subject, html, replyTo string) error {
-	payload := sendRequest{From: c.from, To: []string{to}, Subject: subject, HTML: html}
+	return c.send(to, subject, html, replyTo, nil)
+}
+
+// sendBulk sends recurring, non-transactional mail (analytics digests, trial
+// reminders) with a List-Unsubscribe header so it satisfies Gmail/Yahoo
+// bulk-sender requirements and stays out of spam. Truly transactional mail
+// (password reset, lead notifications, receipts) deliberately omits it.
+func (c *Client) sendBulk(to, subject, html string) error {
+	return c.send(to, subject, html, "", map[string]string{
+		"List-Unsubscribe": "<" + unsubscribeMailto + ">",
+	})
+}
+
+func (c *Client) send(to, subject, html, replyTo string, headers map[string]string) error {
+	payload := sendRequest{From: c.from, To: []string{to}, Subject: subject, HTML: html, Headers: headers}
 	if replyTo != "" {
 		payload.ReplyTo = []string{replyTo}
 	}
@@ -341,7 +361,7 @@ func (c *Client) SendTrialWarning(to, businessName, dashboardURL string, daysLef
 		divider() +
 		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
 	subject := fmt.Sprintf("Your free trial ends in %s - %s", urgency, businessName)
-	return c.Send(to, subject, wrap("Free trial", content))
+	return c.sendBulk(to, subject, wrap("Free trial", content))
 }
 
 // SendSitePaused notifies an owner their trial ended and the site is now
@@ -417,7 +437,7 @@ func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *
 		subject = fmt.Sprintf("Your monthly website report - %s", businessName)
 		eyebrowLabel = "Monthly report"
 	}
-	return c.Send(to, subject, wrap(eyebrowLabel, content))
+	return c.sendBulk(to, subject, wrap(eyebrowLabel, content))
 }
 
 // SendAdminAlert notifies the superadmin of noteworthy account events
