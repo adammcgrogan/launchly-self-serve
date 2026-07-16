@@ -12,7 +12,7 @@ import (
 // DomainSubmit connects (or reconnects) a custom domain to a Pro site.
 func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -34,7 +34,7 @@ func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 // DomainCheckStatus re-checks a pending domain against Cloudflare on demand.
 func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	switch hostname, err := h.domains.RefreshCustomDomainStatus(r.Context(), site.ID); {
@@ -53,7 +53,7 @@ func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 // DomainRemove detaches a site's custom domain entirely.
 func (h *Handler) DomainRemove(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := h.domains.RemoveCustomDomain(r.Context(), site.ID); err != nil {

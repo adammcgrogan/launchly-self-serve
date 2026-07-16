@@ -115,11 +115,12 @@ func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // checkCSRF verifies the request's csrf_token form field against the token
-// derived for subject (a user ID string, or "superadmin"), using a
-// constant-time comparison. On failure it writes the 403 response itself —
-// callers should return immediately when this returns false.
-func (h *Handler) checkCSRF(w http.ResponseWriter, r *http.Request, subject string) bool {
-	if h.csrf.Verify(subject, r.FormValue("csrf_token")) {
+// derived for subject (a user ID string, or "superadmin") and sessionNonce
+// (the Supabase session ID for customer routes, or "" for superadmin),
+// using a constant-time comparison. On failure it writes the 403 response
+// itself — callers should return immediately when this returns false.
+func (h *Handler) checkCSRF(w http.ResponseWriter, r *http.Request, subject, sessionNonce string) bool {
+	if h.csrf.Verify(subject, sessionNonce, r.FormValue("csrf_token")) {
 		return true
 	}
 	http.Error(w, "invalid csrf token", http.StatusForbidden)

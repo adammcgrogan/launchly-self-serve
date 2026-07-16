@@ -15,7 +15,7 @@ import (
 // there is no admin-sent payment link.
 func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -46,7 +46,7 @@ func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := h.billing.CancelSubscription(r.Context(), site.ID); err != nil {

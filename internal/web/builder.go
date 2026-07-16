@@ -29,7 +29,7 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		"Timezones":        timezones,
 		"TestimonialRows":  testimonialRowsForForm(values),
 		"ServiceRows":      serviceRowsForForm(values),
-		"CSRFToken":        h.csrf.Token(middleware.UserID(r).String()),
+		"CSRFToken":        h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
 		"EmailVerified":    h.emailVerified(r),
 		"AIAvailable":      h.ai.Configured(),
 		"UploadsAvailable": h.uploads.Available(),
@@ -45,7 +45,7 @@ func (h *Handler) NewSiteForm(w http.ResponseWriter, r *http.Request) {
 // NewSiteSubmit creates the site and publishes it immediately — there is no
 // draft/review step, so the customer's site is live the moment they submit.
 func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -135,7 +135,7 @@ func (h *Handler) GenerateCopy(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not available", http.StatusServiceUnavailable)
 		return
 	}
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if !h.aiGenerateLimiter.Allow(middleware.UserID(r).String()) {

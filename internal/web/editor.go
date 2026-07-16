@@ -16,7 +16,7 @@ import (
 
 func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -37,7 +37,7 @@ func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -98,7 +98,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -142,7 +142,7 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -164,7 +164,7 @@ func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -186,7 +186,7 @@ func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	leadID, err := strconv.Atoi(r.PathValue("leadID"))
@@ -216,7 +216,7 @@ func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := h.sites.Publish(r.Context(), site.ID); err != nil {
@@ -234,7 +234,7 @@ func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := h.sites.Unpublish(r.Context(), site.ID); err != nil {
@@ -247,7 +247,7 @@ func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := h.sites.Delete(r.Context(), site.ID); err != nil {
@@ -260,7 +260,7 @@ func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -310,7 +310,7 @@ func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -331,7 +331,7 @@ func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Reques
 
 func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -361,7 +361,7 @@ func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateTrackingSettings(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -384,7 +384,7 @@ func (h *Handler) UpdateTrackingSettings(w http.ResponseWriter, r *http.Request)
 
 func (h *Handler) SendAnalyticsNow(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if err := h.cron.SendAnalyticsReport(r.Context(), site.ID); err != nil {

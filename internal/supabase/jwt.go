@@ -10,9 +10,10 @@ import (
 
 // Claims is the subset of a Supabase access token JWT we care about.
 type Claims struct {
-	UserID uuid.UUID
-	Email  string
-	Expiry time.Time
+	UserID    uuid.UUID
+	Email     string
+	Expiry    time.Time
+	SessionID string
 }
 
 // VerifyAccessToken locally verifies a Supabase-issued access token JWT
@@ -41,11 +42,12 @@ func VerifyAccessToken(tokenString, jwtSecret string) (*Claims, error) {
 	}
 
 	email, _ := claims["email"].(string)
+	sessionID, _ := claims["session_id"].(string)
 
 	var expiry time.Time
 	if exp, ok := claims["exp"].(float64); ok {
 		expiry = time.Unix(int64(exp), 0)
 	}
 
-	return &Claims{UserID: id, Email: email, Expiry: expiry}, nil
+	return &Claims{UserID: id, Email: email, Expiry: expiry, SessionID: sessionID}, nil
 }

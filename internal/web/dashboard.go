@@ -126,7 +126,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"ChartPoints":    chartPoints,
 		"SiteURL":        h.siteURL(site.Slug),
 		"Flash":          middleware.GetFlash(w, r),
-		"CSRFToken":      h.csrf.Token(middleware.UserID(r).String()),
+		"CSRFToken":      h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
 		"Upgraded":       r.URL.Query().Get("upgraded") == "1",
 		"EmailVerified":  h.emailVerified(r),
 
@@ -267,7 +267,7 @@ func (h *Handler) Account(w http.ResponseWriter, r *http.Request) {
 		"Sites":         sites,
 		"Flash":         middleware.GetFlash(w, r),
 		"EmailVerified": profile.EmailVerified,
-		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String()),
+		"CSRFToken":     h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
 	})
 }
 
@@ -324,7 +324,7 @@ func (h *Handler) ExportAccountData(w http.ResponseWriter, r *http.Request) {
 // which cascades away the profile, sites, and everything hanging off them.
 func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserID(r)
-	if !h.checkCSRF(w, r, userID.String()) {
+	if !h.checkCSRF(w, r, userID.String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	sites, err := h.sites.ListSitesByOwner(r.Context(), userID)

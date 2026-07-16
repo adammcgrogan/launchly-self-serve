@@ -27,7 +27,7 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		writeUploadError(w, http.StatusRequestEntityTooLarge, "That image is too large — please use one under 5 MB.")
 		return
 	}
-	if !h.checkCSRF(w, r, middleware.UserID(r).String()) {
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
 	if !h.uploadLimiter.Allow(middleware.UserID(r).String()) {

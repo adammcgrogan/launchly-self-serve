@@ -103,6 +103,22 @@ func (a *Auth) CurrentUserID(r *http.Request) (uuid.UUID, bool) {
 	return claims.UserID, true
 }
 
+// SessionNonce returns the access token's Supabase session ID — stable
+// across access-token refreshes within the same login, but different for
+// each new login — for binding CSRF tokens to the session. Returns "" if
+// there's no valid access token cookie.
+func (a *Auth) SessionNonce(r *http.Request) string {
+	c, err := r.Cookie(accessTokenCookie)
+	if err != nil {
+		return ""
+	}
+	claims, err := supabase.VerifyAccessToken(c.Value, a.jwtSecret)
+	if err != nil {
+		return ""
+	}
+	return claims.SessionID
+}
+
 // RequireUser verifies the access token cookie, transparently refreshing it
 // via the refresh token cookie if expired, and stores the user ID in the
 // request context. Redirects to /login if there's no valid session at all.

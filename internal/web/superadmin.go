@@ -70,7 +70,7 @@ func (h *Handler) SuperadminSiteView(w http.ResponseWriter, r *http.Request) {
 		"Site":      site,
 		"Leads":     leads,
 		"SiteURL":   h.siteURL(site.Slug),
-		"CSRFToken": h.csrf.Token("superadmin"),
+		"CSRFToken": h.csrf.Token("superadmin", ""),
 		"Flash":     middleware.GetFlash(w, r),
 	})
 }
@@ -84,7 +84,7 @@ func (h *Handler) SuperadminUnpublish(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if !h.checkCSRF(w, r, "superadmin") {
+	if !h.checkCSRF(w, r, "superadmin", "") {
 		return
 	}
 	if err := h.sites.Unpublish(r.Context(), id); err != nil {
@@ -101,7 +101,7 @@ func (h *Handler) SuperadminDelete(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if !h.checkCSRF(w, r, "superadmin") {
+	if !h.checkCSRF(w, r, "superadmin", "") {
 		return
 	}
 	if err := h.sites.Delete(r.Context(), id); err != nil {
