@@ -39,7 +39,7 @@
     {{$selPalette := .Values.Get "palette"}}
     {{$selFont := .Values.Get "heading_font"}}
 
-    <form method="POST" action="/dashboard/sites/new" id="wizard-form" data-generate-copy-url="/dashboard/sites/new/generate-copy" novalidate>
+    <form method="POST" action="/dashboard/sites/new" id="wizard-form" data-generate-copy-url="/dashboard/sites/new/generate-copy" data-error-step="{{.ErrorStep}}" novalidate>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <input type="hidden" name="palette" id="field-palette" value="{{$selPalette}}">
       <input type="hidden" name="heading_font" id="field-heading_font" value="{{$selFont}}">
@@ -525,7 +525,8 @@
     updateSlugAndHeading();
     updatePalettePreview();
     updatePreviewFont();
-    showStep(1);
+    var errorStep = Number(form.getAttribute('data-error-step')) || 1;
+    showStep(errorStep);
 
     form.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-generate]');

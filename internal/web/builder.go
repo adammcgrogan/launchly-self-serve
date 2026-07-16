@@ -13,17 +13,46 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
+// wizardStepForField maps a ValidationError's Field (the canonical name
+// passed to checkLen/checkURL/checkEmail/checkPhone in
+// internal/service/sites.go) to the new-site wizard step that contains it,
+// so a failed submit can return the owner to the field that's actually
+// wrong instead of resetting to step 1. Fields not present in the wizard
+// (e.g. FAQ/staff/meta fields, which only exist on the edit-site page) fall
+// through to step 1.
+func wizardStepForField(field string) int {
+	switch field {
+	case "business name", "location":
+		return 1
+	case "tagline", "about", "contact phone", "contact email", "service", "service price", "service description":
+		return 3
+	case "CTA text", "logo URL", "address", "map embed URL", "certification",
+		"testimonial author name", "testimonial author role", "testimonial quote",
+		"gallery image URL", "gallery image alt text",
+		"facebook link", "instagram link", "whatsapp link", "twitter link", "tiktok link", "linkedin link", "youtube link":
+		return 4
+	default:
+		return 1
+	}
+}
+
 // renderNewSite renders the builder wizard. values carries the user's input
-// back across a failed submit so nothing they typed is lost.
-func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg string, values url.Values) {
+// back across a failed submit so nothing they typed is lost. errStep is the
+// wizard step the JS should land on — 1 unless a ValidationError pinpointed
+// a field on a later step.
+func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg string, errStep int, values url.Values) {
 	if values == nil {
 		values = url.Values{}
+	}
+	if errStep == 0 {
+		errStep = 1
 	}
 	h.render.Render(w, "dashboard:new_site", map[string]any{
 		"Templates":        siteTemplates,
 		"BusinessTypes":    businessTypes,
 		"PaletteColors":    paletteSwatchColors,
 		"Error":            errMsg,
+		"ErrorStep":        errStep,
 		"Values":           values,
 		"Weekdays":         weekdays,
 		"Timezones":        timezones,
@@ -39,7 +68,7 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 // NewSiteForm renders the builder wizard: a four-step flow (business
 // basics, design, contact, optional extras) that ends in an instant publish.
 func (h *Handler) NewSiteForm(w http.ResponseWriter, r *http.Request) {
-	h.renderNewSite(w, r, "", nil)
+	h.renderNewSite(w, r, "", 0, nil)
 }
 
 // NewSiteSubmit creates the site and publishes it immediately — there is no
@@ -56,7 +85,7 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 	businessName := strings.TrimSpace(r.FormValue("business_name"))
 	templateID := r.FormValue("template_id")
 	if businessName == "" {
-		h.renderNewSite(w, r, "Business name is required.", r.Form)
+		h.renderNewSite(w, r, "Business name is required.", 1, r.Form)
 		return
 	}
 	tmpl, ok := findTemplate(templateID)
@@ -111,14 +140,14 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var verr *service.ValidationError
 		if errors.As(err, &verr) {
-			h.renderNewSite(w, r, verr.Message, r.Form)
+			h.renderNewSite(w, r, verr.Message, wizardStepForField(verr.Field), r.Form)
 			return
 		}
 		if errors.Is(err, service.ErrSiteLimitReached) {
-			h.renderNewSite(w, r, service.ErrSiteLimitReached.Error(), r.Form)
+			h.renderNewSite(w, r, service.ErrSiteLimitReached.Error(), 1, r.Form)
 			return
 		}
-		h.renderNewSite(w, r, "Something went wrong creating your site. Please try again.", r.Form)
+		h.renderNewSite(w, r, "Something went wrong creating your site. Please try again.", 1, r.Form)
 		return
 	}
 

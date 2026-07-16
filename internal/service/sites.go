@@ -56,14 +56,19 @@ const (
 
 // ValidationError is returned by CreateSite/UpdateContent when submitted
 // content fails format or length validation. Message is safe to show the
-// user directly.
-type ValidationError struct{ Message string }
+// user directly. Field is the canonical field name passed to checkLen/
+// checkURL/checkEmail/checkPhone, so callers can map a failure back to the
+// form field or wizard step it came from.
+type ValidationError struct {
+	Message string
+	Field   string
+}
 
 func (e *ValidationError) Error() string { return e.Message }
 
 func checkLen(field, value string, max int) error {
 	if utf8.RuneCountInString(value) > max {
-		return &ValidationError{Message: fmt.Sprintf("%s is too long (max %d characters).", field, max)}
+		return &ValidationError{Message: fmt.Sprintf("%s is too long (max %d characters).", field, max), Field: field}
 	}
 	return nil
 }
@@ -78,7 +83,7 @@ func checkURL(field, value string) error {
 	}
 	u, err := url.Parse(value)
 	if err != nil || u.Host == "" || u.Scheme != "https" {
-		return &ValidationError{Message: fmt.Sprintf("enter a valid %s starting with https://.", field)}
+		return &ValidationError{Message: fmt.Sprintf("enter a valid %s starting with https://.", field), Field: field}
 	}
 	return nil
 }
@@ -87,14 +92,14 @@ func checkEmail(field, value string) error {
 	if value == "" || emailRe.MatchString(value) {
 		return nil
 	}
-	return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field)}
+	return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field), Field: field}
 }
 
 func checkPhone(field, value string) error {
 	if value == "" || phoneRe.MatchString(value) {
 		return nil
 	}
-	return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field)}
+	return &ValidationError{Message: fmt.Sprintf("enter a valid %s.", field), Field: field}
 }
 
 // validateSiteContent checks format (email/phone/logo/map/gallery URLs) and
