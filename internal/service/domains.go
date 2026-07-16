@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/cloudflare"
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
+	"github.com/lib/pq"
 )
 
 // DomainRegistrar is the subset of Cloudflare's custom-hostnames API the
@@ -109,12 +111,29 @@ func (d *Domains) SetCustomDomain(ctx context.Context, siteID int, rawDomain str
 		return nil, fmt.Errorf("register with cloudflare: %w", err)
 	}
 	if err := postgres.SetCustomDomain(ctx, tx, siteID, host, hostname.ID); err != nil {
+		if isUniqueCustomDomainViolation(err) {
+			if delErr := d.cf.DeleteCustomHostname(ctx, hostname.ID); delErr != nil {
+				slog.Error("orphaned cloudflare hostname after lost domain-claim race", "cf_id", hostname.ID, "domain", host, "error", delErr)
+			}
+			return nil, ErrCustomDomainTaken
+		}
 		return nil, fmt.Errorf("save custom domain: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
 	return hostname, nil
+}
+
+// isUniqueCustomDomainViolation reports whether err is a Postgres
+// unique-constraint violation (23505) on the sites table's custom_domain
+// column — the race two concurrent claims for the same new domain can hit.
+func isUniqueCustomDomainViolation(err error) bool {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+	return pqErr.Code == "23505" && pqErr.Constraint == "sites_custom_domain_key"
 }
 
 // RefreshCustomDomainStatus re-checks a site's custom domain against
