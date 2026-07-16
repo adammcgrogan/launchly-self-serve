@@ -51,16 +51,12 @@ func UpdateAnalyticsLastSent(ctx context.Context, q querier, siteID int) error {
 	return err
 }
 
-// GetSiteIDsDueForAnalytics returns sites whose scheduled analytics digest is due.
+// GetSiteIDsDueForAnalytics returns sites whose monthly analytics digest is due.
 func GetSiteIDsDueForAnalytics(ctx context.Context, q querier) ([]int, error) {
 	rows, err := q.QueryContext(ctx, `
 		SELECT site_id FROM site_analytics_settings
-		WHERE analytics_frequency != 'off'
-		  AND (
-		    analytics_last_sent_at IS NULL
-		    OR (analytics_frequency = 'weekly' AND analytics_last_sent_at < now() - INTERVAL '7 days')
-		    OR (analytics_frequency = 'monthly' AND analytics_last_sent_at < now() - INTERVAL '30 days')
-		  )
+		WHERE analytics_frequency = 'monthly'
+		  AND (analytics_last_sent_at IS NULL OR analytics_last_sent_at < now() - INTERVAL '30 days')
 	`)
 	if err != nil {
 		return nil, err

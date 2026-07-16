@@ -82,12 +82,11 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
-	since7 := time.Now().UTC().Add(-7 * 24 * time.Hour)
-	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, since7, site.Timezone)
-	allTimeStats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, site.CreatedAt, site.Timezone)
+	period := analyticsPeriodFromKey(r.URL.Query().Get("period"))
+	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, period.since(site.CreatedAt), site.Timezone)
 	var chartPoints []dailyViewPoint
-	if stats != nil {
-		chartPoints = last7DayPoints(stats.ViewsByDay)
+	if stats != nil && period.Days > 0 {
+		chartPoints = lastNDayPoints(stats.ViewsByDay, period.Days)
 	}
 
 	tmpl, _ := findTemplate(site.TemplateID)
@@ -122,8 +121,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"LeadPrevPage":   leadPage - 1,
 		"LeadNextPage":   leadPage + 1,
 		"Stats":          stats,
-		"AllTimeStats":   allTimeStats,
 		"ChartPoints":    chartPoints,
+		"Period":         period.Key,
+		"Periods":        analyticsPeriods,
 		"SiteURL":        h.siteURL(site.Slug),
 		"Flash":          middleware.GetFlash(w, r),
 		"CSRFToken":      h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
@@ -207,21 +207,51 @@ const (
 	chartMinBarHeight = 4
 )
 
-// last7DayPoints turns ViewsByDay — which only has rows for days that had at
-// least one view — into a dense 7-day series ending today, so the chart
-// always renders 7 bars in the right position instead of shifting to fill
-// gaps. Bar heights are scaled against the week's own peak day.
-func last7DayPoints(viewsByDay []domain.DayCount) []dailyViewPoint {
+// analyticsPeriodOpt is one option in the analytics card's period toggle.
+// Days is 0 for "all time" (since the site was created, no daily chart).
+type analyticsPeriodOpt struct {
+	Key   string
+	Label string
+	Days  int
+}
+
+var analyticsPeriods = []analyticsPeriodOpt{
+	{Key: "7", Label: "7 days", Days: 7},
+	{Key: "30", Label: "30 days", Days: 30},
+	{Key: "all", Label: "All time", Days: 0},
+}
+
+func analyticsPeriodFromKey(key string) analyticsPeriodOpt {
+	for _, p := range analyticsPeriods {
+		if p.Key == key {
+			return p
+		}
+	}
+	return analyticsPeriods[0]
+}
+
+func (p analyticsPeriodOpt) since(siteCreatedAt time.Time) time.Time {
+	if p.Days == 0 {
+		return siteCreatedAt
+	}
+	return time.Now().UTC().Add(-time.Duration(p.Days) * 24 * time.Hour)
+}
+
+// lastNDayPoints turns ViewsByDay — which only has rows for days that had at
+// least one view — into a dense n-day series ending today, so the chart
+// always renders n bars in the right position instead of shifting to fill
+// gaps. Bar heights are scaled against the period's own peak day.
+func lastNDayPoints(viewsByDay []domain.DayCount, n int) []dailyViewPoint {
 	counts := make(map[string]int, len(viewsByDay))
 	for _, dc := range viewsByDay {
 		counts[dc.Day.UTC().Format("2006-01-02")] = dc.Count
 	}
 
 	now := time.Now().UTC()
-	points := make([]dailyViewPoint, 7)
+	points := make([]dailyViewPoint, n)
 	max := 0
 	for i := range points {
-		day := now.AddDate(0, 0, -(6 - i))
+		day := now.AddDate(0, 0, -(n - 1 - i))
 		count := counts[day.Format("2006-01-02")]
 		points[i] = dailyViewPoint{Label: day.Format("Mon"), Date: day.Format("2 Jan"), Count: count}
 		if count > max {
@@ -359,6 +389,44 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 	cw.Write([]string{"Name", "Email", "Phone", "Service", "Preferred time", "Message", "Status", "Date"})
 	for _, l := range leads {
 		cw.Write([]string{csvSafe(l.Name), csvSafe(l.Email), csvSafe(l.Phone), csvSafe(l.ServiceLabel), csvSafe(l.PreferredTime), csvSafe(l.Message), string(l.Status), l.CreatedAt.Format("2006-01-02 15:04")})
+	}
+	cw.Flush()
+}
+
+// ExportAnalytics downloads the site's page-view/referrer/conversion stats
+// for the requested period (mirrors ExportLeads) — the "just have a
+// downloadable file" option, independent of the monthly email's cadence.
+func (h *Handler) ExportAnalytics(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	period := analyticsPeriodFromKey(r.URL.Query().Get("period"))
+	stats, err := h.analytics.GetSiteStats(r.Context(), site.ID, period.since(site.CreatedAt), site.Timezone)
+	if err != nil || stats == nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-analytics-%s.csv"`, site.Slug, period.Key))
+	cw := csv.NewWriter(w)
+	cw.Write([]string{"Metric", "Value"})
+	cw.Write([]string{"Total views", strconv.Itoa(stats.TotalViews)})
+	cw.Write([]string{"Unique visitors", strconv.Itoa(stats.UniqueVisitors)})
+	cw.Write([]string{"Call taps", strconv.Itoa(stats.CallTaps)})
+	cw.Write([]string{"WhatsApp taps", strconv.Itoa(stats.WhatsAppTaps)})
+	cw.Write([]string{"Directions clicks", strconv.Itoa(stats.DirectionsClicks)})
+	cw.Write([]string{"Leads", strconv.Itoa(stats.Leads)})
+	cw.Write([]string{})
+	cw.Write([]string{"Day", "Views"})
+	for _, d := range stats.ViewsByDay {
+		cw.Write([]string{d.Day.Format("2006-01-02"), strconv.Itoa(d.Count)})
+	}
+	cw.Write([]string{})
+	cw.Write([]string{"Referrer", "Views"})
+	for _, ref := range stats.TopReferrers {
+		label := ref.Referrer
+		if label == "" {
+			label = "Direct"
+		}
+		cw.Write([]string{csvSafe(label), strconv.Itoa(ref.Count)})
 	}
 	cw.Flush()
 }

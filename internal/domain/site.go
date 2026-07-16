@@ -160,7 +160,7 @@ type SiteBilling struct {
 // SiteAnalyticsSettings holds a site's analytics preferences. 1:1 with Site.
 type SiteAnalyticsSettings struct {
 	SiteID              int
-	AnalyticsFrequency  string // "off", "weekly", "monthly"
+	AnalyticsFrequency  string // "off", "monthly"
 	AnalyticsLastSentAt *time.Time
 	// Owner-supplied third-party tracking IDs (Pro perk), rendered as
 	// GA4/Meta Pixel snippets on the public site. Empty when unset.

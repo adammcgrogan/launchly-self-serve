@@ -318,7 +318,7 @@ func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	freq := r.FormValue("analytics_frequency")
-	if freq != "off" && freq != "weekly" && freq != "monthly" {
+	if freq != "off" && freq != "monthly" {
 		http.Error(w, "invalid frequency", http.StatusBadRequest)
 		return
 	}

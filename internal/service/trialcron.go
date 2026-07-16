@@ -163,25 +163,13 @@ func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 	if to == "" {
 		return fmt.Errorf("no notification email on file for site %d", siteID)
 	}
-	settings, err := postgres.GetSiteAnalyticsSettings(ctx, c.store.DB(), siteID)
-	if err != nil {
-		return err
-	}
-	days := 7
-	if settings.AnalyticsFrequency == "monthly" {
-		days = 30
-	}
-	since := time.Now().UTC().Add(-time.Duration(days) * 24 * time.Hour)
+	since := time.Now().UTC().Add(-30 * 24 * time.Hour)
 	stats, err := c.analytics.GetSiteStats(ctx, siteID, since, site.Timezone)
 	if err != nil {
 		return fmt.Errorf("get stats: %w", err)
 	}
 	siteURL := fmt.Sprintf("%s/dashboard/sites/%d", c.baseURL, siteID)
-	freq := settings.AnalyticsFrequency
-	if freq == "" || freq == "off" {
-		freq = "weekly"
-	}
-	if err := c.mailer.SendAnalyticsDigest(to, site.BusinessName, freq, stats, siteURL); err != nil {
+	if err := c.mailer.SendAnalyticsDigest(to, site.BusinessName, stats, siteURL); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}
 	return postgres.UpdateAnalyticsLastSent(ctx, c.store.DB(), siteID)

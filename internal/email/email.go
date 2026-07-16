@@ -377,12 +377,7 @@ func (c *Client) SendSitePaused(to, businessName, dashboardURL string) error {
 	return c.Send(to, fmt.Sprintf("Your site is paused - %s", businessName), wrap("Site paused", content))
 }
 
-func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *domain.SiteStats, siteURL string) error {
-	period, days := "weekly", "7 days"
-	if frequency == "monthly" {
-		period, days = "monthly", "30 days"
-	}
-
+func (c *Client) SendAnalyticsDigest(to, businessName string, stats *domain.SiteStats, siteURL string) error {
 	statsRow := fmt.Sprintf(`<table width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;"><tr>%s%s</tr></table>`,
 		statTile(fmt.Sprintf("%d", stats.TotalViews), "Total visits"),
 		statTile(fmt.Sprintf("%d", stats.UniqueVisitors), "Unique visitors"))
@@ -395,15 +390,6 @@ func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *
 			statRow("Leads", stats.Leads, false)
 		conversionsNote = p(fmt.Sprintf("<strong>%d people</strong> took action to contact you this period — that's the number that proves your site pays for itself.", stats.TotalConversions())) +
 			sectionLabel("Conversions") + infoCard(rows)
-	}
-
-	var daysTable string
-	if len(stats.ViewsByDay) > 0 {
-		rows := ""
-		for i, d := range stats.ViewsByDay {
-			rows += statRow(d.Day.Format("Mon 2 Jan"), d.Count, i == 0)
-		}
-		daysTable = sectionLabel("Views by day") + infoCard(rows)
 	}
 
 	var refTable string
@@ -424,20 +410,15 @@ func (c *Client) SendAnalyticsDigest(to, businessName, frequency string, stats *
 		noDataNote = p(`<span style="color:#94a3b8;">No visits were recorded in this period. Once your site gets traffic, you'll see a full breakdown here.</span>`)
 	}
 
-	content := h1(fmt.Sprintf("Your %s website report", period)) +
-		p(fmt.Sprintf("Here's how <strong>%s</strong> performed over the last %s.", businessName, days)) +
-		statsRow + noDataNote + conversionsNote + daysTable + refTable +
-		button(siteURL, "View your website") +
+	content := h1("Your monthly website report") +
+		p(fmt.Sprintf("Here's how <strong>%s</strong> performed over the last 30 days.", businessName)) +
+		statsRow + noDataNote + conversionsNote + refTable +
+		button(siteURL, "View full report on your dashboard") +
 		divider() +
-		p(`<span style="color:#94a3b8;font-size:13px;">You're receiving this report because analytics is enabled for your site. Change the frequency any time from your dashboard.</span>`)
+		p(`<span style="color:#94a3b8;font-size:13px;">You're receiving this report because analytics is enabled for your site. For a day-by-day breakdown or a downloadable CSV, visit your dashboard. Turn this email off any time from your dashboard.</span>`)
 
-	subject := fmt.Sprintf("Your weekly website report - %s", businessName)
-	eyebrowLabel := "Weekly report"
-	if frequency == "monthly" {
-		subject = fmt.Sprintf("Your monthly website report - %s", businessName)
-		eyebrowLabel = "Monthly report"
-	}
-	return c.sendBulk(to, subject, wrap(eyebrowLabel, content))
+	subject := fmt.Sprintf("Your monthly website report - %s", businessName)
+	return c.sendBulk(to, subject, wrap("Monthly report", content))
 }
 
 // SendAdminAlert notifies the superadmin of noteworthy account events
