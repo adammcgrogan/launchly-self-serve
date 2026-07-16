@@ -180,6 +180,10 @@ func (h *Handler) ResendVerificationSubmit(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
+	if !h.loginLimiter.Allow(middleware.ClientIP(r)) {
+		h.render.Render(w, "auth:reset_password", map[string]any{"Error": "Too many attempts. Please wait a moment and try again."})
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
