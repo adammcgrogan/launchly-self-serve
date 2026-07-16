@@ -58,14 +58,15 @@ func main() {
 		baseURL = "http://" + cfg.Domain
 	}
 
+	cf := cloudflare.New(cfg.CloudflareAPIToken, cfg.CloudflareZoneID)
+
 	accounts := service.NewAccounts(store, supa, mailer, baseURL)
 	analytics := service.NewAnalytics(store, cfg.AnalyticsSalt)
 	billing := service.NewBilling(store, pay, mailer, baseURL)
-	sites := service.NewSites(store, billing)
+	sites := service.NewSites(store, billing, cf)
 	leads := service.NewLeads(store, mailer, sms)
 	cron := service.NewCron(store, mailer, analytics, baseURL)
 
-	cf := cloudflare.New(cfg.CloudflareAPIToken, cfg.CloudflareZoneID)
 	domains := service.NewDomains(store, cf, cfg.CloudflareFallbackOrigin, cfg.Domain)
 
 	imageStore := storage.New(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, cfg.SupabaseStorageBucket)

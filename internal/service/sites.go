@@ -24,10 +24,11 @@ import (
 type Sites struct {
 	store   *postgres.Store
 	billing *Billing
+	cf      DomainRegistrar
 }
 
-func NewSites(store *postgres.Store, billing *Billing) *Sites {
-	return &Sites{store: store, billing: billing}
+func NewSites(store *postgres.Store, billing *Billing, cf DomainRegistrar) *Sites {
+	return &Sites{store: store, billing: billing, cf: cf}
 }
 
 var (
@@ -851,6 +852,15 @@ func (s *Sites) Unpublish(ctx context.Context, siteID int) error {
 func (s *Sites) Delete(ctx context.Context, siteID int) error {
 	if err := s.billing.CancelSubscriptionIfActive(ctx, siteID); err != nil {
 		return fmt.Errorf("cancel subscription: %w", err)
+	}
+	site, err := postgres.GetSiteByID(ctx, s.store.DB(), siteID)
+	if err != nil {
+		return fmt.Errorf("load site: %w", err)
+	}
+	if site != nil && site.CustomDomainCFID != "" {
+		if err := s.cf.DeleteCustomHostname(ctx, site.CustomDomainCFID); err != nil {
+			return fmt.Errorf("remove custom domain from cloudflare: %w", err)
+		}
 	}
 	if err := postgres.DeleteSite(ctx, s.store.DB(), siteID); err != nil {
 		return err
