@@ -52,6 +52,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		About:           strings.TrimSpace(r.FormValue("about")),
 		LogoURL:         strings.TrimSpace(r.FormValue("logo_url")),
 		CTAText:         strings.TrimSpace(r.FormValue("cta_text")),
+		VideoURL:        strings.TrimSpace(r.FormValue("video_url")),
 		Timezone:        resolveTimezone(r.FormValue("timezone")),
 		MetaTitle:       strings.TrimSpace(r.FormValue("meta_title")),
 		MetaDescription: strings.TrimSpace(r.FormValue("meta_description")),

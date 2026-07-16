@@ -192,6 +192,26 @@ func validateSEO(metaTitle, metaDescription, ogImageURL string) error {
 	return nil
 }
 
+// validateVideoURL checks an optional promo video link — empty is allowed,
+// otherwise it must be a well-formed https URL that resolves to a YouTube or
+// Vimeo video (checked via domain.Site.VideoEmbedURL so the accepted formats
+// stay in one place).
+func validateVideoURL(videoURL string) error {
+	if videoURL == "" {
+		return nil
+	}
+	if err := checkLen("video URL", videoURL, maxMediumField); err != nil {
+		return err
+	}
+	if err := checkURL("video URL", videoURL); err != nil {
+		return err
+	}
+	if (domain.Site{VideoURL: videoURL}).VideoEmbedURL() == "" {
+		return &ValidationError{Message: "video URL must be a YouTube or Vimeo link.", Field: "video URL"}
+	}
+	return nil
+}
+
 // validateReviews checks the owner-entered review rating badge: the rating
 // must be a number between 0 and 5, the count non-negative, and the review
 // link a valid https URL. All fields are optional (empty rating = no badge).
@@ -579,6 +599,7 @@ type UpdateContentInput struct {
 	About           string
 	LogoURL         string
 	CTAText         string
+	VideoURL        string
 	Timezone        string
 	MetaTitle       string
 	MetaDescription string
@@ -608,6 +629,9 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	if err := validateSEO(in.MetaTitle, in.MetaDescription, in.OgImageURL); err != nil {
 		return err
 	}
+	if err := validateVideoURL(in.VideoURL); err != nil {
+		return err
+	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -624,7 +648,7 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 		return fmt.Errorf("load gallery: %w", err)
 	}
 
-	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText, Timezone: in.Timezone,
+	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText, VideoURL: in.VideoURL, Timezone: in.Timezone,
 		MetaTitle: in.MetaTitle, MetaDescription: in.MetaDescription, OgImageURL: in.OgImageURL}
 	if err := postgres.UpdateSiteContent(ctx, tx, site); err != nil {
 		return fmt.Errorf("update site: %w", err)

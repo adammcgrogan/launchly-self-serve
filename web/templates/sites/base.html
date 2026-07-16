@@ -76,6 +76,35 @@
   {{end}}
   {{template "site-content" .}}
 
+  {{if .Site.VideoEmbedURL}}
+  <section class="py-16 px-6" style="background:var(--surface);border-top:1px solid var(--line);">
+    <div class="max-w-4xl mx-auto">
+      <div class="relative w-full overflow-hidden rounded-2xl shadow-lg" style="aspect-ratio:16/9;background:#0f172a;">
+        <button type="button" data-video-facade data-video-src="{{.Site.VideoEmbedURL}}?autoplay=1" aria-label="Play video" class="absolute inset-0 flex items-center justify-center w-full h-full group cursor-pointer">
+          <span class="flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white/90 group-hover:bg-white transition">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0f172a" class="h-7 w-7 sm:h-9 sm:w-9 ml-1" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </section>
+  <script>
+  (function(){
+    document.querySelectorAll('[data-video-facade]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var iframe = document.createElement('iframe');
+        iframe.src = btn.getAttribute('data-video-src');
+        iframe.className = 'absolute inset-0 w-full h-full';
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+        iframe.setAttribute('allowfullscreen', '');
+        btn.parentElement.replaceChild(iframe, btn);
+      }, { once: true });
+    });
+  })();
+  </script>
+  {{end}}
+
   {{if .Site.ServiceAreas}}
   <section class="py-12 px-6" style="background:var(--surface);border-top:1px solid var(--line);">
     <div class="max-w-4xl mx-auto text-center">

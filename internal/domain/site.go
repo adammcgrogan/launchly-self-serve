@@ -2,6 +2,7 @@ package domain
 
 import (
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -73,10 +74,14 @@ type Site struct {
 	About        string
 	LogoURL      string
 	CTAText      string
-	TemplateID   string
-	FormType     FormType
-	Palette      string
-	HeadingFont  string
+	// VideoURL is an optional owner-supplied YouTube/Vimeo page URL (e.g.
+	// a promo clip or "meet the owner" walkthrough), rendered as a
+	// privacy-friendly click-to-load embed. See VideoEmbedURL.
+	VideoURL    string
+	TemplateID  string
+	FormType    FormType
+	Palette     string
+	HeadingFont string
 	// BrandColor is an optional exact hex colour (e.g. "#4F46E5") that
 	// overrides the accent colour of the chosen preset palette, so an owner
 	// can match their existing branding instead of picking "close enough".
@@ -118,6 +123,72 @@ func (s Site) BrandColorInk() string {
 		return "#000000"
 	}
 	return "#FFFFFF"
+}
+
+// VideoProvider returns "youtube" or "vimeo" for a recognised VideoURL, or ""
+// if VideoURL is empty or isn't a YouTube/Vimeo link.
+func (s Site) VideoProvider() string {
+	provider, _ := parseVideoURL(s.VideoURL)
+	return provider
+}
+
+// VideoEmbedURL returns the privacy-friendly (youtube-nocookie.com /
+// player.vimeo.com) iframe src for VideoURL, or "" if VideoURL is empty or
+// isn't a recognised YouTube/Vimeo link.
+func (s Site) VideoEmbedURL() string {
+	provider, id := parseVideoURL(s.VideoURL)
+	switch provider {
+	case "youtube":
+		return "https://www.youtube-nocookie.com/embed/" + id
+	case "vimeo":
+		return "https://player.vimeo.com/video/" + id
+	default:
+		return ""
+	}
+}
+
+// parseVideoURL extracts the provider and video ID from a YouTube or Vimeo
+// page/embed URL. Returns ("", "") for anything else.
+func parseVideoURL(raw string) (provider, id string) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return "", ""
+	}
+	host := strings.ToLower(u.Host)
+	host = strings.TrimPrefix(host, "www.")
+	host = strings.TrimPrefix(host, "m.")
+
+	switch host {
+	case "youtube.com", "youtube-nocookie.com":
+		switch {
+		case u.Path == "/watch":
+			if v := u.Query().Get("v"); v != "" {
+				return "youtube", v
+			}
+		case strings.HasPrefix(u.Path, "/embed/"):
+			return "youtube", strings.TrimPrefix(u.Path, "/embed/")
+		case strings.HasPrefix(u.Path, "/shorts/"):
+			return "youtube", strings.TrimPrefix(u.Path, "/shorts/")
+		}
+	case "youtu.be":
+		if v := strings.Trim(u.Path, "/"); v != "" {
+			return "youtube", v
+		}
+	case "vimeo.com":
+		if v := strings.Trim(u.Path, "/"); v != "" {
+			parts := strings.Split(v, "/")
+			return "vimeo", parts[len(parts)-1]
+		}
+	case "player.vimeo.com":
+		if strings.HasPrefix(u.Path, "/video/") {
+			return "vimeo", strings.TrimPrefix(u.Path, "/video/")
+		}
+	}
+	return "", ""
 }
 
 func parseHexColor(s string) (r, g, b int, ok bool) {
