@@ -43,12 +43,14 @@ func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.next.Enabled(ctx, level)
 }
 
-// skipMessages are high-volume, low-value log lines that should never be
+// skipMessages are high-volume or low-value log lines that should never be
 // forwarded to the webhook regardless of level — per-request access logs
 // (message "request", logged once per HTTP request in cmd/server/main.go)
-// would otherwise flood the channel at ALERT_MIN_LEVEL=info.
+// would otherwise flood the channel at ALERT_MIN_LEVEL=info, and "listening"
+// (logged once at startup) is routine noise rather than an alertable event.
 var skipMessages = map[string]bool{
-	"request": true,
+	"request":   true,
+	"listening": true,
 }
 
 func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
