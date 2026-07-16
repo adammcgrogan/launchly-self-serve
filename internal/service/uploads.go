@@ -64,3 +64,14 @@ func (u *Uploads) UploadImage(ctx context.Context, ownerID uuid.UUID, contentTyp
 	objectPath := fmt.Sprintf("%s/%s.%s", ownerID.String(), uuid.NewString(), ext)
 	return u.storage.Upload(ctx, objectPath, contentType, data)
 }
+
+// DeleteImage removes a previously-uploaded image from Storage, identified
+// by the public URL UploadImage returned for it. URLs that aren't one of
+// ours (an externally-hosted image a site owner pasted in directly) are
+// left untouched. A no-op if uploads aren't configured.
+func (u *Uploads) DeleteImage(ctx context.Context, publicURL string) error {
+	if !u.Available() {
+		return nil
+	}
+	return u.storage.DeleteByURL(ctx, publicURL)
+}

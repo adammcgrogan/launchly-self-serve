@@ -59,18 +59,17 @@ func main() {
 	}
 
 	cf := cloudflare.New(cfg.CloudflareAPIToken, cfg.CloudflareZoneID)
+	imageStore := storage.New(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, cfg.SupabaseStorageBucket)
+	uploads := service.NewUploads(imageStore)
 
 	accounts := service.NewAccounts(store, supa, mailer, baseURL)
 	analytics := service.NewAnalytics(store, cfg.AnalyticsSalt)
 	billing := service.NewBilling(store, pay, mailer, baseURL)
-	sites := service.NewSites(store, billing, cf)
+	sites := service.NewSites(store, billing, cf, uploads)
 	leads := service.NewLeads(store, mailer, sms)
 	cron := service.NewCron(store, mailer, analytics, baseURL)
 
 	domains := service.NewDomains(store, cf, cfg.CloudflareFallbackOrigin, cfg.Domain)
-
-	imageStore := storage.New(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, cfg.SupabaseStorageBucket)
-	uploads := service.NewUploads(imageStore)
 
 	secureCookies := !strings.Contains(cfg.Domain, "localhost")
 	auth := middleware.NewAuth(cfg.SupabaseJWTSecret, supa, secureCookies)

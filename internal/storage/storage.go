@@ -74,3 +74,51 @@ func (c *Client) Upload(ctx context.Context, objectPath, contentType string, dat
 
 	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", c.baseURL, c.bucket, objectPath), nil
 }
+
+// Delete removes objectPath from the bucket. Deleting an object that's
+// already gone is not an error — Supabase Storage returns 200 either way.
+func (c *Client) Delete(ctx context.Context, objectPath string) error {
+	objectPath = strings.TrimLeft(objectPath, "/")
+	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.baseURL, c.bucket, objectPath)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.serviceKey)
+	req.Header.Set("apikey", c.serviceKey)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<10))
+		return fmt.Errorf("supabase storage delete failed (%d): %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return nil
+}
+
+// publicURLPrefix is the prefix every URL Upload returns starts with — used
+// to recognise our own objects among URLs that may otherwise be pasted by a
+// site owner (e.g. an externally-hosted logo).
+func (c *Client) publicURLPrefix() string {
+	return fmt.Sprintf("%s/storage/v1/object/public/%s/", c.baseURL, c.bucket)
+}
+
+// DeleteByURL removes the object a previous Upload call returned the public
+// URL for. URLs that don't belong to this bucket (external images a site
+// owner pasted in directly) are left untouched. Deleting a blank URL is a
+// no-op.
+func (c *Client) DeleteByURL(ctx context.Context, publicURL string) error {
+	if publicURL == "" {
+		return nil
+	}
+	prefix := c.publicURLPrefix()
+	if !strings.HasPrefix(publicURL, prefix) {
+		return nil
+	}
+	return c.Delete(ctx, strings.TrimPrefix(publicURL, prefix))
+}

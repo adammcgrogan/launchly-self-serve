@@ -25,10 +25,11 @@ type Sites struct {
 	store   *postgres.Store
 	billing *Billing
 	cf      DomainRegistrar
+	uploads *Uploads
 }
 
-func NewSites(store *postgres.Store, billing *Billing, cf DomainRegistrar) *Sites {
-	return &Sites{store: store, billing: billing, cf: cf}
+func NewSites(store *postgres.Store, billing *Billing, cf DomainRegistrar, uploads *Uploads) *Sites {
+	return &Sites{store: store, billing: billing, cf: cf, uploads: uploads}
 }
 
 var (
@@ -614,6 +615,15 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 	defer tx.Rollback()
 
+	prevSite, err := postgres.GetSiteByID(ctx, tx, in.SiteID)
+	if err != nil {
+		return fmt.Errorf("load site: %w", err)
+	}
+	prevGallery, err := postgres.GetSiteGalleryImages(ctx, tx, in.SiteID)
+	if err != nil {
+		return fmt.Errorf("load gallery: %w", err)
+	}
+
 	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText, Timezone: in.Timezone,
 		MetaTitle: in.MetaTitle, MetaDescription: in.MetaDescription, OgImageURL: in.OgImageURL}
 	if err := postgres.UpdateSiteContent(ctx, tx, site); err != nil {
@@ -658,7 +668,39 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 		return fmt.Errorf("save reviews: %w", err)
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	s.deleteStaleImages(ctx, prevSite, prevGallery, in)
+	return nil
+}
+
+// deleteStaleImages removes the previous logo/gallery blobs from Storage
+// once the content update that replaced or removed them has committed.
+// Best-effort: the content save has already succeeded, so a Storage error
+// here is logged, not surfaced — a missed cleanup just leaves an orphaned
+// object rather than losing the owner's edit.
+func (s *Sites) deleteStaleImages(ctx context.Context, prevSite *domain.Site, prevGallery []domain.GalleryImage, in UpdateContentInput) {
+	if s.uploads == nil {
+		return
+	}
+	if prevSite != nil && prevSite.LogoURL != "" && prevSite.LogoURL != in.LogoURL {
+		if err := s.uploads.DeleteImage(ctx, prevSite.LogoURL); err != nil {
+			slog.Error("delete stale logo image", "site_id", in.SiteID, "error", err)
+		}
+	}
+	kept := make(map[string]bool, len(in.GalleryImages))
+	for _, img := range in.GalleryImages {
+		kept[img.URL] = true
+	}
+	for _, img := range prevGallery {
+		if !kept[img.URL] {
+			if err := s.uploads.DeleteImage(ctx, img.URL); err != nil {
+				slog.Error("delete stale gallery image", "site_id", in.SiteID, "error", err)
+			}
+		}
+	}
 }
 
 func (s *Sites) UpdateAppearance(ctx context.Context, siteID int, palette, headingFont, brandColor string) error {
