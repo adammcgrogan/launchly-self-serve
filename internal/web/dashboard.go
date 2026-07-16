@@ -90,7 +90,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 
 	domainData := map[string]any{
 		"FallbackOrigin": h.domains.FallbackOrigin(),
-		"IsPro":          site.Billing.Plan == domain.PlanPro,
+		"IsPro":          site.Billing.IsPro(),
 	}
 	if site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending {
 		if hostname, err := h.domains.RefreshCustomDomainStatus(r.Context(), site.ID); err == nil {

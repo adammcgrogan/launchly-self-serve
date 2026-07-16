@@ -94,7 +94,7 @@ func (d *Domains) SetCustomDomain(ctx context.Context, siteID int, rawDomain str
 	if err != nil {
 		return nil, fmt.Errorf("load billing: %w", err)
 	}
-	if billing == nil || billing.Plan != domain.PlanPro {
+	if billing == nil || !billing.IsPro() {
 		return nil, ErrCustomDomainNotPro
 	}
 

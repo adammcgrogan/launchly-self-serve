@@ -625,7 +625,7 @@
       <span class="rounded-full bg-brand/10 text-brand text-xs font-semibold px-2 py-0.5">Pro</span>
     </div>
     <p class="text-sm text-slate-500 mb-4">Add your Google Analytics 4 or Meta Pixel ID to track visitors and conversions in your own tools.</p>
-    {{if eq (print .Site.Billing.Plan) "pro"}}
+    {{if .Site.Billing.IsPro}}
     <form method="POST" action="/dashboard/sites/{{.Site.ID}}/tracking-settings" class="space-y-3">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <div>

@@ -20,16 +20,19 @@ func CreateSiteBilling(ctx context.Context, q querier, siteID int, plan domain.P
 	return err
 }
 
-// OwnerHasProSite reports whether any of an account's sites is on the Pro
-// plan, used to lift the per-account site cap (see
+// OwnerHasProSite reports whether any of an account's sites has active, paid
+// Pro access, used to lift the per-account site cap (see
 // service.Sites.canCreateSite) — plan is tracked per site, not per account.
+// payment_status = 'paid' is required alongside plan = 'pro' so an abandoned
+// or cancelled checkout (plan flips to 'pro' before payment completes)
+// doesn't lift the cap for free.
 func OwnerHasProSite(ctx context.Context, q querier, ownerID uuid.UUID) (bool, error) {
 	var exists bool
 	err := q.QueryRowContext(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM site_billing sb
 			JOIN sites s ON s.id = sb.site_id
-			WHERE s.owner_user_id = $1 AND sb.plan = 'pro'
+			WHERE s.owner_user_id = $1 AND sb.plan = 'pro' AND sb.payment_status = 'paid'
 		)
 	`, ownerID).Scan(&exists)
 	return exists, err

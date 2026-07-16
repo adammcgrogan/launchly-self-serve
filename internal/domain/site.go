@@ -228,6 +228,14 @@ type SiteBilling struct {
 	TrialFinalReminderSentAt *time.Time
 }
 
+// IsPro reports whether a site currently has active, paid-for Pro access.
+// Plan flips to "pro" as soon as a Stripe Checkout session is created, before
+// payment completes, so Pro-gated features must check PaymentStatus too —
+// otherwise an abandoned or cancelled checkout leaves permanent free access.
+func (b SiteBilling) IsPro() bool {
+	return b.Plan == PlanPro && b.PaymentStatus == PaymentStatusPaid
+}
+
 // SiteAnalyticsSettings holds a site's analytics preferences. 1:1 with Site.
 type SiteAnalyticsSettings struct {
 	SiteID              int

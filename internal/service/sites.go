@@ -852,7 +852,7 @@ func (s *Sites) UpdateNotifySettings(ctx context.Context, siteID int, mobileNumb
 		if err != nil {
 			return err
 		}
-		if billing == nil || billing.Plan != domain.PlanPro {
+		if billing == nil || !billing.IsPro() {
 			return ErrNotifyNotPro
 		}
 		if !e164Re.MatchString(mobileNumber) {
@@ -877,7 +877,7 @@ func (s *Sites) UpdateTrackingSettings(ctx context.Context, siteID int, gaMeasur
 		if err != nil {
 			return err
 		}
-		if billing == nil || billing.Plan != domain.PlanPro {
+		if billing == nil || !billing.IsPro() {
 			return ErrTrackingNotPro
 		}
 		if gaMeasurementID != "" && !ga4IDRe.MatchString(gaMeasurementID) {
