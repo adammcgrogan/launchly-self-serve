@@ -142,42 +142,19 @@
   </div>
 
   <div data-tab-panel="content" class="space-y-6">
-    <div class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="font-semibold text-slate-900 mb-1">Announcement</h2>
-      <p class="text-sm text-slate-500 mb-4">Shown as a banner at the top of your site until it expires or you clear it — e.g. "Closed for holidays until 4 Aug".</p>
-      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/announcement" class="space-y-3">
-        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <textarea name="announcement_text" rows="2" placeholder="Fully booked until September" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{.Site.Announcement.Text}}</textarea>
-        <div class="grid sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Link URL (optional)</label>
-            <input type="url" name="announcement_link_url" value="{{.Site.Announcement.LinkURL}}" placeholder="https://..." class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Link text (optional)</label>
-            <input type="text" name="announcement_link_label" value="{{.Site.Announcement.LinkLabel}}" placeholder="Learn more" class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <label class="text-sm text-slate-500">Tone
-            <select name="announcement_tone" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
-              <option value="info" {{if eq .Site.Announcement.Tone "info"}}selected{{end}}>Info</option>
-              <option value="promo" {{if eq .Site.Announcement.Tone "promo"}}selected{{end}}>Promo</option>
-              <option value="urgent" {{if eq .Site.Announcement.Tone "urgent"}}selected{{end}}>Urgent</option>
-            </select>
-          </label>
-          <label class="text-sm text-slate-500">Expires
-            <input type="date" name="announcement_expires_at" value="{{if .Site.Announcement.ExpiresAt}}{{.Site.Announcement.ExpiresAt.Format "2006-01-02"}}{{end}}" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
-          </label>
-          <button type="submit" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Save</button>
-        </div>
-      </form>
-    </div>
+    <!-- Standalone form for the Announcement tab's fields — a <form> can't
+         nest inside the "edit" form below, so its fields live in the
+         "announcement" tab panel further down and reference this one via
+         each field's form="announcement-form" attribute instead. -->
+    <form id="announcement-form" method="POST" action="/dashboard/sites/{{.Site.ID}}/announcement" class="hidden" aria-hidden="true">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    </form>
 
     <form method="POST" action="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-2xl border border-slate-200 bg-white p-6">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       <div class="flex flex-wrap gap-2 border-b border-slate-100 pb-4 mb-6" data-tabs="{{.Site.ID}}-content" data-style="pill" data-storage-key="dashboard-site-content-subtab" data-query-param="csubtab" data-default="basics">
+        <button type="button" data-tab="announcement" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Announcement</button>
         <button type="button" data-tab="basics" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Basics</button>
         <button type="button" data-tab="services" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Services &amp; areas</button>
         <button type="button" data-tab="reviews" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Reviews &amp; testimonials</button>
@@ -185,6 +162,37 @@
         <button type="button" data-tab="team" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">FAQs &amp; team</button>
         <button type="button" data-tab="hours" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Hours</button>
         <button type="button" data-tab="social" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Social &amp; SEO</button>
+      </div>
+
+      <div data-tab-panel="announcement" class="space-y-4 hidden">
+        <section class="space-y-3">
+          <h2 class="font-semibold text-slate-900 mb-1">Announcement</h2>
+          <p class="text-sm text-slate-500 -mt-1">Shown as a banner at the top of your site until it expires or you clear it — e.g. "Closed for holidays until 4 Aug".</p>
+          <textarea form="announcement-form" name="announcement_text" rows="2" placeholder="Fully booked until September" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{.Site.Announcement.Text}}</textarea>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Link URL (optional)</label>
+              <input form="announcement-form" type="url" name="announcement_link_url" value="{{.Site.Announcement.LinkURL}}" placeholder="https://..." class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Link text (optional)</label>
+              <input form="announcement-form" type="text" name="announcement_link_label" value="{{.Site.Announcement.LinkLabel}}" placeholder="Learn more" class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="text-sm text-slate-500">Tone
+              <select form="announcement-form" name="announcement_tone" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
+                <option value="info" {{if eq .Site.Announcement.Tone "info"}}selected{{end}}>Info</option>
+                <option value="promo" {{if eq .Site.Announcement.Tone "promo"}}selected{{end}}>Promo</option>
+                <option value="urgent" {{if eq .Site.Announcement.Tone "urgent"}}selected{{end}}>Urgent</option>
+              </select>
+            </label>
+            <label class="text-sm text-slate-500">Expires
+              <input form="announcement-form" type="date" name="announcement_expires_at" value="{{if .Site.Announcement.ExpiresAt}}{{.Site.Announcement.ExpiresAt.Format "2006-01-02"}}{{end}}" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
+            </label>
+            <button type="submit" form="announcement-form" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Save announcement</button>
+          </div>
+        </section>
       </div>
 
       <div data-tab-panel="basics" class="space-y-10">
