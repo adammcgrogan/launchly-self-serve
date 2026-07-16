@@ -146,6 +146,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"FAQRows":          faqRowsForDisplay(site.FAQItems),
 		"StaffRows":        staffRowsForDisplay(site.StaffMembers),
 		"HoursByDay":       businessHoursByDay(site.BusinessHours),
+		"SpecialHoursRows": specialHoursRowsForDisplay(site.SpecialHours),
 		"Weekdays":         weekdays,
 		"Timezones":        timezones,
 		"Domain":           h.cfg.Domain,

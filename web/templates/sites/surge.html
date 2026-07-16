@@ -157,10 +157,11 @@
       {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">Phone: <a href="tel:{{.Site.Contact.Phone}}" class="font-semibold" style="color:var(--ink);">{{.Site.Contact.Phone}}</a></p>{{end}}
       {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">Email: <a href="mailto:{{.Site.Contact.Email}}" class="font-semibold" style="color:var(--ink);">{{.Site.Contact.Email}}</a></p>{{end}}
       {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
-      {{if .Site.BusinessHours}}
+      {{if or .Site.BusinessHours .Site.UpcomingSpecialHours}}
       <div class="mt-6 pt-6 border-t" style="border-color:var(--line);">
         {{if .OpenLabel}}<p class="text-sm font-bold uppercase mb-2" style="color:{{if .Open}}var(--accent){{else}}var(--muted){{end}};">{{.OpenLabel}}</p>{{end}}
         {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);"><span class="font-semibold" style="color:var(--ink);">{{.Weekday.String}}:</span> {{if .Closed}}Closed{{else}}{{.OpensAt}}–{{.ClosesAt}}{{end}}</p>{{end}}
+        {{range .Site.UpcomingSpecialHours}}<p class="text-sm" style="color:var(--muted);"><span class="font-semibold" style="color:var(--ink);">{{.FriendlyDate}}{{if .Label}} ({{.Label}}){{end}}:</span> {{if .Closed}}Closed{{else}}{{.OpensAt}}–{{.ClosesAt}}{{end}}</p>{{end}}
       </div>
       {{end}}
     </div>

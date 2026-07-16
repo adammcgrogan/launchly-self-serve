@@ -73,6 +73,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		FAQItems:       parseFAQRows(r),
 		StaffMembers:   parseStaffRows(r),
 		BusinessHours:  parseBusinessHours(r),
+		SpecialHours:   parseSpecialHoursRows(r),
 		ServiceAreas:   parseServiceAreas(r.FormValue("service_areas")),
 		Reviews: domain.SiteReviews{
 			Rating:      strings.TrimSpace(r.FormValue("review_rating")),

@@ -335,6 +335,30 @@ type BusinessHours struct {
 	Closed   bool
 }
 
+// SpecialHours is a one-off date override to the weekly BusinessHours — e.g.
+// a bank holiday closure or different hours over Christmas — keyed by
+// calendar date (in the site's own Timezone) rather than weekday. It takes
+// precedence over BusinessHours for its Date in OpenNow and OpenDays.
+type SpecialHours struct {
+	ID       int
+	SiteID   int
+	Date     string // "YYYY-MM-DD"
+	Label    string // e.g. "Christmas Day", shown alongside the hours
+	OpensAt  string // "HH:MM" 24-hour, empty when Closed
+	ClosesAt string
+	Closed   bool
+}
+
+// FriendlyDate renders Date as "Mon, 2 Jan 2006" for display, falling back
+// to the raw value if it isn't a valid "YYYY-MM-DD" date.
+func (h SpecialHours) FriendlyDate() string {
+	t, err := time.Parse("2006-01-02", h.Date)
+	if err != nil {
+		return h.Date
+	}
+	return t.Format("Mon, 2 Jan 2006")
+}
+
 // SiteAggregate is a fully-loaded site with all related data, as used by
 // the editor, the public site renderer, and the dashboard. Assembled by
 // service/sites.go from multiple repository calls.
@@ -354,6 +378,7 @@ type SiteAggregate struct {
 	FAQItems       []FAQItem
 	StaffMembers   []StaffMember
 	BusinessHours  []BusinessHours
+	SpecialHours   []SpecialHours
 	ServiceAreas   []ServiceArea
 }
 
@@ -376,8 +401,9 @@ func (s SiteAggregate) OpenDays() []BusinessHours {
 // (falling back to Europe/London if unset/invalid), plus a short status
 // label for the public "Open now" badge. label is "" if no hours are
 // configured at all — callers should hide the badge in that case.
+// SpecialHours take precedence over the weekly BusinessHours for their date.
 func (s SiteAggregate) OpenNow() (open bool, label string) {
-	if len(s.BusinessHours) == 0 {
+	if len(s.BusinessHours) == 0 && len(s.SpecialHours) == 0 {
 		return false, ""
 	}
 	loc, err := time.LoadLocation(s.Timezone)
@@ -389,7 +415,7 @@ func (s SiteAggregate) OpenNow() (open bool, label string) {
 	now := time.Now().In(loc)
 	nowClock := now.Format("15:04")
 
-	if today := businessHoursForDay(s.BusinessHours, now.Weekday()); today != nil && !today.Closed && today.OpensAt != "" && today.ClosesAt != "" {
+	if today := s.scheduleForDate(now); today != nil && !today.Closed && today.OpensAt != "" && today.ClosesAt != "" {
 		if nowClock >= today.OpensAt && nowClock < today.ClosesAt {
 			return true, "Open now"
 		}
@@ -398,18 +424,41 @@ func (s SiteAggregate) OpenNow() (open bool, label string) {
 		}
 	}
 	for i := 1; i <= 7; i++ {
-		wd := time.Weekday((int(now.Weekday()) + i) % 7)
-		next := businessHoursForDay(s.BusinessHours, wd)
+		day := now.AddDate(0, 0, i)
+		next := s.scheduleForDate(day)
 		if next == nil || next.Closed || next.OpensAt == "" {
 			continue
 		}
-		when := wd.String()
+		when := day.Weekday().String()
 		if i == 1 {
 			when = "tomorrow"
 		}
 		return false, "Closed — opens " + friendlyHour(next.OpensAt) + " " + when
 	}
 	return false, "Closed"
+}
+
+// daySchedule is the resolved opening hours for one calendar date, whichever
+// of SpecialHours/BusinessHours supplied them.
+type daySchedule struct {
+	OpensAt  string
+	ClosesAt string
+	Closed   bool
+}
+
+// scheduleForDate resolves t's opening hours, preferring a SpecialHours
+// override dated t over the weekly BusinessHours row for t's weekday.
+func (s SiteAggregate) scheduleForDate(t time.Time) *daySchedule {
+	dateStr := t.Format("2006-01-02")
+	for _, sh := range s.SpecialHours {
+		if sh.Date == dateStr {
+			return &daySchedule{OpensAt: sh.OpensAt, ClosesAt: sh.ClosesAt, Closed: sh.Closed}
+		}
+	}
+	if bh := businessHoursForDay(s.BusinessHours, t.Weekday()); bh != nil {
+		return &daySchedule{OpensAt: bh.OpensAt, ClosesAt: bh.ClosesAt, Closed: bh.Closed}
+	}
+	return nil
 }
 
 func businessHoursForDay(hours []BusinessHours, wd time.Weekday) *BusinessHours {
@@ -419,6 +468,26 @@ func businessHoursForDay(hours []BusinessHours, wd time.Weekday) *BusinessHours 
 		}
 	}
 	return nil
+}
+
+// UpcomingSpecialHours returns SpecialHours entries dated today or later (in
+// the site's own Timezone), for public display — past overrides are hidden
+// automatically so owners don't have to remember to delete them.
+func (s SiteAggregate) UpcomingSpecialHours() []SpecialHours {
+	loc, err := time.LoadLocation(s.Timezone)
+	if err != nil {
+		if loc, err = time.LoadLocation("Europe/London"); err != nil {
+			loc = time.UTC
+		}
+	}
+	today := time.Now().In(loc).Format("2006-01-02")
+	var out []SpecialHours
+	for _, sh := range s.SpecialHours {
+		if sh.Date >= today {
+			out = append(out, sh)
+		}
+	}
+	return out
 }
 
 // friendlyHour turns "09:00" into "9am" and "13:30" into "1:30pm".

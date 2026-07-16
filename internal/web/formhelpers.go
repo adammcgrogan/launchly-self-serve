@@ -341,6 +341,54 @@ func parseBusinessHours(r *http.Request) []domain.BusinessHours {
 	return out
 }
 
+// parseSpecialHoursRows reads the repeatable special-hours cards —
+// special_date, special_label, special_open, special_close, and
+// special_closed are each submitted as one value per row, in the same order,
+// so the i-th value of each names one row. Rows with no date, or an invalid
+// date, are dropped.
+func parseSpecialHoursRows(r *http.Request) []domain.SpecialHours {
+	dates := r.Form["special_date"]
+	labels := r.Form["special_label"]
+	opens := r.Form["special_open"]
+	closes := r.Form["special_close"]
+	closedVals := r.Form["special_closed"]
+	var out []domain.SpecialHours
+	for i, date := range dates {
+		date = strings.TrimSpace(date)
+		if date == "" {
+			continue
+		}
+		if _, err := time.Parse("2006-01-02", date); err != nil {
+			continue
+		}
+		h := domain.SpecialHours{Date: date}
+		if i < len(labels) {
+			h.Label = strings.TrimSpace(labels[i])
+		}
+		if i < len(opens) {
+			h.OpensAt = strings.TrimSpace(opens[i])
+		}
+		if i < len(closes) {
+			h.ClosesAt = strings.TrimSpace(closes[i])
+		}
+		if i < len(closedVals) {
+			h.Closed = closedVals[i] != ""
+		}
+		out = append(out, h)
+	}
+	return out
+}
+
+// specialHoursRowsForDisplay adapts a site's stored special-hours overrides
+// to the repeatable form, always returning at least one (possibly empty) row
+// so the edit form has one to render.
+func specialHoursRowsForDisplay(hrs []domain.SpecialHours) []domain.SpecialHours {
+	if len(hrs) == 0 {
+		return []domain.SpecialHours{{}}
+	}
+	return hrs
+}
+
 // resolveTimezone trims/defaults the submitted timezone field to
 // "Europe/London" when blank, so Site.Timezone is never empty.
 func resolveTimezone(tz string) string {

@@ -417,6 +417,29 @@
             {{end}}
           </div>
         </div>
+        <div>
+          <p class="block text-sm font-medium text-slate-700 mb-1">Special / holiday hours</p>
+          <p class="text-sm text-slate-500 mb-2">Date-specific overrides, e.g. closed for Christmas or different hours on a bank holiday. Take precedence over the weekly hours above for that date.</p>
+          <div data-special-hours-list class="space-y-3">
+            {{range $i, $sh := .SpecialHoursRows}}
+            <div class="special-hours-row relative rounded-xl border border-slate-200 p-4" data-special-hours-row>
+              <button type="button" data-remove-special-hours class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove special hours">✕</button>
+              <div class="flex flex-wrap items-center gap-3 pr-6">
+                <input type="date" name="special_date" value="{{$sh.Date}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="special_label" value="{{$sh.Label}}" placeholder="Label (optional), e.g. Christmas Day" class="flex-1 min-w-[10rem] rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <select name="special_closed" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <option value="" {{if not $sh.Closed}}selected{{end}}>Open with hours</option>
+                  <option value="1" {{if $sh.Closed}}selected{{end}}>Closed all day</option>
+                </select>
+                <input type="time" name="special_open" value="{{$sh.OpensAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <span class="text-slate-400 text-sm">to</span>
+                <input type="time" name="special_close" value="{{$sh.ClosesAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              </div>
+            </div>
+            {{end}}
+          </div>
+          <button type="button" data-add-special-hours class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add a date override</button>
+        </div>
       </section>
 
       <section class="space-y-4">
@@ -841,6 +864,32 @@
       }
     });
     updateStaffRemoveButtons();
+  })();
+
+  (function () {
+    var specialHoursList = document.querySelector('[data-special-hours-list]');
+    if (!specialHoursList) return;
+    function updateSpecialHoursRemoveButtons() {
+      var rows = specialHoursList.querySelectorAll('[data-special-hours-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-special-hours]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-special-hours]').addEventListener('click', function () {
+      var rows = specialHoursList.querySelectorAll('[data-special-hours-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+      clone.querySelectorAll('select').forEach(function (el) { el.value = ''; });
+      specialHoursList.appendChild(clone);
+      updateSpecialHoursRemoveButtons();
+    });
+    specialHoursList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-special-hours]')) {
+        e.target.closest('[data-special-hours-row]').remove();
+        updateSpecialHoursRemoveButtons();
+      }
+    });
+    updateSpecialHoursRemoveButtons();
   })();
 
   (function () {

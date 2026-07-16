@@ -475,6 +475,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		faqItems       []domain.FAQItem
 		staffMembers   []domain.StaffMember
 		hours          []domain.BusinessHours
+		specialHours   []domain.SpecialHours
 		serviceAreas   []domain.ServiceArea
 	)
 
@@ -493,6 +494,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 	g.Go(func() (err error) { faqItems, err = postgres.GetSiteFAQItems(gctx, q, id); return })
 	g.Go(func() (err error) { staffMembers, err = postgres.GetSiteStaffMembers(gctx, q, id); return })
 	g.Go(func() (err error) { hours, err = postgres.GetSiteBusinessHours(gctx, q, id); return })
+	g.Go(func() (err error) { specialHours, err = postgres.GetSiteSpecialHours(gctx, q, id); return })
 	g.Go(func() (err error) { serviceAreas, err = postgres.GetSiteServiceAreas(gctx, q, id); return })
 	if err := g.Wait(); err != nil {
 		return nil, err
@@ -518,6 +520,7 @@ func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggre
 		FAQItems:       faqItems,
 		StaffMembers:   staffMembers,
 		BusinessHours:  hours,
+		SpecialHours:   specialHours,
 		ServiceAreas:   serviceAreas,
 	}, nil
 }
@@ -582,6 +585,7 @@ type UpdateContentInput struct {
 	FAQItems        []domain.FAQItem
 	StaffMembers    []domain.StaffMember
 	BusinessHours   []domain.BusinessHours
+	SpecialHours    []domain.SpecialHours
 	ServiceAreas    []domain.ServiceArea
 	Reviews         domain.SiteReviews
 }
@@ -636,6 +640,9 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 	if err := postgres.ReplaceSiteBusinessHours(ctx, tx, in.SiteID, in.BusinessHours); err != nil {
 		return fmt.Errorf("save business hours: %w", err)
+	}
+	if err := postgres.ReplaceSiteSpecialHours(ctx, tx, in.SiteID, in.SpecialHours); err != nil {
+		return fmt.Errorf("save special hours: %w", err)
 	}
 	if err := postgres.ReplaceSiteServiceAreas(ctx, tx, in.SiteID, in.ServiceAreas); err != nil {
 		return fmt.Errorf("save service areas: %w", err)

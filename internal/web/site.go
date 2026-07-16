@@ -99,10 +99,12 @@ type jsonLDAddress struct {
 }
 
 type jsonLDOpeningHours struct {
-	Type      string `json:"@type"`
-	DayOfWeek string `json:"dayOfWeek"`
-	Opens     string `json:"opens"`
-	Closes    string `json:"closes"`
+	Type         string `json:"@type"`
+	DayOfWeek    string `json:"dayOfWeek,omitempty"`
+	Opens        string `json:"opens"`
+	Closes       string `json:"closes"`
+	ValidFrom    string `json:"validFrom,omitempty"`
+	ValidThrough string `json:"validThrough,omitempty"`
 }
 
 type jsonLDService struct {
@@ -179,6 +181,18 @@ func localBusinessJSONLD(site *domain.SiteAggregate, siteURL string) template.JS
 			DayOfWeek: h.Weekday.String(),
 			Opens:     h.OpensAt,
 			Closes:    h.ClosesAt,
+		})
+	}
+	for _, h := range site.SpecialHours {
+		if h.Closed || h.OpensAt == "" || h.ClosesAt == "" {
+			continue
+		}
+		biz.OpeningHoursSpecification = append(biz.OpeningHoursSpecification, jsonLDOpeningHours{
+			Type:         "OpeningHoursSpecification",
+			Opens:        h.OpensAt,
+			Closes:       h.ClosesAt,
+			ValidFrom:    h.Date,
+			ValidThrough: h.Date,
 		})
 	}
 

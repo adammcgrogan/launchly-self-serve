@@ -132,10 +132,11 @@
       {{if .Site.Contact.Phone}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Phone}}</p>{{end}}
       {{if .Site.Contact.Email}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Email}}</p>{{end}}
       {{if .Site.Contact.Address}}<p class="mb-2" style="color:var(--muted);">{{.Site.Contact.Address}}</p>{{end}}
-      {{if .Site.BusinessHours}}
+      {{if or .Site.BusinessHours .Site.UpcomingSpecialHours}}
       <div class="mt-6">
         {{if .OpenLabel}}<p class="text-sm font-semibold mb-2" style="color:{{if .Open}}var(--brass){{else}}var(--muted){{end}};">{{.OpenLabel}}</p>{{end}}
         {{range .Site.BusinessHours}}<p class="text-sm" style="color:var(--muted);">{{.Weekday.String}}: {{if .Closed}}Closed{{else}}{{.OpensAt}}–{{.ClosesAt}}{{end}}</p>{{end}}
+        {{range .Site.UpcomingSpecialHours}}<p class="text-sm" style="color:var(--muted);">{{.FriendlyDate}}{{if .Label}} ({{.Label}}){{end}}: {{if .Closed}}Closed{{else}}{{.OpensAt}}–{{.ClosesAt}}{{end}}</p>{{end}}
       </div>
       {{end}}
     </div>
