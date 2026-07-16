@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -82,12 +83,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
-	period := analyticsPeriodFromKey(r.URL.Query().Get("period"))
-	stats, _ := h.analytics.GetSiteStats(r.Context(), site.ID, period.since(site.CreatedAt), site.Timezone)
-	var chartPoints []dailyViewPoint
-	if stats != nil && period.Days > 0 {
-		chartPoints = lastNDayPoints(stats.ViewsByDay, period.Days)
-	}
+	stats, chartPoints, period := h.analyticsCardStats(r.Context(), site, r.URL.Query().Get("period"))
 
 	tmpl, _ := findTemplate(site.TemplateID)
 	checklist, checklistPercent := siteChecklist(site)
@@ -236,6 +232,41 @@ func (p analyticsPeriodOpt) since(siteCreatedAt time.Time) time.Time {
 		return siteCreatedAt
 	}
 	return time.Now().UTC().Add(-time.Duration(p.Days) * 24 * time.Hour)
+}
+
+// analyticsCardStats resolves the analytics period from a query key and
+// loads that period's stats/chart data — shared by the full overview page
+// and the fetch-driven analytics-card partial (SiteAnalyticsCard) so a
+// period switch renders identically either way.
+func (h *Handler) analyticsCardStats(ctx context.Context, site *domain.SiteAggregate, periodKey string) (*domain.SiteStats, []dailyViewPoint, analyticsPeriodOpt) {
+	period := analyticsPeriodFromKey(periodKey)
+	stats, _ := h.analytics.GetSiteStats(ctx, site.ID, period.since(site.CreatedAt), site.Timezone)
+	var chartPoints []dailyViewPoint
+	if stats != nil && period.Days > 0 {
+		chartPoints = lastNDayPoints(stats.ViewsByDay, period.Days)
+	}
+	return stats, chartPoints, period
+}
+
+// SiteAnalyticsCard re-renders just the Analytics card's stats/chart for a
+// new period. The period toggle in dashboard:site fetches this instead of
+// reloading the whole dashboard page.
+func (h *Handler) SiteAnalyticsCard(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	stats, chartPoints, period := h.analyticsCardStats(r.Context(), site, r.URL.Query().Get("period"))
+	leadCounts, err := h.leads.Counts(r.Context(), site.ID)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	h.render.RenderPartial(w, "dashboard:analytics_card", "analytics_card", map[string]any{
+		"Site":        site,
+		"Stats":       stats,
+		"ChartPoints": chartPoints,
+		"Period":      period.Key,
+		"Periods":     analyticsPeriods,
+		"LeadCount":   leadCounts.Total,
+	})
 }
 
 // lastNDayPoints turns ViewsByDay — which only has rows for days that had at

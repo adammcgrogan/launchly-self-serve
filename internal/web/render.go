@@ -52,10 +52,17 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 	}
 
 	dashBase := "web/templates/dashboard/base.html"
-	for _, p := range []string{"sites", "new_site", "site", "launched", "account"} {
+	for _, p := range []string{"sites", "new_site", "launched", "account"} {
 		if err := rd.parse("dashboard:"+p, dashBase, "web/templates/dashboard/"+p+".html"); err != nil {
 			return err
 		}
+	}
+	analyticsCard := "web/templates/dashboard/analytics_card.html"
+	if err := rd.parse("dashboard:site", dashBase, "web/templates/dashboard/site.html", analyticsCard); err != nil {
+		return err
+	}
+	if err := rd.parse("dashboard:analytics_card", analyticsCard); err != nil {
+		return err
 	}
 	if err := rd.parse("dashboard:print", "web/templates/dashboard/print.html"); err != nil {
 		return err
@@ -87,6 +94,21 @@ func (rd *Renderer) Render(w http.ResponseWriter, key string, data any) {
 	}
 	if err := t.ExecuteTemplate(w, "base", data); err != nil {
 		slog.Error("template render failed", "key", key, "error", err)
+	}
+}
+
+// RenderPartial executes a named sub-template from a pre-parsed set without
+// the "base" page wrapper — used for fetch-driven partial updates like the
+// analytics card, which return a fragment rather than a full page.
+func (rd *Renderer) RenderPartial(w http.ResponseWriter, key, name string, data any) {
+	t, ok := rd.tmpl[key]
+	if !ok {
+		slog.Error("render: unknown template key", "key", key)
+		http.Error(w, "template error", http.StatusInternalServerError)
+		return
+	}
+	if err := t.ExecuteTemplate(w, name, data); err != nil {
+		slog.Error("partial render failed", "key", key, "name", name, "error", err)
 	}
 }
 
