@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -11,13 +10,13 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
 
-// The editor form uses simple newline-separated textareas for list fields
-// (certifications, gallery URLs) and "field|field" lines for testimonials —
-// the same convention the old app used, just parsed into normalized rows
-// instead of stored as raw delimited strings. Services and the builder
-// wizard's testimonials use real repeated fields instead (see
-// parseServiceRows, parseTestimonialRows) rather than asking for a
-// delimited line.
+// The builder wizard's certifications/gallery fields still use simple
+// newline-separated textareas parsed into normalized rows (see
+// parseCertifications, parseGallery below) — everything else (services,
+// FAQs, staff, testimonials, and the editor's certifications/areas/gallery)
+// uses real repeated fields instead (see parseServiceRows,
+// parseTestimonialRows, parseCertificationRows, parseServiceAreaRows,
+// parseGalleryRows) rather than asking for a delimited line.
 
 func splitLines(s string) []string {
 	var out []string
@@ -178,6 +177,32 @@ func parseCertifications(s string) []domain.Certification {
 	return out
 }
 
+// parseCertificationRows reads the repeatable certification/trust-badge
+// cards — certification_label is submitted once per row. Rows with no label
+// are dropped.
+func parseCertificationRows(r *http.Request) []domain.Certification {
+	labels := r.Form["certification_label"]
+	var out []domain.Certification
+	for _, label := range labels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		out = append(out, domain.Certification{Label: label, SortOrder: len(out)})
+	}
+	return out
+}
+
+// certificationRowsForDisplay adapts a site's stored certifications to the
+// repeatable card form, always returning at least one (possibly empty) row
+// so the edit form has one to render.
+func certificationRowsForDisplay(c []domain.Certification) []domain.Certification {
+	if len(c) == 0 {
+		return []domain.Certification{{}}
+	}
+	return c
+}
+
 // atoiClamp parses a non-negative integer form field, returning 0 for empty
 // or malformed input rather than an error — used for optional count fields.
 func atoiClamp(s string) int {
@@ -188,20 +213,29 @@ func atoiClamp(s string) int {
 	return n
 }
 
-func parseServiceAreas(s string) []domain.ServiceArea {
+// parseServiceAreaRows reads the repeatable "areas we serve" cards —
+// service_area is submitted once per row. Rows with no area are dropped.
+func parseServiceAreaRows(r *http.Request) []domain.ServiceArea {
+	areas := r.Form["service_area"]
 	var out []domain.ServiceArea
-	for i, area := range splitLines(s) {
-		out = append(out, domain.ServiceArea{Area: area, SortOrder: i})
+	for _, area := range areas {
+		area = strings.TrimSpace(area)
+		if area == "" {
+			continue
+		}
+		out = append(out, domain.ServiceArea{Area: area, SortOrder: len(out)})
 	}
 	return out
 }
 
-func serviceAreasToLines(a []domain.ServiceArea) string {
-	lines := make([]string, len(a))
-	for i, x := range a {
-		lines[i] = x.Area
+// serviceAreaRowsForDisplay adapts a site's stored service areas to the
+// repeatable card form, always returning at least one (possibly empty) row
+// so the edit form has one to render.
+func serviceAreaRowsForDisplay(a []domain.ServiceArea) []domain.ServiceArea {
+	if len(a) == 0 {
+		return []domain.ServiceArea{{}}
 	}
-	return strings.Join(lines, "\n")
+	return a
 }
 
 func parseGallery(s string) []domain.GalleryImage {
@@ -212,28 +246,29 @@ func parseGallery(s string) []domain.GalleryImage {
 	return out
 }
 
-// parseTestimonials parses "Name|Role|Quote" lines — role is optional.
-func parseTestimonials(s string) []domain.Testimonial {
-	var out []domain.Testimonial
-	for i, line := range splitLines(s) {
-		parts := strings.SplitN(line, "|", 3)
-		t := domain.Testimonial{SortOrder: i}
-		switch len(parts) {
-		case 1:
-			t.Quote = strings.TrimSpace(parts[0])
-		case 2:
-			t.AuthorName = strings.TrimSpace(parts[0])
-			t.Quote = strings.TrimSpace(parts[1])
-		default:
-			t.AuthorName = strings.TrimSpace(parts[0])
-			t.AuthorRole = strings.TrimSpace(parts[1])
-			t.Quote = strings.TrimSpace(parts[2])
+// parseGalleryRows reads the repeatable gallery-image cards — gallery_url is
+// submitted once per row. Rows with no URL are dropped.
+func parseGalleryRows(r *http.Request) []domain.GalleryImage {
+	urls := r.Form["gallery_url"]
+	var out []domain.GalleryImage
+	for _, u := range urls {
+		u = strings.TrimSpace(u)
+		if u == "" {
+			continue
 		}
-		if t.Quote != "" {
-			out = append(out, t)
-		}
+		out = append(out, domain.GalleryImage{URL: u, SortOrder: len(out)})
 	}
 	return out
+}
+
+// galleryRowsForDisplay adapts a site's stored gallery images to the
+// repeatable card form, always returning at least one (possibly empty) row
+// so the edit form has one to render.
+func galleryRowsForDisplay(g []domain.GalleryImage) []domain.GalleryImage {
+	if len(g) == 0 {
+		return []domain.GalleryImage{{}}
+	}
+	return g
 }
 
 // parseTestimonialRows reads the wizard's repeatable testimonial cards —
@@ -292,6 +327,16 @@ func testimonialRowsForForm(values url.Values) []domain.Testimonial {
 		rows = append(rows, domain.Testimonial{})
 	}
 	return rows
+}
+
+// testimonialRowsForDisplay adapts a site's stored testimonials to the
+// repeatable card form, always returning at least one (possibly empty) row
+// so the edit form has one to render.
+func testimonialRowsForDisplay(t []domain.Testimonial) []domain.Testimonial {
+	if len(t) == 0 {
+		return []domain.Testimonial{{}}
+	}
+	return t
 }
 
 // weekdayField describes one row of the opening-hours grid in the builder
@@ -436,28 +481,4 @@ func socialLinksMap(links []domain.SocialLink) map[string]string {
 		m[string(l.Platform)] = l.URL
 	}
 	return m
-}
-
-func certificationsToLines(c []domain.Certification) string {
-	lines := make([]string, len(c))
-	for i, x := range c {
-		lines[i] = x.Label
-	}
-	return strings.Join(lines, "\n")
-}
-
-func galleryToLines(g []domain.GalleryImage) string {
-	lines := make([]string, len(g))
-	for i, x := range g {
-		lines[i] = x.URL
-	}
-	return strings.Join(lines, "\n")
-}
-
-func testimonialsToLines(t []domain.Testimonial) string {
-	lines := make([]string, len(t))
-	for i, x := range t {
-		lines[i] = fmt.Sprintf("%s|%s|%s", x.AuthorName, x.AuthorRole, x.Quote)
-	}
-	return strings.Join(lines, "\n")
 }

@@ -259,13 +259,29 @@
           <button type="button" data-add-service class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another service</button>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Certifications / trust badges, one per line</label>
-          <textarea name="certifications" rows="2" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.CertsText}}</textarea>
+          <p class="block text-sm font-medium text-slate-700 mb-2">Certifications / trust badges</p>
+          <div data-cert-list class="space-y-2">
+            {{range $i, $c := .CertRows}}
+            <div class="cert-row relative flex items-center gap-2" data-cert-row>
+              <input type="text" name="certification_label" value="{{$c.Label}}" placeholder="e.g. Gas Safe registered" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <button type="button" data-remove-cert class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove certification">✕</button>
+            </div>
+            {{end}}
+          </div>
+          <button type="button" data-add-cert class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another certification</button>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Areas we serve, one per line</label>
-          <textarea name="service_areas" rows="2" placeholder="Belfast&#10;Lisburn&#10;Bangor" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.ServiceAreasText}}</textarea>
-          <p class="mt-1 text-xs text-slate-400">For mobile/at-home trades — shown on your site and used to help you rank for local searches.</p>
+          <p class="block text-sm font-medium text-slate-700 mb-1">Areas we serve</p>
+          <p class="text-xs text-slate-400 mb-2">For mobile/at-home trades — shown on your site and used to help you rank for local searches.</p>
+          <div data-area-list class="space-y-2">
+            {{range $i, $a := .AreaRows}}
+            <div class="area-row relative flex items-center gap-2" data-area-row>
+              <input type="text" name="service_area" value="{{$a.Area}}" placeholder="e.g. Belfast" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <button type="button" data-remove-area class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove area">✕</button>
+            </div>
+            {{end}}
+          </div>
+          <button type="button" data-add-area class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another area</button>
         </div>
         <div>
           <p class="block text-sm font-medium text-slate-700 mb-2">Reviews badge</p>
@@ -284,18 +300,39 @@
           <p class="mt-1 text-xs text-slate-400">Shows a star badge and a one-tap review button on your site. Leave the rating blank to hide the badge.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Testimonials, one per line as "Name|Role|Quote"</label>
-          <textarea name="testimonials" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.TestimonialsText}}</textarea>
+          <p class="block text-sm font-medium text-slate-700 mb-2">Testimonials</p>
+          <div data-testimonial-list class="space-y-3">
+            {{range $i, $t := .TestimonialRows}}
+            <div class="testimonial-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-testimonial-row>
+              <button type="button" data-remove-testimonial class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove testimonial">✕</button>
+              <div class="grid sm:grid-cols-2 gap-3 pr-6">
+                <input type="text" name="testimonial_name" value="{{$t.AuthorName}}" placeholder="Customer name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="testimonial_role" value="{{$t.AuthorRole}}" placeholder="Role, e.g. Homeowner (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              </div>
+              <textarea name="testimonial_quote" rows="2" placeholder="What did they say?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$t.Quote}}</textarea>
+            </div>
+            {{end}}
+          </div>
+          <button type="button" data-add-testimonial class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another testimonial</button>
         </div>
         <div data-upload-widget>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Gallery image URLs, one per line</label>
-          <textarea name="gallery" rows="3" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.GalleryText}}</textarea>
-          {{if .UploadsAvailable}}
-          <div class="mt-2 flex items-center gap-3">
-            <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload images<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="hidden" data-image-upload data-upload-for="gallery" data-upload-mode="append"></label>
-            <span class="text-xs text-slate-400" data-upload-status></span>
+          <p class="block text-sm font-medium text-slate-700 mb-2">Gallery images</p>
+          <div data-gallery-list class="space-y-3">
+            {{range $i, $g := .GalleryRows}}
+            <div class="gallery-row relative rounded-xl border border-slate-200 p-3 flex items-center gap-3" data-gallery-row>
+              {{if $g.URL}}<img src="{{$g.URL}}" alt="" class="h-12 w-12 shrink-0 rounded-lg object-cover border border-slate-200" data-gallery-thumb>{{else}}<div class="h-12 w-12 shrink-0 rounded-lg bg-slate-100" data-gallery-thumb></div>{{end}}
+              <input type="url" name="gallery_url" value="{{$g.URL}}" placeholder="Image URL" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <button type="button" data-remove-gallery class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove image">✕</button>
+            </div>
+            {{end}}
           </div>
-          {{end}}
+          <div class="mt-3 flex items-center gap-3">
+            <button type="button" data-add-gallery class="text-sm font-medium text-brand hover:text-brand-dark">+ Add image URL</button>
+            {{if .UploadsAvailable}}
+            <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload images<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="hidden" data-image-upload data-upload-for="gallery" data-upload-mode="rows"></label>
+            <span class="text-xs text-slate-400" data-upload-status></span>
+            {{end}}
+          </div>
         </div>
         <div>
           <p class="block text-sm font-medium text-slate-700 mb-2">FAQs</p>
@@ -802,6 +839,136 @@
   })();
 
   (function () {
+    var certList = document.querySelector('[data-cert-list]');
+    if (!certList) return;
+    function updateCertRemoveButtons() {
+      var rows = certList.querySelectorAll('[data-cert-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-cert]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-cert]').addEventListener('click', function () {
+      var rows = certList.querySelectorAll('[data-cert-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+      certList.appendChild(clone);
+      updateCertRemoveButtons();
+    });
+    certList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-cert]')) {
+        e.target.closest('[data-cert-row]').remove();
+        updateCertRemoveButtons();
+      }
+    });
+    updateCertRemoveButtons();
+  })();
+
+  (function () {
+    var areaList = document.querySelector('[data-area-list]');
+    if (!areaList) return;
+    function updateAreaRemoveButtons() {
+      var rows = areaList.querySelectorAll('[data-area-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-area]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-area]').addEventListener('click', function () {
+      var rows = areaList.querySelectorAll('[data-area-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+      areaList.appendChild(clone);
+      updateAreaRemoveButtons();
+    });
+    areaList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-area]')) {
+        e.target.closest('[data-area-row]').remove();
+        updateAreaRemoveButtons();
+      }
+    });
+    updateAreaRemoveButtons();
+  })();
+
+  (function () {
+    var testimonialList = document.querySelector('[data-testimonial-list]');
+    if (!testimonialList) return;
+    function updateTestimonialRemoveButtons() {
+      var rows = testimonialList.querySelectorAll('[data-testimonial-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-testimonial]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-testimonial]').addEventListener('click', function () {
+      var rows = testimonialList.querySelectorAll('[data-testimonial-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      testimonialList.appendChild(clone);
+      updateTestimonialRemoveButtons();
+    });
+    testimonialList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-testimonial]')) {
+        e.target.closest('[data-testimonial-row]').remove();
+        updateTestimonialRemoveButtons();
+      }
+    });
+    updateTestimonialRemoveButtons();
+  })();
+
+  (function () {
+    var galleryList = document.querySelector('[data-gallery-list]');
+    if (!galleryList) return;
+    function updateGalleryRemoveButtons() {
+      var rows = galleryList.querySelectorAll('[data-gallery-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-gallery]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    function setThumb(row, url) {
+      var thumb = row.querySelector('[data-gallery-thumb]');
+      if (!thumb) return;
+      if (thumb.tagName === 'IMG') {
+        if (url) { thumb.src = url; return; }
+        var placeholder = document.createElement('div');
+        placeholder.className = 'h-12 w-12 shrink-0 rounded-lg bg-slate-100';
+        placeholder.setAttribute('data-gallery-thumb', '');
+        thumb.replaceWith(placeholder);
+        return;
+      }
+      if (!url) return;
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      img.className = 'h-12 w-12 shrink-0 rounded-lg object-cover border border-slate-200';
+      img.setAttribute('data-gallery-thumb', '');
+      thumb.replaceWith(img);
+    }
+    function addGalleryRow(url) {
+      var rows = galleryList.querySelectorAll('[data-gallery-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelector('input[name="gallery_url"]').value = url || '';
+      setThumb(clone, url || '');
+      galleryList.appendChild(clone);
+      updateGalleryRemoveButtons();
+      return clone;
+    }
+    document.querySelector('[data-add-gallery]').addEventListener('click', function () {
+      addGalleryRow('');
+    });
+    galleryList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-gallery]')) {
+        e.target.closest('[data-gallery-row]').remove();
+        updateGalleryRemoveButtons();
+      }
+    });
+    galleryList.addEventListener('input', function (e) {
+      if (e.target.matches('input[name="gallery_url"]')) {
+        setThumb(e.target.closest('[data-gallery-row]'), e.target.value.trim());
+      }
+    });
+    updateGalleryRemoveButtons();
+    window.__addGalleryRow = addGalleryRow;
+  })();
+
+  (function () {
     var specialHoursList = document.querySelector('[data-special-hours-list]');
     if (!specialHoursList) return;
     function updateSpecialHoursRemoveButtons() {
@@ -894,8 +1061,11 @@
 <script>
   // Image upload: file inputs marked [data-image-upload] POST to /dashboard/uploads
   // and drop the returned public URL into the field named by data-upload-for —
-  // replacing it (logo) or appending a line (gallery). The URL text fields stay
-  // usable as a fallback, so this only ever adds a URL, never blocks the form.
+  // replacing it (logo), appending a line (gallery textarea), or adding a new
+  // gallery row (data-upload-mode="rows", used once gallery is a repeatable
+  // list rather than a textarea — see the gallery-list script above). The URL
+  // text fields stay usable as a fallback, so this only ever adds a URL,
+  // never blocks the form.
   (function () {
     document.addEventListener('change', function (e) {
       var input = e.target;
@@ -905,8 +1075,9 @@
       var form = input.closest('form');
       if (!form) return;
       var widget = input.closest('[data-upload-widget]');
-      var target = form.querySelector('[name="' + input.getAttribute('data-upload-for') + '"]');
-      var append = input.getAttribute('data-upload-mode') === 'append';
+      var mode = input.getAttribute('data-upload-mode');
+      var target = mode === 'rows' ? null : form.querySelector('[name="' + input.getAttribute('data-upload-for') + '"]');
+      var append = mode === 'append';
       var status = widget ? widget.querySelector('[data-upload-status]') : null;
       var csrfEl = form.querySelector('[name="csrf_token"]');
       var csrf = csrfEl ? csrfEl.value : '';
@@ -915,7 +1086,9 @@
 
       function setStatus(msg) { if (status) status.textContent = msg; }
       function apply(url) {
-        if (append) {
+        if (mode === 'rows') {
+          if (window.__addGalleryRow) window.__addGalleryRow(url);
+        } else if (append) {
           var existing = target.value.replace(/\s+$/, '');
           target.value = existing ? existing + '\n' + url : url;
         } else {
