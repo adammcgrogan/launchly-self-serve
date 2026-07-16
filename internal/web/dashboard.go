@@ -167,13 +167,17 @@ type checklistItem struct {
 // actually publishing — without needing any extra queries.
 func siteChecklist(site *domain.SiteAggregate) (items []checklistItem, percent int) {
 	base := fmt.Sprintf("/dashboard/sites/%d?tab=settings&subtab=", site.ID)
+	// The "content" sub-tab is itself split into nested groups (basics,
+	// services, gallery, hours, ...) — &csubtab=X deep-links into the right
+	// one so these links still land on the field that needs fixing instead
+	// of just the sub-tab's default "basics" group.
 	items = []checklistItem{
-		{Label: "Add your logo", Done: site.LogoURL != "", Link: base + "content"},
-		{Label: "Write your intro (about)", Done: strings.TrimSpace(site.About) != "", Link: base + "content"},
-		{Label: "List at least one service", Done: len(site.Services) > 0, Link: base + "content"},
-		{Label: "Add a phone number or email", Done: site.Contact.Phone != "" || site.Contact.Email != "", Link: base + "content"},
-		{Label: "Set your opening hours", Done: len(site.BusinessHours) > 0, Link: base + "content"},
-		{Label: "Add a photo to your gallery", Done: len(site.GalleryImages) > 0, Link: base + "content"},
+		{Label: "Add your logo", Done: site.LogoURL != "", Link: base + "content&csubtab=basics"},
+		{Label: "Write your intro (about)", Done: strings.TrimSpace(site.About) != "", Link: base + "content&csubtab=basics"},
+		{Label: "List at least one service", Done: len(site.Services) > 0, Link: base + "content&csubtab=services"},
+		{Label: "Add a phone number or email", Done: site.Contact.Phone != "" || site.Contact.Email != "", Link: base + "content&csubtab=basics"},
+		{Label: "Set your opening hours", Done: len(site.BusinessHours) > 0, Link: base + "content&csubtab=hours"},
+		{Label: "Add a photo to your gallery", Done: len(site.GalleryImages) > 0, Link: base + "content&csubtab=gallery"},
 		{Label: "Publish your site", Done: site.Status == domain.SiteStatusLive, Link: base + "publishing"},
 	}
 	done := 0

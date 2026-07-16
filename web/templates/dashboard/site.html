@@ -174,76 +174,87 @@
       </form>
     </div>
 
-    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-10">
+    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-2xl border border-slate-200 bg-white p-6">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-      <section class="space-y-4">
-        <h2 class="font-semibold text-slate-900">Business details</h2>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
-          <input type="text" name="business_name" value="{{.Site.BusinessName}}" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
-          <input type="text" name="tagline" value="{{.Site.Tagline}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
-          <textarea name="about" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.About}}</textarea>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div data-upload-widget>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Logo</label>
-            <input type="url" name="logo_url" value="{{.Site.LogoURL}}" placeholder="Paste an image URL, or upload below" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            {{if .UploadsAvailable}}
-            <div class="mt-2 flex items-center gap-3">
-              <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload an image<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-image-upload data-upload-for="logo_url" data-upload-mode="replace"></label>
-              <span class="text-xs text-slate-400" data-upload-status></span>
+      <div class="flex flex-wrap gap-2 border-b border-slate-100 pb-4 mb-6" data-tabs="{{.Site.ID}}-content" data-style="pill" data-storage-key="dashboard-site-content-subtab" data-query-param="csubtab" data-default="basics">
+        <button type="button" data-tab="basics" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Basics</button>
+        <button type="button" data-tab="services" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Services &amp; areas</button>
+        <button type="button" data-tab="reviews" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Reviews &amp; testimonials</button>
+        <button type="button" data-tab="gallery" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Gallery</button>
+        <button type="button" data-tab="team" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">FAQs &amp; team</button>
+        <button type="button" data-tab="hours" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Hours</button>
+        <button type="button" data-tab="social" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Social &amp; SEO</button>
+      </div>
+
+      <div data-tab-panel="basics" class="space-y-10">
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Business details</h2>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
+            <input type="text" name="business_name" value="{{.Site.BusinessName}}" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
+            <input type="text" name="tagline" value="{{.Site.Tagline}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
+            <textarea name="about" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.About}}</textarea>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div data-upload-widget>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Logo</label>
+              <input type="url" name="logo_url" value="{{.Site.LogoURL}}" placeholder="Paste an image URL, or upload below" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              {{if .UploadsAvailable}}
+              <div class="mt-2 flex items-center gap-3">
+                <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload an image<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-image-upload data-upload-for="logo_url" data-upload-mode="replace"></label>
+                <span class="text-xs text-slate-400" data-upload-status></span>
+              </div>
+              {{end}}
             </div>
-            {{end}}
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
+              <input type="text" name="cta_text" value="{{.Site.CTAText}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
-            <input type="text" name="cta_text" value="{{.Site.CTAText}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Promo video (YouTube or Vimeo link, optional)</label>
+            <input type="url" name="video_url" value="{{.Site.VideoURL}}" placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <p class="mt-1 text-xs text-slate-400">Shown as a click-to-play video on your site — nothing loads from YouTube/Vimeo until a visitor clicks it.</p>
           </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Promo video (YouTube or Vimeo link, optional)</label>
-          <input type="url" name="video_url" value="{{.Site.VideoURL}}" placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          <p class="mt-1 text-xs text-slate-400">Shown as a click-to-play video on your site — nothing loads from YouTube/Vimeo until a visitor clicks it.</p>
-        </div>
-      </section>
+        </section>
 
-      <section class="space-y-4">
-        <h2 class="font-semibold text-slate-900">Contact</h2>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-            <input type="tel" name="phone" value="{{.Site.Contact.Phone}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Contact</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <input type="tel" name="phone" value="{{.Site.Contact.Phone}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
+              <input type="email" name="email" value="{{.Site.Contact.Email}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+              <input type="text" name="address" value="{{.Site.Contact.Address}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Location badge</label>
+              <input type="text" name="location" value="{{.Site.Contact.Location}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
-            <input type="email" name="email" value="{{.Site.Contact.Email}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL (optional)</label>
+            <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
-            <input type="text" name="address" value="{{.Site.Contact.Address}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Location badge</label>
-            <input type="text" name="location" value="{{.Site.Contact.Location}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL (optional)</label>
-          <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <section class="space-y-4">
-        <h2 class="font-semibold text-slate-900">Content</h2>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-2">Services</p>
+      <div data-tab-panel="services" class="space-y-10 hidden">
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Services</h2>
           <div data-service-list class="space-y-3">
             {{range $i, $s := .ServiceRows}}
             <div class="service-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-service-row>
@@ -257,9 +268,10 @@
             {{end}}
           </div>
           <button type="button" data-add-service class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another service</button>
-        </div>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-2">Certifications / trust badges</p>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Certifications / trust badges</h2>
           <div data-cert-list class="space-y-2">
             {{range $i, $c := .CertRows}}
             <div class="cert-row relative flex items-center gap-2" data-cert-row>
@@ -269,10 +281,11 @@
             {{end}}
           </div>
           <button type="button" data-add-cert class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another certification</button>
-        </div>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-1">Areas we serve</p>
-          <p class="text-xs text-slate-400 mb-2">For mobile/at-home trades — shown on your site and used to help you rank for local searches.</p>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900 mb-1">Areas we serve</h2>
+          <p class="text-xs text-slate-400">For mobile/at-home trades — shown on your site and used to help you rank for local searches.</p>
           <div data-area-list class="space-y-2">
             {{range $i, $a := .AreaRows}}
             <div class="area-row relative flex items-center gap-2" data-area-row>
@@ -282,9 +295,12 @@
             {{end}}
           </div>
           <button type="button" data-add-area class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another area</button>
-        </div>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-2">Reviews badge</p>
+        </section>
+      </div>
+
+      <div data-tab-panel="reviews" class="space-y-10 hidden">
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Reviews badge</h2>
           <div class="grid sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs text-slate-500 mb-1">Star rating (0–5)</label>
@@ -298,9 +314,10 @@
           <label class="block text-xs text-slate-500 mb-1 mt-3">"Leave us a review" link (e.g. your Google review page)</label>
           <input type="url" name="review_url" value="{{.Reviews.ReviewURL}}" placeholder="https://g.page/r/..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
           <p class="mt-1 text-xs text-slate-400">Shows a star badge and a one-tap review button on your site. Leave the rating blank to hide the badge.</p>
-        </div>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-2">Testimonials</p>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Testimonials</h2>
           <div data-testimonial-list class="space-y-3">
             {{range $i, $t := .TestimonialRows}}
             <div class="testimonial-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-testimonial-row>
@@ -314,9 +331,12 @@
             {{end}}
           </div>
           <button type="button" data-add-testimonial class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another testimonial</button>
-        </div>
-        <div data-upload-widget>
-          <p class="block text-sm font-medium text-slate-700 mb-2">Gallery images</p>
+        </section>
+      </div>
+
+      <div data-tab-panel="gallery" class="space-y-10 hidden">
+        <section class="space-y-4" data-upload-widget>
+          <h2 class="font-semibold text-slate-900">Gallery images</h2>
           <div data-gallery-list class="space-y-3">
             {{range $i, $g := .GalleryRows}}
             <div class="gallery-row relative rounded-xl border border-slate-200 p-3 flex items-center gap-3" data-gallery-row>
@@ -333,9 +353,12 @@
             <span class="text-xs text-slate-400" data-upload-status></span>
             {{end}}
           </div>
-        </div>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-2">FAQs</p>
+        </section>
+      </div>
+
+      <div data-tab-panel="team" class="space-y-10 hidden">
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">FAQs</h2>
           <div data-faq-list class="space-y-3">
             {{range $i, $f := .FAQRows}}
             <div class="faq-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-faq-row>
@@ -346,9 +369,10 @@
             {{end}}
           </div>
           <button type="button" data-add-faq class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another FAQ</button>
-        </div>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-2">Meet the team</p>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Meet the team</h2>
           <div data-staff-list class="space-y-3">
             {{range $i, $m := .StaffRows}}
             <div class="staff-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-staff-row>
@@ -363,35 +387,45 @@
             {{end}}
           </div>
           <button type="button" data-add-staff class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add another team member</button>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Timezone</label>
+        </section>
+      </div>
+
+      <div data-tab-panel="hours" class="space-y-10 hidden">
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Timezone</h2>
           <select name="timezone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             {{$tz := .Site.Timezone}}
             {{range .Timezones}}<option value="{{.}}" {{if eq . $tz}}selected{{end}}>{{.}}</option>{{end}}
           </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Opening hours</label>
-          <div class="space-y-2">
+        </section>
+
+        <section class="space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="font-semibold text-slate-900">Opening hours</h2>
+            <button type="button" data-copy-hours class="text-sm font-medium text-brand hover:text-brand-dark whitespace-nowrap">Copy Monday to every day</button>
+          </div>
+          <div data-hours-list class="space-y-2">
             {{range .Weekdays}}
             {{$h := index $.HoursByDay .Weekday}}
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="w-24 text-sm text-slate-600">{{.Label}}</span>
-              <input type="time" name="hours_{{.Key}}_open" value="{{$h.OpensAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <span class="text-slate-400 text-sm">to</span>
-              <input type="time" name="hours_{{.Key}}_close" value="{{$h.ClosesAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <label class="flex items-center gap-1.5 text-sm text-slate-600 ml-2">
-                <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $h.Closed}}checked{{end}}>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-100 px-3 py-2" data-hours-row data-hours-key="{{.Key}}">
+              <span class="w-20 shrink-0 text-sm font-medium text-slate-600">{{.Label}}</span>
+              <div class="flex items-center gap-2">
+                <input type="time" name="hours_{{.Key}}_open" value="{{$h.OpensAt}}" {{if $h.Closed}}disabled{{end}} data-hours-open class="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-300">
+                <span class="text-slate-400 text-sm">to</span>
+                <input type="time" name="hours_{{.Key}}_close" value="{{$h.ClosesAt}}" {{if $h.Closed}}disabled{{end}} data-hours-close class="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-300">
+              </div>
+              <label class="ml-auto flex items-center gap-1.5 text-sm text-slate-600 whitespace-nowrap">
+                <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $h.Closed}}checked{{end}} data-hours-closed>
                 Closed
               </label>
             </div>
             {{end}}
           </div>
-        </div>
-        <div>
-          <p class="block text-sm font-medium text-slate-700 mb-1">Special / holiday hours</p>
-          <p class="text-sm text-slate-500 mb-2">Date-specific overrides, e.g. closed for Christmas or different hours on a bank holiday. Take precedence over the weekly hours above for that date.</p>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900 mb-1">Special / holiday hours</h2>
+          <p class="text-sm text-slate-500">Date-specific overrides, e.g. closed for Christmas or different hours on a bank holiday. Take precedence over the weekly hours above for that date.</p>
           <div data-special-hours-list class="space-y-3">
             {{range $i, $sh := .SpecialHoursRows}}
             <div class="special-hours-row relative rounded-xl border border-slate-200 p-4" data-special-hours-row>
@@ -411,40 +445,42 @@
             {{end}}
           </div>
           <button type="button" data-add-special-hours class="mt-3 text-sm font-medium text-brand hover:text-brand-dark">+ Add a date override</button>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <section class="space-y-4">
-        <h2 class="font-semibold text-slate-900">Social links</h2>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          <input type="url" name="whatsapp_url" value="{{index .Socials "whatsapp"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          <input type="url" name="twitter_url" value="{{index .Socials "twitter"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          <input type="url" name="tiktok_url" value="{{index .Socials "tiktok"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          <input type="url" name="linkedin_url" value="{{index .Socials "linkedin"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-          <input type="url" name="youtube_url" value="{{index .Socials "youtube"}}" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-      </section>
+      <div data-tab-panel="social" class="space-y-10 hidden">
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Social links</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="whatsapp_url" value="{{index .Socials "whatsapp"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="twitter_url" value="{{index .Socials "twitter"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="tiktok_url" value="{{index .Socials "tiktok"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="linkedin_url" value="{{index .Socials "linkedin"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="youtube_url" value="{{index .Socials "youtube"}}" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+        </section>
 
-      <section class="space-y-4">
-        <h2 class="font-semibold text-slate-900">Search &amp; sharing (SEO)</h2>
-        <p class="text-sm text-slate-500 -mt-2">Optional. Control how your site appears in Google results and when shared on Facebook/WhatsApp. Leave blank to use your business name, tagline, and logo.</p>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Page title</label>
-          <input type="text" name="meta_title" value="{{.Site.MetaTitle}}" placeholder="{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Meta description</label>
-          <textarea name="meta_description" rows="2" placeholder="A short summary shown under your title in Google results." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.MetaDescription}}</textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Social share image URL</label>
-          <input type="url" name="og_image_url" value="{{.Site.OgImageURL}}" placeholder="https://... (1200×630 works best)" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-        </div>
-      </section>
+        <section class="space-y-4">
+          <h2 class="font-semibold text-slate-900">Search &amp; sharing (SEO)</h2>
+          <p class="text-sm text-slate-500 -mt-2">Optional. Control how your site appears in Google results and when shared on Facebook/WhatsApp. Leave blank to use your business name, tagline, and logo.</p>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Page title</label>
+            <input type="text" name="meta_title" value="{{.Site.MetaTitle}}" placeholder="{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Meta description</label>
+            <textarea name="meta_description" rows="2" placeholder="A short summary shown under your title in Google results." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.MetaDescription}}</textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Social share image URL</label>
+            <input type="url" name="og_image_url" value="{{.Site.OgImageURL}}" placeholder="https://... (1200×630 works best)" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          </div>
+        </section>
+      </div>
 
-      <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save changes</button>
+      <button type="submit" class="mt-10 w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save changes</button>
     </form>
   </div>
 
@@ -966,6 +1002,40 @@
     });
     updateGalleryRemoveButtons();
     window.__addGalleryRow = addGalleryRow;
+  })();
+
+  (function () {
+    var hoursList = document.querySelector('[data-hours-list]');
+    if (!hoursList) return;
+    var rows = hoursList.querySelectorAll('[data-hours-row]');
+
+    function setRowDisabled(row, closed) {
+      row.querySelector('[data-hours-open]').disabled = closed;
+      row.querySelector('[data-hours-close]').disabled = closed;
+    }
+
+    rows.forEach(function (row) {
+      row.querySelector('[data-hours-closed]').addEventListener('change', function (e) {
+        setRowDisabled(row, e.target.checked);
+      });
+    });
+
+    var copyBtn = document.querySelector('[data-copy-hours]');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var monday = rows[0];
+        var open = monday.querySelector('[data-hours-open]').value;
+        var close = monday.querySelector('[data-hours-close]').value;
+        var closed = monday.querySelector('[data-hours-closed]').checked;
+        rows.forEach(function (row) {
+          if (row === monday) return;
+          row.querySelector('[data-hours-open]').value = open;
+          row.querySelector('[data-hours-close]').value = close;
+          row.querySelector('[data-hours-closed]').checked = closed;
+          setRowDisabled(row, closed);
+        });
+      });
+    }
   })();
 
   (function () {
