@@ -88,6 +88,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /superadmin/logout", h.SuperadminLogout)
 	mux.HandleFunc("GET /superadmin", h.superadmin.RequireSuperadmin(h.SuperadminDashboard))
 	mux.HandleFunc("GET /superadmin/sites/{id}", h.superadmin.RequireSuperadmin(h.SuperadminSiteView))
+	mux.HandleFunc("POST /superadmin/sites/{id}/edit", h.superadmin.RequireSuperadmin(h.SuperadminEditSubmit))
 	mux.HandleFunc("POST /superadmin/sites/{id}/unpublish", h.superadmin.RequireSuperadmin(h.SuperadminUnpublish))
 	mux.HandleFunc("POST /superadmin/sites/{id}/delete", h.superadmin.RequireSuperadmin(h.SuperadminDelete))
 

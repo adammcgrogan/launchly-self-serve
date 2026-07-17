@@ -586,6 +586,12 @@ func (s *Sites) ListAllSites(ctx context.Context) ([]domain.Site, error) {
 	return postgres.ListAllSites(ctx, s.store.DB())
 }
 
+// PlatformStats returns platform-wide site/plan counts for the superadmin
+// dashboard's stats view.
+func (s *Sites) PlatformStats(ctx context.Context) (domain.PlatformStats, error) {
+	return postgres.GetPlatformStats(ctx, s.store.DB())
+}
+
 // ListLiveSites is used by the public sitemap.
 func (s *Sites) ListLiveSites(ctx context.Context) ([]domain.Site, error) {
 	return postgres.ListLiveSites(ctx, s.store.DB())

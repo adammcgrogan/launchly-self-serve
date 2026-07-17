@@ -70,18 +70,13 @@ func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 	redirectToSite(w, r, newSlug)
 }
 
-func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-
-	in := service.UpdateContentInput{
-		SiteID:          site.ID,
+// buildUpdateContentInput reads the shared content-edit form fields (used by
+// both the owner's editor and superadmin's site editing) into an
+// UpdateContentInput for siteID. Callers must have already called
+// r.ParseForm().
+func buildUpdateContentInput(r *http.Request, siteID int) service.UpdateContentInput {
+	return service.UpdateContentInput{
+		SiteID:          siteID,
 		BusinessName:    strings.TrimSpace(r.FormValue("business_name")),
 		Tagline:         strings.TrimSpace(r.FormValue("tagline")),
 		About:           strings.TrimSpace(r.FormValue("about")),
@@ -93,7 +88,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		MetaDescription: strings.TrimSpace(r.FormValue("meta_description")),
 		OgImageURL:      strings.TrimSpace(r.FormValue("og_image_url")),
 		Contact: domain.SiteContact{
-			SiteID:      site.ID,
+			SiteID:      siteID,
 			Phone:       strings.TrimSpace(r.FormValue("phone")),
 			Email:       strings.TrimSpace(r.FormValue("email")),
 			Address:     strings.TrimSpace(r.FormValue("address")),
@@ -117,6 +112,19 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 			ReviewURL:   strings.TrimSpace(r.FormValue("review_url")),
 		},
 	}
+}
+
+func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	in := buildUpdateContentInput(r, site.ID)
 
 	ctx, cancel := detachedContext(r)
 	defer cancel()

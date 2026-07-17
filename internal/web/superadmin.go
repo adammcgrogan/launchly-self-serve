@@ -1,16 +1,17 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/service"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
-// Superadmin is a read-mostly cross-account view for Adam — nothing here is
-// on the path a customer's site or payment depends on. It's gated by a
-// single shared password (an env var), entirely separate from customer
-// Supabase accounts.
+// Superadmin is a cross-account view for Adam — nothing here is on the path
+// a customer's site or payment depends on. It's gated by a single shared
+// password (an env var), entirely separate from customer Supabase accounts.
 
 func (h *Handler) SuperadminLoginForm(w http.ResponseWriter, r *http.Request) {
 	if h.superadmin.IsAuthenticated(r) {
@@ -48,8 +49,14 @@ func (h *Handler) SuperadminDashboard(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	stats, err := h.sites.PlatformStats(r.Context())
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
 	h.render.Render(w, "superadmin:dashboard", map[string]any{
 		"Sites": sites,
+		"Stats": stats,
 		"Flash": middleware.GetFlash(w, r),
 	})
 }
@@ -67,17 +74,64 @@ func (h *Handler) SuperadminSiteView(w http.ResponseWriter, r *http.Request) {
 	}
 	leads, _ := h.leads.ListBySite(r.Context(), id)
 	h.render.Render(w, "superadmin:site", map[string]any{
-		"Site":      site,
-		"Leads":     leads,
-		"SiteURL":   h.siteURL(site.Slug),
-		"CSRFToken": h.csrf.Token("superadmin", ""),
-		"Flash":     middleware.GetFlash(w, r),
+		"Site":             site,
+		"Leads":            leads,
+		"SiteURL":          h.siteURL(site.Slug),
+		"CSRFToken":        h.csrf.Token("superadmin", ""),
+		"Flash":            middleware.GetFlash(w, r),
+		"Socials":          socialLinksMap(site.SocialLinks),
+		"ServiceRows":      serviceRowsForDisplay(site.Services),
+		"CertRows":         certificationRowsForDisplay(site.Certifications),
+		"AreaRows":         serviceAreaRowsForDisplay(site.ServiceAreas),
+		"Reviews":          site.Reviews,
+		"TestimonialRows":  testimonialRowsForDisplay(site.Testimonials),
+		"GalleryRows":      galleryRowsForDisplay(site.GalleryImages),
+		"FAQRows":          faqRowsForDisplay(site.FAQItems),
+		"StaffRows":        staffRowsForDisplay(site.StaffMembers),
+		"HoursByDay":       businessHoursByDay(site.BusinessHours),
+		"SpecialHoursRows": specialHoursRowsForDisplay(site.SpecialHours),
+		"Weekdays":         weekdays,
+		"Timezones":        timezones,
 	})
 }
 
+// SuperadminEditSubmit lets an admin edit any site's content — the same
+// fields and service.UpdateContent call the owner-facing editor uses (see
+// EditSubmit) — just reached via the superadmin route/session instead of
+// site ownership.
+func (h *Handler) SuperadminEditSubmit(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if !h.checkCSRF(w, r, "superadmin", "") {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	in := buildUpdateContentInput(r, id)
+	if err := h.sites.UpdateContent(r.Context(), in); err != nil {
+		var verr *service.ValidationError
+		if errors.As(err, &verr) {
+			middleware.SetFlash(w, verr.Message)
+			http.Redirect(w, r, "/superadmin/sites/"+strconv.Itoa(id), http.StatusSeeOther)
+			return
+		}
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+
+	middleware.SetFlash(w, "Changes saved.")
+	http.Redirect(w, r, "/superadmin/sites/"+strconv.Itoa(id), http.StatusSeeOther)
+}
+
 // SuperadminUnpublish and SuperadminDelete are the emergency abuse-handling
-// backstop — the only two actions in the whole app superadmin can take that
-// affect a customer's site.
+// backstop — unlike SuperadminEditSubmit, they're not part of the normal
+// support flow.
 func (h *Handler) SuperadminUnpublish(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {

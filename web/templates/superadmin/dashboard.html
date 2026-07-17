@@ -1,4 +1,44 @@
 {{define "content"}}
+<h1 class="text-xl font-bold mb-4">Platform stats</h1>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.TotalSites}}</p>
+    <p class="text-xs text-slate-400 mt-1">Total sites</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.LiveSites}}</p>
+    <p class="text-xs text-slate-400 mt-1">Live</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.DraftSites}}</p>
+    <p class="text-xs text-slate-400 mt-1">Draft</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.PausedSites}}</p>
+    <p class="text-xs text-slate-400 mt-1">Paused</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.StarterPlan}}</p>
+    <p class="text-xs text-slate-400 mt-1">Starter plan</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.ProPlan}}</p>
+    <p class="text-xs text-slate-400 mt-1">Paid Pro</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.TrialingSites}}</p>
+    <p class="text-xs text-slate-400 mt-1">Trialing</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.SignupsThisWeek}}</p>
+    <p class="text-xs text-slate-400 mt-1">Signups (7d)</p>
+  </div>
+  <div class="rounded-2xl border border-slate-800 p-4">
+    <p class="text-2xl font-bold">{{.Stats.SignupsThisMonth}}</p>
+    <p class="text-xs text-slate-400 mt-1">Signups (30d)</p>
+  </div>
+</div>
+
 <h1 class="text-xl font-bold mb-6">All sites ({{len .Sites}})</h1>
 <div class="divide-y divide-slate-800 border border-slate-800 rounded-2xl overflow-hidden">
   {{range .Sites}}

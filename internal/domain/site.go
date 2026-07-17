@@ -62,6 +62,20 @@ const (
 	SocialYouTube   SocialPlatform = "youtube"
 )
 
+// PlatformStats summarizes site/plan counts across every account, for the
+// superadmin dashboard's stats view.
+type PlatformStats struct {
+	TotalSites       int
+	LiveSites        int
+	DraftSites       int
+	PausedSites      int
+	StarterPlan      int
+	ProPlan          int
+	TrialingSites    int
+	SignupsThisWeek  int
+	SignupsThisMonth int
+}
+
 // Site is the core identity of a business's site. Everything else that
 // belongs to a site (contact info, billing, social links, etc.) lives in
 // its own table/struct and is loaded alongside it as a SiteAggregate.

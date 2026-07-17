@@ -115,6 +115,31 @@ func ListAllSites(ctx context.Context, q querier) ([]domain.Site, error) {
 	return sites, rows.Err()
 }
 
+// GetPlatformStats returns platform-wide site/plan counts, for the
+// superadmin dashboard's stats view.
+func GetPlatformStats(ctx context.Context, q querier) (domain.PlatformStats, error) {
+	var s domain.PlatformStats
+	err := q.QueryRowContext(ctx, `
+		SELECT
+			COUNT(*),
+			COUNT(*) FILTER (WHERE s.status = 'live'),
+			COUNT(*) FILTER (WHERE s.status = 'draft'),
+			COUNT(*) FILTER (WHERE s.status = 'paused'),
+			COUNT(*) FILTER (WHERE b.plan = 'starter'),
+			COUNT(*) FILTER (WHERE b.plan = 'pro' AND b.payment_status = 'paid'),
+			COUNT(*) FILTER (WHERE b.payment_status = 'trialing'),
+			COUNT(*) FILTER (WHERE s.created_at >= now() - interval '7 days'),
+			COUNT(*) FILTER (WHERE s.created_at >= now() - interval '30 days')
+		FROM sites s
+		LEFT JOIN site_billing b ON b.site_id = s.id
+	`).Scan(
+		&s.TotalSites, &s.LiveSites, &s.DraftSites, &s.PausedSites,
+		&s.StarterPlan, &s.ProPlan, &s.TrialingSites,
+		&s.SignupsThisWeek, &s.SignupsThisMonth,
+	)
+	return s, err
+}
+
 // ListLiveSites returns every published site, for the public sitemap.
 func ListLiveSites(ctx context.Context, q querier) ([]domain.Site, error) {
 	rows, err := q.QueryContext(ctx, `SELECT `+siteColumns+` FROM sites WHERE status = 'live' ORDER BY published_at DESC`)

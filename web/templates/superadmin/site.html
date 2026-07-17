@@ -30,6 +30,159 @@
 </div>
 
 <div class="mt-6 rounded-2xl border border-slate-800 p-6">
+  <h2 class="font-semibold mb-3">Edit content</h2>
+  <p class="text-xs text-slate-500 mb-4">Same fields the owner can edit from their dashboard.</p>
+  <form method="POST" action="/superadmin/sites/{{.Site.ID}}/edit" class="space-y-6 text-sm">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Basics</h3>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <input type="text" name="business_name" value="{{.Site.BusinessName}}" placeholder="Business name" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <input type="text" name="tagline" value="{{.Site.Tagline}}" placeholder="Tagline" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+      </div>
+      <textarea name="about" rows="3" placeholder="About" class="mt-3 w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">{{.Site.About}}</textarea>
+      <div class="grid sm:grid-cols-2 gap-3 mt-3">
+        <input type="url" name="logo_url" value="{{.Site.LogoURL}}" placeholder="Logo URL" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <input type="text" name="cta_text" value="{{.Site.CTAText}}" placeholder="CTA button text" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+      </div>
+      <input type="url" name="video_url" value="{{.Site.VideoURL}}" placeholder="Promo video URL" class="mt-3 w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+      <select name="timezone" class="mt-3 w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        {{$tz := .Site.Timezone}}
+        {{range .Timezones}}<option value="{{.}}" {{if eq . $tz}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Contact</h3>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <input type="tel" name="phone" value="{{.Site.Contact.Phone}}" placeholder="Phone" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <input type="email" name="email" value="{{.Site.Contact.Email}}" placeholder="Public email" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <input type="text" name="address" value="{{.Site.Contact.Address}}" placeholder="Address" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <input type="text" name="location" value="{{.Site.Contact.Location}}" placeholder="Location badge" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+      </div>
+      <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" placeholder="Google Maps embed URL" class="mt-3 w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Reviews badge</h3>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <input type="number" name="review_rating" value="{{.Reviews.Rating}}" min="0" max="5" step="0.1" placeholder="Star rating (0-5)" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <input type="number" name="review_count" value="{{if .Reviews.ReviewCount}}{{.Reviews.ReviewCount}}{{end}}" min="0" step="1" placeholder="Number of reviews" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+      </div>
+      <input type="url" name="review_url" value="{{.Reviews.ReviewURL}}" placeholder="Leave a review link" class="mt-3 w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Services</h3>
+      <div class="space-y-2">
+        {{range .ServiceRows}}
+        <div class="grid sm:grid-cols-[1fr_auto] gap-2">
+          <input type="text" name="service_label" value="{{.Label}}" placeholder="Service" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+          <input type="text" name="service_price" value="{{.PriceText}}" placeholder="Price" class="sm:w-40 rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        </div>
+        <input type="text" name="service_description" value="{{.Description}}" placeholder="Description" class="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        {{end}}
+        {{range 2}}
+        <div class="grid sm:grid-cols-[1fr_auto] gap-2">
+          <input type="text" name="service_label" placeholder="Service" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+          <input type="text" name="service_price" placeholder="Price" class="sm:w-40 rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        </div>
+        <input type="text" name="service_description" placeholder="Description" class="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        {{end}}
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Areas we serve</h3>
+      <div class="space-y-2">
+        {{range .AreaRows}}<input type="text" name="service_area" value="{{.Area}}" placeholder="Area" class="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">{{end}}
+        {{range 2}}<input type="text" name="service_area" placeholder="Area" class="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">{{end}}
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Opening hours</h3>
+      <div class="space-y-2">
+        {{range .Weekdays}}
+        {{$h := index $.HoursByDay .Weekday}}
+        <div class="flex flex-wrap items-center gap-2" data-hours-key="{{.Key}}">
+          <span class="w-20 shrink-0 text-slate-400">{{.Label}}</span>
+          <input type="time" name="hours_{{.Key}}_open" value="{{$h.OpensAt}}" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-1.5">
+          <span class="text-slate-500">to</span>
+          <input type="time" name="hours_{{.Key}}_close" value="{{$h.ClosesAt}}" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-1.5">
+          <label class="ml-auto flex items-center gap-1.5 text-slate-400">
+            <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $h.Closed}}checked{{end}}>
+            Closed
+          </label>
+        </div>
+        {{end}}
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Testimonials</h3>
+      <div class="space-y-2">
+        {{range .TestimonialRows}}
+        <div class="grid sm:grid-cols-2 gap-2">
+          <input type="text" name="testimonial_name" value="{{.AuthorName}}" placeholder="Customer name" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+          <input type="text" name="testimonial_role" value="{{.AuthorRole}}" placeholder="Role (optional)" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        </div>
+        <textarea name="testimonial_quote" rows="2" placeholder="Quote" class="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">{{.Quote}}</textarea>
+        {{end}}
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">FAQs</h3>
+      <div class="space-y-2">
+        {{range .FAQRows}}
+        <input type="text" name="faq_question" value="{{.Question}}" placeholder="Question" class="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <textarea name="faq_answer" rows="2" placeholder="Answer" class="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">{{.Answer}}</textarea>
+        {{end}}
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-slate-300 font-medium mb-2">Social &amp; SEO</h3>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" placeholder="Facebook URL" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+        <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" placeholder="Instagram URL" class="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+      </div>
+      <input type="text" name="meta_title" value="{{.Site.MetaTitle}}" placeholder="SEO page title" class="mt-3 w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">
+      <textarea name="meta_description" rows="2" placeholder="Meta description" class="mt-3 w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2">{{.Site.MetaDescription}}</textarea>
+    </div>
+
+    <!-- Fields not exposed as editable UI here, carried through as hidden
+         inputs so a save doesn't overwrite them with blanks — the owner
+         dashboard's fuller editor is still the place to edit these. -->
+    <input type="hidden" name="og_image_url" value="{{.Site.OgImageURL}}">
+    <input type="hidden" name="whatsapp_url" value="{{index .Socials "whatsapp"}}">
+    <input type="hidden" name="twitter_url" value="{{index .Socials "twitter"}}">
+    <input type="hidden" name="tiktok_url" value="{{index .Socials "tiktok"}}">
+    <input type="hidden" name="linkedin_url" value="{{index .Socials "linkedin"}}">
+    <input type="hidden" name="youtube_url" value="{{index .Socials "youtube"}}">
+    {{range .CertRows}}<input type="hidden" name="certification_label" value="{{.Label}}">{{end}}
+    {{range .GalleryRows}}<input type="hidden" name="gallery_url" value="{{.URL}}">{{end}}
+    {{range .StaffRows}}
+    <input type="hidden" name="staff_name" value="{{.Name}}">
+    <input type="hidden" name="staff_role" value="{{.Role}}">
+    <input type="hidden" name="staff_photo_url" value="{{.PhotoURL}}">
+    <input type="hidden" name="staff_bio" value="{{.Bio}}">
+    {{end}}
+    {{range .SpecialHoursRows}}
+    <input type="hidden" name="special_date" value="{{.Date}}">
+    <input type="hidden" name="special_label" value="{{.Label}}">
+    <input type="hidden" name="special_open" value="{{.OpensAt}}">
+    <input type="hidden" name="special_close" value="{{.ClosesAt}}">
+    <input type="hidden" name="special_closed" value="{{if .Closed}}1{{end}}">
+    {{end}}
+
+    <button type="submit" class="rounded-full bg-indigo-600 hover:bg-indigo-500 px-6 py-2.5 font-medium text-white">Save content</button>
+  </form>
+</div>
+
+<div class="mt-6 rounded-2xl border border-slate-800 p-6">
   <h2 class="font-semibold mb-3">Leads ({{len .Leads}})</h2>
   {{if not .Leads}}
   <p class="text-sm text-slate-500">None yet.</p>
