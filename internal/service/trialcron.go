@@ -12,9 +12,10 @@ import (
 )
 
 // trialGracePeriod is how long a site stays live after its trial ends
-// before being paused, so "14-day free trial" stays honest (owners get a
-// few extra days of leeway, not an instant cutoff).
-const trialGracePeriod = 3 * 24 * time.Hour
+// before being paused. Trials are 7 days total with no extra leeway, so this
+// is 0 — kept as a named constant (rather than pausing inline on
+// trial_ends_at) so a future policy change only needs to touch this line.
+const trialGracePeriod = 0 * time.Hour
 
 // Cron runs background reminders: trial-ending emails and scheduled
 // analytics digests. Trial reminders link straight to the dashboard upgrade

@@ -11,11 +11,13 @@ import (
 )
 
 // CreateSiteBilling creates the 1:1 billing row for a new site, starting a
-// 14-day free trial with no card required.
+// 7-day free trial with no card required. Trials are Starter-only — Pro is
+// reached only via CreateUpgradeCheckout, which requires a completed Stripe
+// checkout before the plan takes effect (see SetSitePending/SetSitePaid).
 func CreateSiteBilling(ctx context.Context, q querier, siteID int, plan domain.Plan) error {
 	_, err := q.ExecContext(ctx, `
 		INSERT INTO site_billing (site_id, plan, payment_status, trial_ends_at)
-		VALUES ($1, $2, 'trialing', now() + INTERVAL '14 days')
+		VALUES ($1, $2, 'trialing', now() + INTERVAL '7 days')
 	`, siteID, plan)
 	return err
 }

@@ -323,8 +323,8 @@ type CreateSiteInput struct {
 const maxCreateSiteSlugAttempts = 5
 
 // CreateSite generates a unique slug, inserts the site and all related rows
-// in one transaction, and sets it live immediately with a 14-day trial —
-// there is no draft/review step. uniqueSlug's read happens outside the
+// in one transaction, and sets it live immediately with a 7-day Starter
+// trial — there is no draft/review step. uniqueSlug's read happens outside the
 // insert transaction, so two concurrent creates for the same business name
 // can both pick the same slug; if the insert then loses that race on the
 // slug's unique constraint, we regenerate and retry rather than surfacing a

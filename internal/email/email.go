@@ -355,7 +355,7 @@ func (c *Client) SendTrialWarning(to, businessName, dashboardURL string, daysLef
 		urgency = "1 day"
 	}
 	content := h1(fmt.Sprintf("Your free trial ends in %s", urgency)) +
-		p(fmt.Sprintf("Your <strong>%s</strong> website's 14-day free trial ends in <strong>%s</strong>.", businessName, urgency)) +
+		p(fmt.Sprintf("Your <strong>%s</strong> website's 7-day free trial ends in <strong>%s</strong>.", businessName, urgency)) +
 		p("To keep your site online, upgrade from your dashboard. It only takes a minute.") +
 		button(dashboardURL, "Upgrade now") +
 		divider() +

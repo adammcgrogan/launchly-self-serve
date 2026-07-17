@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -92,6 +93,15 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"FallbackOrigin": h.domains.FallbackOrigin(),
 		"IsPro":          site.Billing.IsPro(),
 	}
+
+	var trialDaysLeft int
+	showTrialBanner := site.Billing.PaymentStatus == domain.PaymentStatusTrialing && site.Billing.TrialEndsAt != nil
+	if showTrialBanner {
+		trialDaysLeft = int(math.Ceil(time.Until(*site.Billing.TrialEndsAt).Hours() / 24))
+		if trialDaysLeft < 0 {
+			trialDaysLeft = 0
+		}
+	}
 	if site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending {
 		if hostname, err := h.domains.RefreshCustomDomainStatus(r.Context(), site.ID); err == nil {
 			domainData["Hostname"] = hostname
@@ -104,27 +114,29 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render.Render(w, "dashboard:site", map[string]any{
-		"Site":           site,
-		"Leads":          leads,
-		"LeadCount":      leadCounts.Total,
-		"NewLeadCount":   leadCounts.New,
-		"LeadStatus":     leadStatus,
-		"LeadSearch":     leadSearch,
-		"LeadPage":       leadPage,
-		"LeadTotalPages": leadTotalPages,
-		"LeadHasPrev":    leadPage > 1,
-		"LeadHasNext":    leadPage < leadTotalPages,
-		"LeadPrevPage":   leadPage - 1,
-		"LeadNextPage":   leadPage + 1,
-		"Stats":          stats,
-		"ChartPoints":    chartPoints,
-		"Period":         period.Key,
-		"Periods":        analyticsPeriods,
-		"SiteURL":        h.siteURL(site.Slug),
-		"Flash":          middleware.GetFlash(w, r),
-		"CSRFToken":      h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
-		"Upgraded":       r.URL.Query().Get("upgraded") == "1",
-		"EmailVerified":  h.emailVerified(r),
+		"Site":            site,
+		"Leads":           leads,
+		"LeadCount":       leadCounts.Total,
+		"NewLeadCount":    leadCounts.New,
+		"LeadStatus":      leadStatus,
+		"LeadSearch":      leadSearch,
+		"LeadPage":        leadPage,
+		"LeadTotalPages":  leadTotalPages,
+		"LeadHasPrev":     leadPage > 1,
+		"LeadHasNext":     leadPage < leadTotalPages,
+		"LeadPrevPage":    leadPage - 1,
+		"LeadNextPage":    leadPage + 1,
+		"Stats":           stats,
+		"ChartPoints":     chartPoints,
+		"Period":          period.Key,
+		"Periods":         analyticsPeriods,
+		"SiteURL":         h.siteURL(site.Slug),
+		"Flash":           middleware.GetFlash(w, r),
+		"CSRFToken":       h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
+		"Upgraded":        r.URL.Query().Get("upgraded") == "1",
+		"EmailVerified":   h.emailVerified(r),
+		"ShowTrialBanner": showTrialBanner,
+		"TrialDaysLeft":   trialDaysLeft,
 
 		"Checklist":        checklist,
 		"ChecklistPercent": checklistPercent,
