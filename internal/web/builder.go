@@ -3,7 +3,6 @@ package web
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -151,7 +150,7 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d?launched=1", site.ID), http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard/sites/"+site.Slug+"?launched=1", http.StatusSeeOther)
 }
 
 // GenerateCopy drafts a single content field — tagline, about text, or one

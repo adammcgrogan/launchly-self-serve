@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
@@ -11,10 +11,11 @@ import (
 // SiteLoader is satisfied by *service.Sites — kept as an interface here so
 // middleware doesn't need to import the whole service package's surface.
 type SiteLoader interface {
-	GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggregate, error)
+	GetSiteAggregateBySlug(ctx context.Context, slug string) (*domain.SiteAggregate, error)
+	ResolveSlugRedirect(ctx context.Context, oldSlug string) (string, bool, error)
 }
 
-// Ownership gates /dashboard/sites/{id}/* routes so a user can only act on
+// Ownership gates /dashboard/sites/{slug}/* routes so a user can only act on
 // sites they own. It loads the full site once and stashes it in the request
 // context so handlers don't have to fetch it again.
 type Ownership struct {
@@ -27,13 +28,27 @@ func NewOwnership(sites SiteLoader) *Ownership {
 
 func (o *Ownership) RequireSiteOwner(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.Atoi(r.PathValue("id"))
+		slug := r.PathValue("slug")
+		site, err := o.sites.GetSiteAggregateBySlug(r.Context(), slug)
 		if err != nil {
 			http.NotFound(w, r)
 			return
 		}
-		site, err := o.sites.GetSiteAggregate(r.Context(), id)
-		if err != nil || site == nil {
+		if site == nil {
+			// The owner may have renamed their site's address since this
+			// link was bookmarked/emailed — follow the same redirect the
+			// public site route uses before giving up.
+			if r.Method == http.MethodGet {
+				if newSlug, ok, err := o.sites.ResolveSlugRedirect(r.Context(), slug); err == nil && ok {
+					rest := strings.TrimPrefix(r.URL.Path, "/dashboard/sites/"+slug)
+					target := "/dashboard/sites/" + newSlug + rest
+					if r.URL.RawQuery != "" {
+						target += "?" + r.URL.RawQuery
+					}
+					http.Redirect(w, r, target, http.StatusMovedPermanently)
+					return
+				}
+			}
 			http.NotFound(w, r)
 			return
 		}

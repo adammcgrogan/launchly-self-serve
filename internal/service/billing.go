@@ -27,9 +27,9 @@ func NewBilling(store *postgres.Store, pay *payment.Client, mailer *email.Client
 
 // CreateUpgradeCheckout starts a Stripe Checkout session for a site's plan
 // upgrade and records it as pending.
-func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, plan domain.Plan, customerEmail string) (checkoutURL string, err error) {
-	successURL := fmt.Sprintf("%s/dashboard/sites/%d?upgraded=1", b.baseURL, siteID)
-	cancelURL := fmt.Sprintf("%s/dashboard/sites/%d", b.baseURL, siteID)
+func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug string, plan domain.Plan, customerEmail string) (checkoutURL string, err error) {
+	successURL := fmt.Sprintf("%s/dashboard/sites/%s?upgraded=1", b.baseURL, slug)
+	cancelURL := fmt.Sprintf("%s/dashboard/sites/%s", b.baseURL, slug)
 
 	sessionID, checkoutURL, err := b.pay.CreateCheckoutSession(plan, customerEmail, successURL, cancelURL)
 	if err != nil {

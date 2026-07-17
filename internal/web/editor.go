@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -29,8 +28,8 @@ func detachedContext(r *http.Request) (context.Context, context.CancelFunc) {
 // preserving the tab/subtab/csubtab query params from the page the form was
 // submitted on (read from the Referer) so the owner lands back where they
 // were instead of the default Overview tab.
-func redirectToSite(w http.ResponseWriter, r *http.Request, siteID int) {
-	target := fmt.Sprintf("/dashboard/sites/%d", siteID)
+func redirectToSite(w http.ResponseWriter, r *http.Request, slug string) {
+	target := "/dashboard/sites/" + slug
 	if referer := r.Header.Get("Referer"); referer != "" {
 		if u, err := url.Parse(referer); err == nil {
 			params := url.Values{}
@@ -60,14 +59,15 @@ func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := detachedContext(r)
 	defer cancel()
-	if err := h.sites.RenameSlug(ctx, site.ID, slug); err != nil {
+	newSlug, err := h.sites.RenameSlug(ctx, site.ID, slug)
+	if err != nil {
 		middleware.SetFlash(w, err.Error())
-		redirectToSite(w, r, site.ID)
+		redirectToSite(w, r, site.Slug)
 		return
 	}
 
 	middleware.SetFlash(w, "Address updated. Your old link will keep working.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, newSlug)
 }
 
 func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +124,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		var verr *service.ValidationError
 		if errors.As(err, &verr) {
 			middleware.SetFlash(w, verr.Message)
-			redirectToSite(w, r, site.ID)
+			redirectToSite(w, r, site.Slug)
 			return
 		}
 		h.render.RenderError(w, http.StatusInternalServerError)
@@ -132,7 +132,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	middleware.SetFlash(w, "Changes saved.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +167,7 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if brandColor != "" && !service.IsValidHexColor(brandColor) {
 		middleware.SetFlash(w, "Brand colour must be a 6-digit hex code, e.g. #4F46E5.")
-		redirectToSite(w, r, site.ID)
+		redirectToSite(w, r, site.Slug)
 		return
 	}
 
@@ -178,7 +178,7 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, "Appearance saved.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +202,7 @@ func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, "Template switched.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
@@ -226,7 +226,7 @@ func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, "Form type saved.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
@@ -269,14 +269,14 @@ func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 	if err := h.sites.Publish(ctx, site.ID); err != nil {
 		if err == service.ErrSitePaused {
 			middleware.SetFlash(w, err.Error())
-			redirectToSite(w, r, site.ID)
+			redirectToSite(w, r, site.Slug)
 			return
 		}
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
 	middleware.SetFlash(w, "Site published.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
@@ -291,7 +291,7 @@ func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, "Site unpublished — it's no longer visible to the public.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
@@ -356,7 +356,7 @@ func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 	} else {
 		middleware.SetFlash(w, "Announcement saved.")
 	}
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Request) {
@@ -377,7 +377,7 @@ func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Reques
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
@@ -393,21 +393,21 @@ func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 	enabled := r.FormValue("sms_alerts_enabled") == "on"
 	if enabled && !h.cfg.SMSAlertsAvailable() {
 		middleware.SetFlash(w, "SMS lead alerts aren't available yet.")
-		redirectToSite(w, r, site.ID)
+		redirectToSite(w, r, site.Slug)
 		return
 	}
 
 	if err := h.sites.UpdateNotifySettings(r.Context(), site.ID, mobile, enabled); err != nil {
 		if err == service.ErrNotifyNotPro || err == service.ErrNotifyInvalidNumber {
 			middleware.SetFlash(w, err.Error())
-			redirectToSite(w, r, site.ID)
+			redirectToSite(w, r, site.Slug)
 			return
 		}
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
 	middleware.SetFlash(w, "Notification settings saved.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) UpdateTrackingSettings(w http.ResponseWriter, r *http.Request) {
@@ -423,14 +423,14 @@ func (h *Handler) UpdateTrackingSettings(w http.ResponseWriter, r *http.Request)
 		r.FormValue("ga_measurement_id"), r.FormValue("meta_pixel_id")); err != nil {
 		if err == service.ErrTrackingNotPro || err == service.ErrTrackingInvalid {
 			middleware.SetFlash(w, err.Error())
-			redirectToSite(w, r, site.ID)
+			redirectToSite(w, r, site.Slug)
 			return
 		}
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
 	middleware.SetFlash(w, "Tracking settings saved.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 func (h *Handler) SendAnalyticsNow(w http.ResponseWriter, r *http.Request) {
@@ -443,5 +443,5 @@ func (h *Handler) SendAnalyticsNow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, "Analytics report sent.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }

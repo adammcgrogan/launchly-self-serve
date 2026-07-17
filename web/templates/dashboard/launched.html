@@ -20,14 +20,14 @@
   <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-left">
     <h2 class="font-semibold text-slate-900 mb-3">Make it even better</h2>
     <ul class="space-y-2 text-sm text-slate-600">
-      <li>→ <a href="/dashboard/sites/{{.Site.ID}}?tab=settings&subtab=content" class="text-brand font-medium">Add photos and fill in your details</a></li>
-      <li>→ <a href="/dashboard/sites/{{.Site.ID}}?tab=settings&subtab=design" class="text-brand font-medium">Pick your colours and fonts</a></li>
-      <li>→ <a href="/dashboard/sites/{{.Site.ID}}?tab=settings&subtab=design" class="text-brand font-medium">Try a different design</a></li>
+      <li>→ <a href="/dashboard/sites/{{.Site.Slug}}?tab=settings&subtab=content" class="text-brand font-medium">Add photos and fill in your details</a></li>
+      <li>→ <a href="/dashboard/sites/{{.Site.Slug}}?tab=settings&subtab=design" class="text-brand font-medium">Pick your colours and fonts</a></li>
+      <li>→ <a href="/dashboard/sites/{{.Site.Slug}}?tab=settings&subtab=design" class="text-brand font-medium">Try a different design</a></li>
     </ul>
   </div>
 
   <p class="mt-6 text-sm text-slate-500">Free for 14 days, no card taken. You can upgrade any time from your dashboard.</p>
-  <a href="/dashboard/sites/{{.Site.ID}}" class="mt-4 inline-block text-sm font-medium text-slate-500 hover:text-slate-700">Go to your dashboard →</a>
+  <a href="/dashboard/sites/{{.Site.Slug}}" class="mt-4 inline-block text-sm font-medium text-slate-500 hover:text-slate-700">Go to your dashboard →</a>
 </div>
 
 <script>

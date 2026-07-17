@@ -768,50 +768,50 @@ func (s *Sites) SwitchTemplate(ctx context.Context, siteID int, templateID strin
 // slug_redirects (next to sites.slug, in one transaction) so links to it
 // keep working via a 301 in serveSiteBySlug. Limited to once per day per
 // site to stop slug squatting/churn.
-func (s *Sites) RenameSlug(ctx context.Context, siteID int, newSlugRaw string) error {
+func (s *Sites) RenameSlug(ctx context.Context, siteID int, newSlugRaw string) (string, error) {
 	newSlug := toSlug(newSlugRaw)
 	if newSlug == "" {
-		return ErrSlugInvalid
+		return "", ErrSlugInvalid
 	}
 	if reservedSlugs[newSlug] {
-		return ErrSlugReserved
+		return "", ErrSlugReserved
 	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer tx.Rollback()
 
 	current, err := postgres.GetSiteByID(ctx, tx, siteID)
 	if err != nil {
-		return fmt.Errorf("load site: %w", err)
+		return "", fmt.Errorf("load site: %w", err)
 	}
 	if current == nil {
-		return fmt.Errorf("site %d not found", siteID)
+		return "", fmt.Errorf("site %d not found", siteID)
 	}
 	if current.Slug == newSlug {
-		return nil
+		return newSlug, nil
 	}
 	if current.SlugChangedAt != nil && time.Since(*current.SlugChangedAt) < slugRenameCooldown {
-		return ErrSlugRateLimited
+		return "", ErrSlugRateLimited
 	}
 
 	taken, err := postgres.SlugInUse(ctx, tx, newSlug)
 	if err != nil {
-		return fmt.Errorf("check slug: %w", err)
+		return "", fmt.Errorf("check slug: %w", err)
 	}
 	if taken {
-		return ErrSlugTaken
+		return "", ErrSlugTaken
 	}
 
 	if err := postgres.CreateSlugRedirect(ctx, tx, current.Slug, siteID); err != nil {
-		return fmt.Errorf("save redirect: %w", err)
+		return "", fmt.Errorf("save redirect: %w", err)
 	}
 	if err := postgres.RenameSiteSlug(ctx, tx, siteID, newSlug); err != nil {
-		return fmt.Errorf("rename slug: %w", err)
+		return "", fmt.Errorf("rename slug: %w", err)
 	}
-	return tx.Commit()
+	return newSlug, tx.Commit()
 }
 
 // ResolveSlugRedirect looks up the current slug an old, renamed-away-from

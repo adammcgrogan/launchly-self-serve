@@ -74,7 +74,7 @@ func (c *Cron) sendDueTrialReminders() {
 			if kind == "final" {
 				daysLeft = 1
 			}
-			dashboardURL := fmt.Sprintf("%s/dashboard/sites/%d", c.baseURL, id)
+			dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, site.Slug)
 			if err := c.mailer.SendTrialWarning(to, site.BusinessName, dashboardURL, daysLeft); err != nil {
 				slog.Error("trial cron: send reminder", "slug", site.Slug, "kind", kind, "error", err)
 				continue
@@ -123,7 +123,7 @@ func (c *Cron) pauseDueSites() {
 		if to == "" {
 			continue
 		}
-		dashboardURL := fmt.Sprintf("%s/dashboard/sites/%d", c.baseURL, id)
+		dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, site.Slug)
 		if err := c.mailer.SendSitePaused(to, site.BusinessName, dashboardURL); err != nil {
 			slog.Error("trial cron: send paused email", "slug", site.Slug, "error", err)
 		}
@@ -168,7 +168,7 @@ func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 	if err != nil {
 		return fmt.Errorf("get stats: %w", err)
 	}
-	siteURL := fmt.Sprintf("%s/dashboard/sites/%d", c.baseURL, siteID)
+	siteURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, site.Slug)
 	if err := c.mailer.SendAnalyticsDigest(to, site.BusinessName, stats, siteURL); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}

@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -35,7 +34,7 @@ func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 		customerEmail = profile.Email
 	}
 
-	checkoutURL, err := h.billing.CreateUpgradeCheckout(r.Context(), site.ID, plan, customerEmail)
+	checkoutURL, err := h.billing.CreateUpgradeCheckout(r.Context(), site.ID, site.Slug, plan, customerEmail)
 	if err != nil {
 		slog.Error("create upgrade checkout", "site_id", site.ID, "error", err)
 		h.render.RenderError(w, http.StatusInternalServerError)
@@ -54,7 +53,7 @@ func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetFlash(w, "Subscription cancelled.")
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard/sites/"+site.Slug, http.StatusSeeOther)
 }
 
 // StripeWebhook is the single source of truth for payment state — Stripe

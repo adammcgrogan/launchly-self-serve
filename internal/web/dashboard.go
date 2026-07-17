@@ -166,7 +166,7 @@ type checklistItem struct {
 // conversion — a logo, an intro, services, hours, contact details, and
 // actually publishing — without needing any extra queries.
 func siteChecklist(site *domain.SiteAggregate) (items []checklistItem, percent int) {
-	base := fmt.Sprintf("/dashboard/sites/%d?tab=settings&subtab=", site.ID)
+	base := "/dashboard/sites/" + site.Slug + "?tab=settings&subtab="
 	// The "content" sub-tab is itself split into nested groups (basics,
 	// services, gallery, hours, ...) — &csubtab=X deep-links into the right
 	// one so these links still land on the field that needs fixing instead

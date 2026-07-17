@@ -22,7 +22,7 @@
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
   <div class="no-print max-w-2xl mx-auto px-6 pt-6 flex items-center justify-between">
-    <a href="/dashboard/sites/{{.Site.ID}}" class="text-sm font-medium text-slate-500 hover:text-slate-800">&larr; Back to site</a>
+    <a href="/dashboard/sites/{{.Site.Slug}}" class="text-sm font-medium text-slate-500 hover:text-slate-800">&larr; Back to site</a>
     <button onclick="window.print()" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Print / Save as PDF</button>
   </div>
 
@@ -33,7 +33,7 @@
         <h1 class="font-display text-3xl font-bold text-slate-900">{{.Site.BusinessName}}</h1>
         {{if .Site.Tagline}}<p class="mt-1 text-slate-500">{{.Site.Tagline}}</p>{{end}}
       </div>
-      <img src="/dashboard/sites/{{.Site.ID}}/qr.png" alt="QR code linking to {{.SiteURL}}" class="h-32 w-32 shrink-0">
+      <img src="/dashboard/sites/{{.Site.Slug}}/qr.png" alt="QR code linking to {{.SiteURL}}" class="h-32 w-32 shrink-0">
     </div>
 
     <div class="mt-8 grid sm:grid-cols-2 gap-8">

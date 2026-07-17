@@ -24,12 +24,12 @@ func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	if _, err := h.domains.SetCustomDomain(ctx, site.ID, rawDomain); err != nil {
 		middleware.SetFlash(w, err.Error())
-		redirectToSite(w, r, site.ID)
+		redirectToSite(w, r, site.Slug)
 		return
 	}
 
 	middleware.SetFlash(w, "Domain added — follow the instructions below to finish connecting it.")
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 // DomainCheckStatus re-checks a pending domain against Cloudflare on demand.
@@ -50,7 +50,7 @@ func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 	default:
 		middleware.SetFlash(w, "Still waiting on DNS — this can take anywhere from a few minutes to a few hours.")
 	}
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }
 
 // DomainRemove detaches a site's custom domain entirely.
@@ -67,5 +67,5 @@ func (h *Handler) DomainRemove(w http.ResponseWriter, r *http.Request) {
 	} else {
 		middleware.SetFlash(w, "Custom domain removed.")
 	}
-	redirectToSite(w, r, site.ID)
+	redirectToSite(w, r, site.Slug)
 }

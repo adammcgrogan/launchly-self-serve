@@ -5,10 +5,10 @@
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-full border border-slate-200 p-0.5 text-xs font-medium">
           {{range .Periods}}
-          <a href="/dashboard/sites/{{$.Site.ID}}?tab=overview&period={{.Key}}" data-period-url="/dashboard/sites/{{$.Site.ID}}/analytics-card?period={{.Key}}" class="rounded-full px-3 py-1.5 {{if eq .Key $.Period}}bg-slate-900 text-white{{else}}text-slate-500 hover:text-slate-800{{end}}">{{.Label}}</a>
+          <a href="/dashboard/sites/{{$.Site.Slug}}?tab=overview&period={{.Key}}" data-period-url="/dashboard/sites/{{$.Site.Slug}}/analytics-card?period={{.Key}}" class="rounded-full px-3 py-1.5 {{if eq .Key $.Period}}bg-slate-900 text-white{{else}}text-slate-500 hover:text-slate-800{{end}}">{{.Label}}</a>
           {{end}}
         </div>
-        <a href="/dashboard/sites/{{.Site.ID}}/analytics.csv?period={{.Period}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Export CSV</a>
+        <a href="/dashboard/sites/{{.Site.Slug}}/analytics.csv?period={{.Period}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Export CSV</a>
       </div>
     </div>
     {{if .Stats}}

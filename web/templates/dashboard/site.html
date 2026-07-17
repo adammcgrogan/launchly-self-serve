@@ -9,7 +9,7 @@
   <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Site.Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Site.Status}}</span>
 </div>
 
-<div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6" data-tabs="{{.Site.ID}}" data-style="underline" data-storage-key="dashboard-site-tab" data-query-param="tab" data-default="overview">
+<div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6" data-tabs="{{.Site.Slug}}" data-style="underline" data-storage-key="dashboard-site-tab" data-query-param="tab" data-default="overview">
   <button type="button" data-tab="overview" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Overview</button>
   <button type="button" data-tab="settings" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Edit site</button>
   <button type="button" data-tab="notifications" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Notifications</button>
@@ -24,7 +24,7 @@
         <h2 class="font-semibold text-slate-900">Finish setting up your site</h2>
         <p class="text-sm text-slate-500 mt-0.5">A fuller site wins more customers — you're {{.ChecklistPercent}}% there.</p>
       </div>
-      <button type="button" onclick="localStorage.setItem('checklist-hidden-{{.Site.ID}}','1');document.getElementById('site-checklist').remove()" class="shrink-0 text-slate-400 hover:text-slate-600 text-sm" aria-label="Dismiss checklist">Dismiss</button>
+      <button type="button" onclick="localStorage.setItem('checklist-hidden-{{.Site.Slug}}','1');document.getElementById('site-checklist').remove()" class="shrink-0 text-slate-400 hover:text-slate-600 text-sm" aria-label="Dismiss checklist">Dismiss</button>
     </div>
     <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
       <div class="h-full rounded-full bg-brand transition-all" style="width:{{.ChecklistPercent}}%"></div>
@@ -43,7 +43,7 @@
       {{end}}
     </ul>
   </div>
-  <script>if(localStorage.getItem('checklist-hidden-{{.Site.ID}}')){var c=document.getElementById('site-checklist');if(c)c.remove();}</script>
+  <script>if(localStorage.getItem('checklist-hidden-{{.Site.Slug}}')){var c=document.getElementById('site-checklist');if(c)c.remove();}</script>
   {{end}}
   <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="rounded-2xl border border-slate-200 bg-white p-5">
@@ -76,7 +76,7 @@
       {{if .NewLeadCount}}<span class="rounded-full bg-brand/10 text-brand px-3 py-1 text-xs font-medium">{{.NewLeadCount}} new</span>{{end}}
     </div>
 
-    <form method="GET" action="/dashboard/sites/{{.Site.ID}}" class="flex flex-wrap gap-3 mb-4">
+    <form method="GET" action="/dashboard/sites/{{.Site.Slug}}" class="flex flex-wrap gap-3 mb-4">
       <input type="hidden" name="tab" value="overview">
       <input type="search" name="lead_q" value="{{.LeadSearch}}" placeholder="Search name or email" class="flex-1 min-w-[10rem] rounded-lg border border-slate-200 px-3 py-2 text-sm">
       <select name="lead_status" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
@@ -101,7 +101,7 @@
           {{if .Message}}<p class="text-sm text-slate-500 mt-1">{{.Message}}</p>{{end}}
           <p class="text-xs text-slate-400 mt-1">{{.CreatedAt.Format "2 Jan 2006, 15:04"}}</p>
         </div>
-        <div class="relative shrink-0" data-lead-status data-status="{{.Status}}" data-update-url="/dashboard/sites/{{$.Site.ID}}/leads/{{.ID}}/status" data-csrf="{{$.CSRFToken}}">
+        <div class="relative shrink-0" data-lead-status data-status="{{.Status}}" data-update-url="/dashboard/sites/{{$.Site.Slug}}/leads/{{.ID}}/status" data-csrf="{{$.CSRFToken}}">
           <button type="button" data-lead-status-trigger class="inline-flex items-center gap-1.5 rounded-full pl-3 pr-2 py-1.5 text-xs font-semibold capitalize focus:outline-none focus:ring-2 focus:ring-offset-1">
             <span data-lead-status-label>{{.Status}}</span>
             <svg class="h-3 w-3 opacity-60" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -119,11 +119,11 @@
     {{if gt .LeadTotalPages 1}}
     <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
       {{if .LeadHasPrev}}
-      <a href="/dashboard/sites/{{.Site.ID}}?tab=overview&lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadPrevPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Previous</a>
+      <a href="/dashboard/sites/{{.Site.Slug}}?tab=overview&lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadPrevPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Previous</a>
       {{else}}<span></span>{{end}}
       <span class="text-xs text-slate-400">Page {{.LeadPage}} of {{.LeadTotalPages}}</span>
       {{if .LeadHasNext}}
-      <a href="/dashboard/sites/{{.Site.ID}}?tab=overview&lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadNextPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Next</a>
+      <a href="/dashboard/sites/{{.Site.Slug}}?tab=overview&lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadNextPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Next</a>
       {{else}}<span></span>{{end}}
     </div>
     {{end}}
@@ -132,7 +132,7 @@
 </div>
 
 <div data-tab-panel="settings" class="hidden">
-  <div class="flex flex-wrap gap-2 mb-6" data-tabs="{{.Site.ID}}-settings" data-style="pill" data-storage-key="dashboard-site-subtab" data-query-param="subtab" data-default="content">
+  <div class="flex flex-wrap gap-2 mb-6" data-tabs="{{.Site.Slug}}-settings" data-style="pill" data-storage-key="dashboard-site-subtab" data-query-param="subtab" data-default="content">
     <button type="button" data-tab="content" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Content</button>
     <button type="button" data-tab="design" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Design</button>
     <button type="button" data-tab="form" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Form</button>
@@ -145,14 +145,14 @@
          nest inside the "edit" form below, so its fields live in the
          "announcement" tab panel further down and reference this one via
          each field's form="announcement-form" attribute instead. -->
-    <form id="announcement-form" data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/announcement" class="hidden" aria-hidden="true">
+    <form id="announcement-form" data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/announcement" class="hidden" aria-hidden="true">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     </form>
 
-    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/edit" class="rounded-2xl border border-slate-200 bg-white p-6">
+    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/edit" class="rounded-2xl border border-slate-200 bg-white p-6">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-      <div class="flex flex-wrap gap-2 border-b border-slate-100 pb-4 mb-6" data-tabs="{{.Site.ID}}-content" data-style="pill" data-storage-key="dashboard-site-content-subtab" data-query-param="csubtab" data-default="basics">
+      <div class="flex flex-wrap gap-2 border-b border-slate-100 pb-4 mb-6" data-tabs="{{.Site.Slug}}-content" data-style="pill" data-storage-key="dashboard-site-content-subtab" data-query-param="csubtab" data-default="basics">
         <button type="button" data-tab="announcement" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Announcement</button>
         <button type="button" data-tab="basics" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Basics</button>
         <button type="button" data-tab="services" class="tab-btn rounded-full px-3.5 py-1.5 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Services &amp; areas</button>
@@ -493,7 +493,7 @@
   </div>
 
   <div data-tab-panel="design" class="space-y-6 hidden">
-    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/appearance" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-8">
+    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/appearance" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-8">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <section>
         <h2 class="font-semibold text-slate-900 mb-4">Colour palette</h2>
@@ -530,7 +530,7 @@
       <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save appearance</button>
     </form>
 
-    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/switch-template" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-8">
+    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/switch-template" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-8">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <h2 class="font-semibold text-slate-900">Switch design</h2>
       <p class="text-sm text-slate-500">Your content carries over. Nothing is lost when you switch.</p>
@@ -550,7 +550,7 @@
   </div>
 
   <div data-tab-panel="form" class="hidden">
-    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/form-type" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+    <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/form-type" class="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <h2 class="font-semibold text-slate-900 mb-1">Form type</h2>
       <p class="text-sm text-slate-500 mb-2">Choose what your site's contact form asks visitors for.</p>
@@ -576,7 +576,7 @@
     <div class="rounded-2xl border border-slate-200 bg-white p-6 mb-6">
       <h2 class="font-semibold text-slate-900">Launchly subdomain</h2>
       <p class="mt-2 text-slate-500">Your site is live at <a href="{{.SiteURL}}" target="_blank" class="text-brand font-medium">{{.SiteURL}} ↗</a></p>
-      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/address" class="mt-6 space-y-4 max-w-md">
+      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/address" class="mt-6 space-y-4 max-w-md">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Subdomain</label>
@@ -599,7 +599,7 @@
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 class="font-semibold text-slate-900">Custom domain</h2>
       <p class="mt-2 text-slate-500">Connect a domain you own, e.g. <span class="font-mono text-sm">yourbusiness.com</span>.</p>
-      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain" class="mt-6 space-y-4 max-w-md">
+      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/domain" class="mt-6 space-y-4 max-w-md">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Domain</label>
@@ -642,11 +642,11 @@
       {{end}}
 
       <div class="mt-4 flex flex-wrap gap-3">
-        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain/check">
+        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/domain/check">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Check status</button>
         </form>
-        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/domain/remove" onsubmit="return confirm('Remove this custom domain?');">
+        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/domain/remove" onsubmit="return confirm('Remove this custom domain?');">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Remove domain</button>
         </form>
@@ -660,19 +660,19 @@
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 class="font-semibold text-slate-900 mb-4">Publishing</h2>
       <div class="flex flex-wrap gap-3">
-        <a href="/dashboard/sites/{{.Site.ID}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
-        <a href="/dashboard/sites/{{.Site.ID}}/print" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Print / QR one-pager</a>
-        <a href="/dashboard/sites/{{.Site.ID}}/qr.png" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Download QR code</a>
+        <a href="/dashboard/sites/{{.Site.Slug}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads</a>
+        <a href="/dashboard/sites/{{.Site.Slug}}/print" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Print / QR one-pager</a>
+        <a href="/dashboard/sites/{{.Site.Slug}}/qr.png" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Download QR code</a>
         {{if eq (print .Site.Status) "live"}}
-        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/unpublish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Unpublish</button>
         </form>
         {{else if ne (print .Site.Status) "paused"}}
-        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.ID}}/publish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/publish"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Publish</button>
         </form>
         {{end}}
-        <form method="POST" action="/dashboard/sites/{{.Site.ID}}/delete" onsubmit="return confirm('Delete this site? This cannot be undone.');">
+        <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/delete" onsubmit="return confirm('Delete this site? This cannot be undone.');">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Delete</button>
         </form>
@@ -684,7 +684,7 @@
 <div data-tab-panel="notifications" class="space-y-6 hidden">
   <div class="rounded-2xl border border-slate-200 bg-white p-6">
     <h2 class="font-semibold text-slate-900 mb-3">Analytics report</h2>
-    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/analytics-frequency" class="space-y-3">
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/analytics-frequency" class="space-y-3">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <p class="text-sm text-slate-500 -mt-1">One email a month summarising your traffic and leads. For day-by-day detail or a downloadable file, use the Overview tab.</p>
       <select name="analytics_frequency" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
@@ -692,7 +692,7 @@
         <option value="monthly" {{if eq .Site.Analytics.AnalyticsFrequency "monthly"}}selected{{end}}>Monthly</option>
       </select>
     </form>
-    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/send-analytics" class="mt-3">
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/send-analytics" class="mt-3">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <button class="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Send report now</button>
     </form>
@@ -705,7 +705,7 @@
     </div>
     <p class="text-sm text-slate-500 mb-4">Add your Google Analytics 4 or Meta Pixel ID to track visitors and conversions in your own tools.</p>
     {{if .Site.Billing.IsPro}}
-    <form method="POST" action="/dashboard/sites/{{.Site.ID}}/tracking-settings" class="space-y-3">
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/tracking-settings" class="space-y-3">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <div>
         <label class="block text-xs text-slate-500 mb-1">Google Analytics 4 measurement ID</label>
@@ -736,13 +736,13 @@
       {{else}}
         <p class="text-xs text-slate-400 mt-1">Your subscription was cancelled.</p>
       {{end}}
-      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/upgrade" class="mt-4 space-y-2">
+      <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/upgrade" class="mt-4 space-y-2">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <button type="submit" name="plan" value="starter" class="w-full rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white">Upgrade to Starter (£9/mo)</button>
         <button type="submit" name="plan" value="pro" class="w-full rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-800">Upgrade to Pro (£19/mo)</button>
       </form>
     {{else if eq (print .Site.Billing.PaymentStatus) "paid"}}
-      <form method="POST" action="/dashboard/sites/{{.Site.ID}}/cancel-subscription" class="mt-4" onsubmit="return confirm('Cancel your subscription?');">
+      <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/cancel-subscription" class="mt-4" onsubmit="return confirm('Cancel your subscription?');">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <button class="w-full rounded-full border border-red-200 text-red-600 px-4 py-2.5 text-sm font-semibold">Cancel subscription</button>
       </form>

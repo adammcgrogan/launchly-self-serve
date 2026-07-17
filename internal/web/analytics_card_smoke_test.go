@@ -22,7 +22,7 @@ func TestAnalyticsCardPartialRenders(t *testing.T) {
 		t.Fatalf("LoadAll: %v", err)
 	}
 
-	site := &domain.SiteAggregate{Site: domain.Site{ID: 42, BusinessName: "Acme"}}
+	site := &domain.SiteAggregate{Site: domain.Site{ID: 42, Slug: "acme", BusinessName: "Acme"}}
 	data := map[string]any{
 		"Site":        site,
 		"Stats":       &domain.SiteStats{TotalViews: 10, UniqueVisitors: 4},
@@ -39,7 +39,7 @@ func TestAnalyticsCardPartialRenders(t *testing.T) {
 	if !strings.Contains(body, `id="analytics-card"`) {
 		t.Error("partial missing #analytics-card container")
 	}
-	if !strings.Contains(body, `data-period-url="/dashboard/sites/42/analytics-card?period=30"`) {
+	if !strings.Contains(body, `data-period-url="/dashboard/sites/acme/analytics-card?period=30"`) {
 		t.Error("partial missing fetch URL for the 30-day period toggle")
 	}
 	if !strings.Contains(body, "Leads (all time)") {
