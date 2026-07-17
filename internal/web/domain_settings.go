@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -21,14 +20,16 @@ func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	rawDomain := strings.TrimSpace(r.FormValue("domain"))
 
-	if _, err := h.domains.SetCustomDomain(r.Context(), site.ID, rawDomain); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if _, err := h.domains.SetCustomDomain(ctx, site.ID, rawDomain); err != nil {
 		middleware.SetFlash(w, err.Error())
-		http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+		redirectToSite(w, r, site.ID)
 		return
 	}
 
 	middleware.SetFlash(w, "Domain added — follow the instructions below to finish connecting it.")
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+	redirectToSite(w, r, site.ID)
 }
 
 // DomainCheckStatus re-checks a pending domain against Cloudflare on demand.
@@ -37,7 +38,9 @@ func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
-	switch hostname, err := h.domains.RefreshCustomDomainStatus(r.Context(), site.ID); {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	switch hostname, err := h.domains.RefreshCustomDomainStatus(ctx, site.ID); {
 	case err != nil:
 		middleware.SetFlash(w, "Couldn't check domain status — try again shortly.")
 	case hostname.Active():
@@ -47,7 +50,7 @@ func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 	default:
 		middleware.SetFlash(w, "Still waiting on DNS — this can take anywhere from a few minutes to a few hours.")
 	}
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+	redirectToSite(w, r, site.ID)
 }
 
 // DomainRemove detaches a site's custom domain entirely.
@@ -56,11 +59,13 @@ func (h *Handler) DomainRemove(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
-	if err := h.domains.RemoveCustomDomain(r.Context(), site.ID); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.domains.RemoveCustomDomain(ctx, site.ID); err != nil {
 		slog.Error("remove custom domain", "site_id", site.ID, "error", err)
 		middleware.SetFlash(w, "Couldn't remove the domain — try again.")
 	} else {
 		middleware.SetFlash(w, "Custom domain removed.")
 	}
-	http.Redirect(w, r, fmt.Sprintf("/dashboard/sites/%d", site.ID), http.StatusSeeOther)
+	redirectToSite(w, r, site.ID)
 }

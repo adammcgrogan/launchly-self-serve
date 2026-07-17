@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,6 +14,16 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
+
+// detachedContext returns a context to use for a save that must complete
+// even if the client disconnects mid-request. Saves are submitted via
+// fetch() (see the [data-ajax-form] JS in site.html), so a user who reloads
+// the page while impatiently waiting for a slow save aborts that fetch's
+// connection — without this, the write's context would be cancelled too,
+// silently rolling back a save the server had already accepted.
+func detachedContext(r *http.Request) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Second)
+}
 
 // redirectToSite redirects back to a site's dashboard page after a save,
 // preserving the tab/subtab/csubtab query params from the page the form was
@@ -47,7 +58,9 @@ func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	slug := strings.TrimSpace(r.FormValue("slug"))
 
-	if err := h.sites.RenameSlug(r.Context(), site.ID, slug); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.RenameSlug(ctx, site.ID, slug); err != nil {
 		middleware.SetFlash(w, err.Error())
 		redirectToSite(w, r, site.ID)
 		return
@@ -105,7 +118,9 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if err := h.sites.UpdateContent(r.Context(), in); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.UpdateContent(ctx, in); err != nil {
 		var verr *service.ValidationError
 		if errors.As(err, &verr) {
 			middleware.SetFlash(w, verr.Message)
@@ -156,7 +171,9 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sites.UpdateAppearance(r.Context(), site.ID, palette, headingFont, brandColor); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.UpdateAppearance(ctx, site.ID, palette, headingFont, brandColor); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
@@ -178,7 +195,9 @@ func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid template", http.StatusBadRequest)
 		return
 	}
-	if err := h.sites.SwitchTemplate(r.Context(), site.ID, templateID); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.SwitchTemplate(ctx, site.ID, templateID); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
@@ -200,7 +219,9 @@ func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid form type", http.StatusBadRequest)
 		return
 	}
-	if err := h.sites.UpdateFormType(r.Context(), site.ID, formType); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.UpdateFormType(ctx, site.ID, formType); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
@@ -243,7 +264,9 @@ func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
-	if err := h.sites.Publish(r.Context(), site.ID); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.Publish(ctx, site.ID); err != nil {
 		if err == service.ErrSitePaused {
 			middleware.SetFlash(w, err.Error())
 			redirectToSite(w, r, site.ID)
@@ -261,7 +284,9 @@ func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
-	if err := h.sites.Unpublish(r.Context(), site.ID); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.Unpublish(ctx, site.ID); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
@@ -320,7 +345,9 @@ func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		linkLabel = ""
 	}
 
-	if err := h.sites.UpdateAnnouncement(r.Context(), site.ID, text, expiresAt, tone, linkURL, linkLabel); err != nil {
+	ctx, cancel := detachedContext(r)
+	defer cancel()
+	if err := h.sites.UpdateAnnouncement(ctx, site.ID, text, expiresAt, tone, linkURL, linkLabel); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
