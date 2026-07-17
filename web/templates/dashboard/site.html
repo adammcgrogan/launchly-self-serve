@@ -738,8 +738,8 @@
       {{end}}
       <form method="POST" action="/dashboard/sites/{{.Site.ID}}/upgrade" class="mt-4 space-y-2">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <button type="submit" name="plan" value="starter" class="w-full rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white">Upgrade to Starter (£14/mo)</button>
-        <button type="submit" name="plan" value="pro" class="w-full rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-800">Upgrade to Pro (£34/mo)</button>
+        <button type="submit" name="plan" value="starter" class="w-full rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white">Upgrade to Starter (£9/mo)</button>
+        <button type="submit" name="plan" value="pro" class="w-full rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-800">Upgrade to Pro (£19/mo)</button>
       </form>
     {{else if eq (print .Site.Billing.PaymentStatus) "paid"}}
       <form method="POST" action="/dashboard/sites/{{.Site.ID}}/cancel-subscription" class="mt-4" onsubmit="return confirm('Cancel your subscription?');">
