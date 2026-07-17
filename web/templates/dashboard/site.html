@@ -136,7 +136,6 @@
     <button type="button" data-tab="content" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Content</button>
     <button type="button" data-tab="design" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Design</button>
     <button type="button" data-tab="form" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Form</button>
-    <button type="button" data-tab="address" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Address</button>
     <button type="button" data-tab="domain" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Domain</button>
     <button type="button" data-tab="publishing" class="tab-btn rounded-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-slate-300">Publishing</button>
   </div>
@@ -572,9 +571,9 @@
     </form>
   </div>
 
-  <div data-tab-panel="address" class="hidden">
-    <div class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="font-semibold text-slate-900">Address</h2>
+  <div data-tab-panel="domain" class="hidden">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 mb-6">
+      <h2 class="font-semibold text-slate-900">Launchly subdomain</h2>
       <p class="mt-2 text-slate-500">Your site is live at <a href="{{.SiteURL}}" target="_blank" class="text-brand font-medium">{{.SiteURL}} ↗</a></p>
       <form method="POST" action="/dashboard/sites/{{.Site.ID}}/address" class="mt-6 space-y-4 max-w-md">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -586,12 +585,10 @@
           </div>
           <p class="mt-1 text-xs text-slate-400">Your old link will keep working — it'll redirect here automatically. You can change this once per day.</p>
         </div>
-        <button type="submit" class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Save address</button>
+        <button type="submit" class="rounded-full bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark transition">Save subdomain</button>
       </form>
     </div>
-  </div>
 
-  <div data-tab-panel="domain" class="hidden">
     {{if not .DomainData.IsPro}}
     <div class="rounded-2xl border border-slate-200 bg-white p-6 max-w-md">
       <p class="text-slate-600">Connecting your own domain is a Pro-plan feature.</p>
