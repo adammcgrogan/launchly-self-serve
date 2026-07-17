@@ -9,7 +9,7 @@
   <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Site.Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Site.Status}}</span>
 </div>
 
-<div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6" data-tabs="{{.Site.ID}}" data-style="underline" data-query-param="tab" data-default="overview">
+<div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6" data-tabs="{{.Site.ID}}" data-style="underline" data-storage-key="dashboard-site-tab" data-query-param="tab" data-default="overview">
   <button type="button" data-tab="overview" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Overview</button>
   <button type="button" data-tab="settings" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Edit site</button>
   <button type="button" data-tab="notifications" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Notifications</button>
