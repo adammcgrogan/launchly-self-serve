@@ -13,7 +13,7 @@ import (
 // upgrade — the customer initiates this themselves from their dashboard,
 // there is no admin-sent payment link.
 func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
+	site := middleware.LightSiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
@@ -29,7 +29,10 @@ func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 
 	// Bill the account owner's login email, not the site's public contact
 	// email — the two can differ (or the public one can be left blank).
-	customerEmail := site.Contact.Email
+	var customerEmail string
+	if contact, err := h.sites.GetSiteContact(r.Context(), site.ID); err == nil && contact != nil {
+		customerEmail = contact.Email
+	}
 	if profile, err := h.accounts.GetProfile(r.Context(), middleware.UserID(r)); err == nil && profile != nil && profile.Email != "" {
 		customerEmail = profile.Email
 	}
@@ -44,7 +47,7 @@ func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
+	site := middleware.LightSiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}

@@ -44,8 +44,14 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /sites/{slug}/e", h.RecordSiteEventPath)
 
 	// Dashboard — every route requires a logged-in user; site-scoped routes
-	// additionally require that user to own the site.
+	// additionally require that user to own the site. Most handlers only
+	// need the site's core fields (ID, Slug, ...), so they're wired through
+	// the lightweight ownership check (owned); only handlers that render the
+	// full aggregate (joined services/hours/gallery/etc.) use ownedFull.
 	owned := func(next http.HandlerFunc) http.HandlerFunc {
+		return h.auth.RequireUser(h.ownership.RequireSiteOwnerLight(next))
+	}
+	ownedFull := func(next http.HandlerFunc) http.HandlerFunc {
 		return h.auth.RequireUser(h.ownership.RequireSiteOwner(next))
 	}
 	mux.HandleFunc("GET /dashboard", h.auth.RequireUser(h.Dashboard))
@@ -56,7 +62,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/new", h.auth.RequireUser(h.NewSiteSubmit))
 	mux.HandleFunc("POST /dashboard/sites/new/generate-copy", h.auth.RequireUser(h.GenerateCopy))
 	mux.HandleFunc("POST /dashboard/uploads", h.auth.RequireUser(h.UploadImage))
-	mux.HandleFunc("GET /dashboard/sites/{slug}", owned(h.SiteOverview))
+	mux.HandleFunc("GET /dashboard/sites/{slug}", ownedFull(h.SiteOverview))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/edit", owned(h.EditSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/appearance", owned(h.AppearanceSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/switch-template", owned(h.SwitchTemplateSubmit))
@@ -72,7 +78,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /dashboard/sites/{slug}/analytics.csv", owned(h.ExportAnalytics))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/analytics-card", owned(h.SiteAnalyticsCard))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/qr.png", owned(h.SiteQRCode))
-	mux.HandleFunc("GET /dashboard/sites/{slug}/print", owned(h.SitePrintPage))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/print", ownedFull(h.SitePrintPage))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/leads/{leadID}/status", owned(h.LeadStatusSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/announcement", owned(h.UpdateAnnouncement))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/analytics-frequency", owned(h.UpdateAnalyticsFrequency))
@@ -109,9 +115,11 @@ func SubdomainRouter(domain string, h *Handler, fallback http.Handler) http.Hand
 		// An unrecognized host is either a site's connected custom domain or
 		// an unrelated fallback host (e.g. a platform-assigned *.up.railway.app
 		// URL) — only route it to ServeSite if it actually resolves to a site,
-		// otherwise show the marketing site rather than 404ing.
+		// otherwise show the marketing site rather than 404ing. This uses the
+		// lightweight site lookup since it only needs to know a site exists —
+		// ServeSite loads the full aggregate itself once it takes over.
 		if isUnrecognizedHost {
-			site, err := h.sites.GetSiteAggregateByCustomDomain(r.Context(), host)
+			site, err := h.sites.GetSiteByCustomDomain(r.Context(), host)
 			if err != nil || site == nil {
 				fallback.ServeHTTP(w, r)
 				return

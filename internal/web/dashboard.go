@@ -12,6 +12,7 @@ import (
 	"time"
 
 	qrcode "github.com/skip2/go-qrcode"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
@@ -73,18 +74,56 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	if leadPage < 1 {
 		leadPage = 1
 	}
-	leads, leadTotal, err := h.leads.ListBySiteFiltered(r.Context(), site.ID, leadStatus, leadSearch, leadPage)
-	if err != nil {
+
+	// These are all independent reads (two leads queries, the analytics
+	// stats query, and — when a custom domain is mid-verification — a live
+	// Cloudflare status check), so they run concurrently rather than
+	// stacking their latencies sequentially on every page load.
+	var (
+		leads          []domain.Lead
+		leadTotal      int
+		leadCounts     domain.LeadCounts
+		stats          *domain.SiteStats
+		chartPoints    []dailyViewPoint
+		period         analyticsPeriodOpt
+		domainHostname any
+	)
+	needsDomainRefresh := site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending
+
+	g, gctx := errgroup.WithContext(r.Context())
+	g.Go(func() (err error) {
+		leads, leadTotal, err = h.leads.ListBySiteFiltered(gctx, site.ID, leadStatus, leadSearch, leadPage)
+		return
+	})
+	g.Go(func() (err error) {
+		leadCounts, err = h.leads.Counts(gctx, site.ID)
+		return
+	})
+	g.Go(func() error {
+		stats, chartPoints, period = h.analyticsCardStats(gctx, &site.Site, r.URL.Query().Get("period"))
+		return nil
+	})
+	if needsDomainRefresh {
+		g.Go(func() error {
+			// Best-effort: a failed Cloudflare check just means the page
+			// falls back to the last known status, same as before.
+			if hostname, err := h.domains.RefreshCustomDomainStatus(gctx, site.ID); err == nil {
+				domainHostname = hostname
+				if hostname.Active() {
+					site.CustomDomainStatus = domain.CustomDomainActive
+				} else if hostname.Failed() {
+					site.CustomDomainStatus = domain.CustomDomainFailed
+				}
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
-	leadCounts, err := h.leads.Counts(r.Context(), site.ID)
-	if err != nil {
-		h.render.RenderError(w, http.StatusInternalServerError)
-		return
-	}
+
 	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
-	stats, chartPoints, period := h.analyticsCardStats(r.Context(), site, r.URL.Query().Get("period"))
 
 	tmpl, _ := findTemplate(site.TemplateID)
 	checklist, checklistPercent := siteChecklist(site)
@@ -93,6 +132,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"FallbackOrigin": h.domains.FallbackOrigin(),
 		"IsPro":          site.Billing.IsPro(),
 	}
+	if domainHostname != nil {
+		domainData["Hostname"] = domainHostname
+	}
 
 	var trialDaysLeft int
 	showTrialBanner := site.Billing.PaymentStatus == domain.PaymentStatusTrialing && site.Billing.TrialEndsAt != nil
@@ -100,16 +142,6 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		trialDaysLeft = int(math.Ceil(time.Until(*site.Billing.TrialEndsAt).Hours() / 24))
 		if trialDaysLeft < 0 {
 			trialDaysLeft = 0
-		}
-	}
-	if site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending {
-		if hostname, err := h.domains.RefreshCustomDomainStatus(r.Context(), site.ID); err == nil {
-			domainData["Hostname"] = hostname
-			if hostname.Active() {
-				site.CustomDomainStatus = domain.CustomDomainActive
-			} else if hostname.Failed() {
-				site.CustomDomainStatus = domain.CustomDomainFailed
-			}
 		}
 	}
 
@@ -254,7 +286,7 @@ func (p analyticsPeriodOpt) since(siteCreatedAt time.Time) time.Time {
 // loads that period's stats/chart data — shared by the full overview page
 // and the fetch-driven analytics-card partial (SiteAnalyticsCard) so a
 // period switch renders identically either way.
-func (h *Handler) analyticsCardStats(ctx context.Context, site *domain.SiteAggregate, periodKey string) (*domain.SiteStats, []dailyViewPoint, analyticsPeriodOpt) {
+func (h *Handler) analyticsCardStats(ctx context.Context, site *domain.Site, periodKey string) (*domain.SiteStats, []dailyViewPoint, analyticsPeriodOpt) {
 	period := analyticsPeriodFromKey(periodKey)
 	stats, _ := h.analytics.GetSiteStats(ctx, site.ID, period.since(site.CreatedAt), site.Timezone)
 	var chartPoints []dailyViewPoint
@@ -268,7 +300,7 @@ func (h *Handler) analyticsCardStats(ctx context.Context, site *domain.SiteAggre
 // new period. The period toggle in dashboard:site fetches this instead of
 // reloading the whole dashboard page.
 func (h *Handler) SiteAnalyticsCard(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
+	site := middleware.LightSiteFromContext(r)
 	stats, chartPoints, period := h.analyticsCardStats(r.Context(), site, r.URL.Query().Get("period"))
 	leadCounts, err := h.leads.Counts(r.Context(), site.ID)
 	if err != nil {
@@ -425,7 +457,7 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
+	site := middleware.LightSiteFromContext(r)
 	leads, err := h.leads.ListBySite(r.Context(), site.ID)
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
@@ -445,7 +477,7 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 // for the requested period (mirrors ExportLeads) — the "just have a
 // downloadable file" option, independent of the monthly email's cadence.
 func (h *Handler) ExportAnalytics(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
+	site := middleware.LightSiteFromContext(r)
 	period := analyticsPeriodFromKey(r.URL.Query().Get("period"))
 	stats, err := h.analytics.GetSiteStats(r.Context(), site.ID, period.since(site.CreatedAt), site.Timezone)
 	if err != nil || stats == nil {
@@ -492,7 +524,7 @@ func csvSafe(s string) string {
 // SiteQRCode renders a PNG QR code encoding the site's public URL, for the
 // owner to download and use in offline marketing (van livery, flyers, etc).
 func (h *Handler) SiteQRCode(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
+	site := middleware.LightSiteFromContext(r)
 	png, err := qrcode.Encode(h.siteURL(site.Slug), qrcode.Medium, 512)
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)

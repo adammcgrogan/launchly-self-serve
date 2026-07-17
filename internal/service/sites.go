@@ -577,6 +577,27 @@ func (s *Sites) GetSiteAggregateByCustomDomain(ctx context.Context, host string)
 	return s.GetSiteAggregate(ctx, site.ID)
 }
 
+// GetSiteBySlug loads just a site's own row (no related tables) — used
+// where a caller only needs the site's ID, slug, or other core fields,
+// rather than paying for GetSiteAggregate's full fan-out of queries.
+func (s *Sites) GetSiteBySlug(ctx context.Context, slug string) (*domain.Site, error) {
+	return postgres.GetSiteBySlug(ctx, s.store.DB(), slug)
+}
+
+// GetSiteByCustomDomain is the lightweight counterpart to
+// GetSiteAggregateByCustomDomain, for callers that only need to know
+// whether a host resolves to a site (or need its core fields), not the
+// full aggregate.
+func (s *Sites) GetSiteByCustomDomain(ctx context.Context, host string) (*domain.Site, error) {
+	return postgres.GetSiteByCustomDomain(ctx, s.store.DB(), host)
+}
+
+// GetSiteContact loads just a site's contact row, for the rare caller that
+// needs it without the rest of GetSiteAggregate's fan-out.
+func (s *Sites) GetSiteContact(ctx context.Context, siteID int) (*domain.SiteContact, error) {
+	return postgres.GetSiteContact(ctx, s.store.DB(), siteID)
+}
+
 func (s *Sites) ListSitesByOwner(ctx context.Context, ownerID uuid.UUID) ([]domain.Site, error) {
 	return postgres.ListSitesByOwner(ctx, s.store.DB(), ownerID)
 }
