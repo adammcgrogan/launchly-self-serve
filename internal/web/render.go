@@ -31,6 +31,15 @@ var funcMap = template.FuncMap{
 		}
 		return n * 100 / total
 	},
+	// paletteColor maps a palette ID to its representative hex swatch, so
+	// marketing pages can render each template's preview in its real accent
+	// colour. Falls back to the brand indigo for an unknown ID.
+	"paletteColor": func(id string) string {
+		if c, ok := paletteSwatchColors[id]; ok {
+			return c
+		}
+		return "#4F46E5"
+	},
 }
 
 func (rd *Renderer) parse(key, base string, files ...string) error {
