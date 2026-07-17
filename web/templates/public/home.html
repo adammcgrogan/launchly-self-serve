@@ -1,13 +1,12 @@
 {{define "content"}}
 
 <section class="relative overflow-hidden">
-  <div class="absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_50%_0%,#eef2ff_0%,#ffffff_60%)] pointer-events-none"></div>
-  <div class="absolute inset-x-0 top-0 -z-10 h-96 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(60%_60%_at_50%_0%,#000,transparent)] pointer-events-none"></div>
+  <div class="absolute inset-0 -z-10 bg-gradient-to-b from-indigo-100 via-violet-50 to-white pointer-events-none"></div>
+  <div class="absolute -top-24 left-1/2 -translate-x-1/2 -z-10 w-[820px] h-[440px] bg-[radial-gradient(closest-side,rgba(129,140,248,0.45),transparent)] pointer-events-none"></div>
+  <div class="absolute top-10 right-0 -z-10 w-[480px] h-[360px] bg-[radial-gradient(closest-side,rgba(251,191,36,0.28),transparent)] pointer-events-none"></div>
+  <div class="absolute inset-x-0 top-0 -z-10 h-96 bg-[linear-gradient(to_right,rgba(99,102,241,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.08)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(60%_60%_at_50%_0%,#000,transparent)] pointer-events-none"></div>
 
-  <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-14 md:pt-28 text-center">
-    <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-600 mb-8">
-      <span class="w-2 h-2 rounded-full bg-emerald-500"></span> No approval. No waiting. Live the moment you finish.
-    </span>
+  <div class="relative max-w-6xl mx-auto px-6 pt-24 pb-14 md:pt-32 text-center">
     <h1 class="font-display text-5xl sm:text-7xl font-bold leading-[1.02] text-slate-900 max-w-4xl mx-auto">
       Build your business a home online, <span class="text-brand">today</span>.
     </h1>
@@ -66,31 +65,32 @@
 </section>
 
 <!-- Proof strip -->
-<section class="border-y border-slate-100 bg-white">
+<section class="border-y border-indigo-100 bg-indigo-50/60">
   <div class="max-w-6xl mx-auto px-6 py-8">
-    <p class="text-center text-xs font-semibold uppercase tracking-widest text-slate-400">Built for the businesses on your high street</p>
-    <div class="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-slate-500 font-display text-lg font-semibold">
-      <span>Electricians</span><span class="text-slate-200">&bull;</span>
-      <span>Cafés</span><span class="text-slate-200">&bull;</span>
-      <span>Salons</span><span class="text-slate-200">&bull;</span>
-      <span>Plumbers</span><span class="text-slate-200">&bull;</span>
-      <span>Accountants</span><span class="text-slate-200">&bull;</span>
-      <span>Gyms</span><span class="text-slate-200">&bull;</span>
+    <p class="text-center text-xs font-semibold uppercase tracking-widest text-brand/70">Built for the businesses on your high street</p>
+    <div class="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-slate-600 font-display text-lg font-semibold">
+      <span>Electricians</span><span class="text-indigo-300">&bull;</span>
+      <span>Cafés</span><span class="text-indigo-300">&bull;</span>
+      <span>Salons</span><span class="text-indigo-300">&bull;</span>
+      <span>Plumbers</span><span class="text-indigo-300">&bull;</span>
+      <span>Accountants</span><span class="text-indigo-300">&bull;</span>
+      <span>Gyms</span><span class="text-indigo-300">&bull;</span>
       <span>Joiners</span>
     </div>
   </div>
 </section>
 
 <!-- Real example sites: the signature section -->
-<section id="examples" class="max-w-6xl mx-auto px-6 py-24">
+<section id="examples" class="bg-gradient-to-b from-white via-amber-50/40 to-white">
+  <div class="max-w-6xl mx-auto px-6 py-24">
   <div class="max-w-2xl">
     <p class="text-brand font-semibold text-sm uppercase tracking-widest">Real sites, real businesses</p>
     <h2 class="mt-3 font-display text-4xl font-bold text-slate-900">This is what you'll actually ship.</h2>
-    <p class="mt-4 text-lg text-slate-600">Every design is built for a real kind of business — not a blank canvas you have to figure out. Here are three, each on a different design and colour scheme.</p>
+    <p class="mt-4 text-lg text-slate-600">Every design is built for a real kind of business, not a blank canvas you have to figure out. Here are three, each on a different design and colour scheme.</p>
   </div>
 
   <div class="mt-14 grid md:grid-cols-3 gap-6">
-    <!-- Corner House Coffee — Ember -->
+    <!-- Corner House Coffee - Ember -->
     <figure class="group">
       <div class="rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 overflow-hidden bg-white transition group-hover:-translate-y-1 group-hover:shadow-xl">
         <div class="flex items-center gap-1 px-3 py-2 bg-slate-50 border-b border-slate-200">
@@ -113,7 +113,7 @@
       </figcaption>
     </figure>
 
-    <!-- Willow & Sage — Bloom -->
+    <!-- Willow & Sage - Bloom -->
     <figure class="group">
       <div class="rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 overflow-hidden bg-white transition group-hover:-translate-y-1 group-hover:shadow-xl">
         <div class="flex items-center gap-1 px-3 py-2 bg-slate-50 border-b border-slate-200">
@@ -136,7 +136,7 @@
       </figcaption>
     </figure>
 
-    <!-- Kane & Sons — Foundry -->
+    <!-- Kane & Sons - Foundry -->
     <figure class="group">
       <div class="rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 overflow-hidden bg-white transition group-hover:-translate-y-1 group-hover:shadow-xl">
         <div class="flex items-center gap-1 px-3 py-2 bg-slate-50 border-b border-slate-200">
@@ -160,36 +160,37 @@
   </div>
 
   <p class="mt-10 text-center text-slate-500">Same content, any design. <a href="/templates" class="font-semibold text-brand hover:underline">Browse all designs &rarr;</a></p>
+  </div>
 </section>
 
 <!-- How it works -->
-<section class="border-t border-slate-100 bg-slate-50">
+<section class="border-t border-indigo-100 bg-gradient-to-b from-indigo-50 to-white">
   <div class="max-w-6xl mx-auto px-6 py-24">
     <div class="text-center max-w-2xl mx-auto">
       <h2 class="font-display text-4xl font-bold text-slate-900">Live in three steps. No one in between.</h2>
       <p class="mt-3 text-slate-500">No sales call, no proposal, no waiting on a designer to get back to you.</p>
     </div>
     <div class="mt-16 grid md:grid-cols-3 gap-8">
-      <div class="rounded-2xl bg-white border border-slate-200 p-8">
+      <div class="rounded-2xl bg-white border border-indigo-100 shadow-sm shadow-indigo-100/50 p-8">
         <div class="flex items-baseline gap-3">
           <span class="font-display text-2xl font-bold text-brand">01</span>
-          <span class="h-px flex-1 bg-slate-100"></span>
+          <span class="h-px flex-1 bg-indigo-100"></span>
         </div>
         <h3 class="mt-5 font-semibold text-lg text-slate-900">Create your account</h3>
         <p class="mt-2 text-slate-600">Sign up with your email. Ten seconds, no card needed, 14 days free.</p>
       </div>
-      <div class="rounded-2xl bg-white border border-slate-200 p-8">
+      <div class="rounded-2xl bg-white border border-indigo-100 shadow-sm shadow-indigo-100/50 p-8">
         <div class="flex items-baseline gap-3">
           <span class="font-display text-2xl font-bold text-brand">02</span>
-          <span class="h-px flex-1 bg-slate-100"></span>
+          <span class="h-px flex-1 bg-indigo-100"></span>
         </div>
         <h3 class="mt-5 font-semibold text-lg text-slate-900">Add your details</h3>
         <p class="mt-2 text-slate-600">Pick a design and fill in your services, hours, and photos. Stuck for words? Let Launchly draft your copy.</p>
       </div>
-      <div class="rounded-2xl bg-white border border-slate-200 p-8">
+      <div class="rounded-2xl bg-white border border-indigo-100 shadow-sm shadow-indigo-100/50 p-8">
         <div class="flex items-baseline gap-3">
           <span class="font-display text-2xl font-bold text-brand">03</span>
-          <span class="h-px flex-1 bg-slate-100"></span>
+          <span class="h-px flex-1 bg-indigo-100"></span>
         </div>
         <h3 class="mt-5 font-semibold text-lg text-slate-900">You're live</h3>
         <p class="mt-2 text-slate-600">Publish instantly to your own launchly.ltd address. Edit anything, any time, from your dashboard.</p>
@@ -203,47 +204,47 @@
   <div class="max-w-2xl">
     <p class="text-brand font-semibold text-sm uppercase tracking-widest">More than a pretty page</p>
     <h2 class="mt-3 font-display text-4xl font-bold text-slate-900">A website that actually brings in work.</h2>
-    <p class="mt-4 text-lg text-slate-600">Launchly isn't just a page online. It's the tools a local business needs to turn a visitor into a booking — and none of the ones it doesn't.</p>
+    <p class="mt-4 text-lg text-slate-600">Launchly isn't just a page online. It's the tools a local business needs to turn a visitor into a booking, and none of the ones it doesn't.</p>
   </div>
 
   <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-    <div class="rounded-2xl border border-slate-200 p-6">
-      <div class="w-10 h-10 rounded-lg bg-indigo-50 text-brand flex items-center justify-center">
+    <div class="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-6">
+      <div class="w-10 h-10 rounded-lg bg-indigo-100 text-brand flex items-center justify-center">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.9 5.3a2 2 0 002.2 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
       </div>
       <h3 class="mt-4 font-semibold text-slate-900">Leads straight to your inbox</h3>
       <p class="mt-2 text-sm text-slate-600">Every contact-form enquiry lands in your email the moment it's sent, with the customer's details ready to reply to.</p>
     </div>
-    <div class="rounded-2xl border border-slate-200 p-6">
-      <div class="w-10 h-10 rounded-lg bg-indigo-50 text-brand flex items-center justify-center">
+    <div class="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-6">
+      <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
       </div>
       <h3 class="mt-4 font-semibold text-slate-900">SMS lead alerts</h3>
       <p class="mt-2 text-sm text-slate-600">On the tools all day? Get a text the second an enquiry comes in, so you never miss a job. <span class="text-slate-400">(Pro)</span></p>
     </div>
-    <div class="rounded-2xl border border-slate-200 p-6">
-      <div class="w-10 h-10 rounded-lg bg-indigo-50 text-brand flex items-center justify-center">
+    <div class="rounded-2xl border border-amber-100 bg-amber-50/40 p-6">
+      <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
       </div>
       <h3 class="mt-4 font-semibold text-slate-900">Visitor reports</h3>
-      <p class="mt-2 text-sm text-slate-600">A plain-English weekly or monthly email showing how many people found you and what they clicked — no dashboards to learn.</p>
+      <p class="mt-2 text-sm text-slate-600">A plain-English weekly or monthly email showing how many people found you and what they clicked, no dashboards to learn.</p>
     </div>
-    <div class="rounded-2xl border border-slate-200 p-6">
-      <div class="w-10 h-10 rounded-lg bg-indigo-50 text-brand flex items-center justify-center">
+    <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-6">
+      <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg>
       </div>
       <h3 class="mt-4 font-semibold text-slate-900">Your own domain</h3>
       <p class="mt-2 text-sm text-slate-600">Start on a free launchly.ltd address, then connect your own <span class="whitespace-nowrap">.co.uk</span> whenever you're ready. <span class="text-slate-400">(Pro)</span></p>
     </div>
-    <div class="rounded-2xl border border-slate-200 p-6">
-      <div class="w-10 h-10 rounded-lg bg-indigo-50 text-brand flex items-center justify-center">
+    <div class="rounded-2xl border border-violet-100 bg-violet-50/40 p-6">
+      <div class="w-10 h-10 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m0 14v1m8-8h-1M5 12H4m1.6-6.4l.7.7m11.4-.7l-.7.7M6.3 17.7l-.7.7m12.1-.7l.7.7M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       </div>
       <h3 class="mt-4 font-semibold text-slate-900">A QR code for the real world</h3>
       <p class="mt-2 text-sm text-slate-600">Print your site's QR code on the van, the window, or a flyer, so passers-by can find you in one tap.</p>
     </div>
-    <div class="rounded-2xl border border-slate-200 p-6">
-      <div class="w-10 h-10 rounded-lg bg-indigo-50 text-brand flex items-center justify-center">
+    <div class="rounded-2xl border border-rose-100 bg-rose-50/40 p-6">
+      <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
       </div>
       <h3 class="mt-4 font-semibold text-slate-900">Change your mind any time</h3>
@@ -257,10 +258,10 @@
   <div class="max-w-6xl mx-auto px-6 py-24">
     <div class="text-center max-w-2xl mx-auto">
       <h2 class="font-display text-4xl font-bold text-slate-900">A design for every business</h2>
-      <p class="mt-3 text-slate-500">Each one is a finished, professional site — pick the closest fit and make it yours. Switch any time; your content carries over.</p>
+      <p class="mt-3 text-slate-500">Each one is a finished, professional site, so pick the closest fit and make it yours. Switch any time; your content carries over.</p>
     </div>
     <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      {{range .Templates}}
+      {{range (slice .Templates 0 4)}}
       <div class="rounded-2xl border border-slate-200 bg-white overflow-hidden">
         <div class="h-24 relative" style="background-color:{{paletteColor (index .Palettes 0).ID}}">
           <div class="absolute left-4 right-4 bottom-0 rounded-t-md bg-white/95 px-3 pt-3 pb-0 h-14">
@@ -296,8 +297,8 @@
         <h2 class="font-display text-4xl font-bold text-slate-900 mb-6">Hi, I'm Adam.</h2>
         <div class="space-y-4 text-slate-600 text-lg leading-relaxed">
           <p>I'm a developer and founder based in <span class="font-semibold text-slate-900">Belfast, Northern Ireland</span>. I build tools that solve real problems for real people.</p>
-          <p>I started Launchly because I kept coming across brilliant local businesses — tradespeople, cafés, salons, accountants — with no online presence at all. They were losing customers to competitors who had even a basic website, simply because they couldn't be found.</p>
-          <p>So I built Launchly to remove the barrier. Pick a design, add your details, and you're live in minutes — <span class="font-semibold text-slate-900">no developer, no waiting on anyone.</span></p>
+          <p>I started Launchly because I kept coming across brilliant local businesses (tradespeople, cafés, salons, accountants) with no online presence at all. They were losing customers to competitors who had even a basic website, simply because they couldn't be found.</p>
+          <p>So I built Launchly to remove the barrier. Pick a design, add your details, and you're live in minutes, <span class="font-semibold text-slate-900">no developer, no waiting on anyone.</span></p>
         </div>
         <div class="mt-8 flex flex-wrap gap-4">
           <a href="/signup" class="inline-flex items-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-dark transition">Start free</a>
