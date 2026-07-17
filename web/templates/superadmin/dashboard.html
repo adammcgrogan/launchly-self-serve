@@ -1,41 +1,75 @@
 {{define "content"}}
 <h1 class="text-xl font-bold mb-4">Platform stats</h1>
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.TotalSites}}</p>
-    <p class="text-xs text-slate-400 mt-1">Total sites</p>
+<div class="grid gap-4 mb-10 lg:grid-cols-3">
+  <div class="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 flex flex-col justify-between">
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Total sites</p>
+      <p class="text-4xl font-bold mt-2">{{.Stats.TotalSites}}</p>
+    </div>
+    <div class="mt-6 flex gap-8">
+      <div>
+        <p class="text-xs text-slate-500">New, last 7 days</p>
+        <p class="mt-0.5 font-semibold text-slate-100">{{.Stats.SignupsThisWeek}}</p>
+      </div>
+      <div>
+        <p class="text-xs text-slate-500">New, last 30 days</p>
+        <p class="mt-0.5 font-semibold text-slate-100">{{.Stats.SignupsThisMonth}}</p>
+      </div>
+    </div>
   </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.LiveSites}}</p>
-    <p class="text-xs text-slate-400 mt-1">Live</p>
+
+  <div class="rounded-2xl border border-slate-800 p-6">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 mb-4">By status</p>
+    <div class="space-y-4">
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1.5">
+          <span class="flex items-center gap-2 text-slate-300"><span class="h-2 w-2 rounded-full bg-emerald-400"></span>Live</span>
+          <span class="font-semibold text-slate-100">{{.Stats.LiveSites}}</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-emerald-400" style="width:{{pct .Stats.LiveSites .Stats.TotalSites}}%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1.5">
+          <span class="flex items-center gap-2 text-slate-300"><span class="h-2 w-2 rounded-full bg-slate-400"></span>Draft</span>
+          <span class="font-semibold text-slate-100">{{.Stats.DraftSites}}</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-slate-400" style="width:{{pct .Stats.DraftSites .Stats.TotalSites}}%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1.5">
+          <span class="flex items-center gap-2 text-slate-300"><span class="h-2 w-2 rounded-full bg-amber-400"></span>Paused</span>
+          <span class="font-semibold text-slate-100">{{.Stats.PausedSites}}</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-amber-400" style="width:{{pct .Stats.PausedSites .Stats.TotalSites}}%"></div></div>
+      </div>
+    </div>
   </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.DraftSites}}</p>
-    <p class="text-xs text-slate-400 mt-1">Draft</p>
-  </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.PausedSites}}</p>
-    <p class="text-xs text-slate-400 mt-1">Paused</p>
-  </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.StarterPlan}}</p>
-    <p class="text-xs text-slate-400 mt-1">Starter plan</p>
-  </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.ProPlan}}</p>
-    <p class="text-xs text-slate-400 mt-1">Paid Pro</p>
-  </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.TrialingSites}}</p>
-    <p class="text-xs text-slate-400 mt-1">Trialing</p>
-  </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.SignupsThisWeek}}</p>
-    <p class="text-xs text-slate-400 mt-1">Signups (7d)</p>
-  </div>
-  <div class="rounded-2xl border border-slate-800 p-4">
-    <p class="text-2xl font-bold">{{.Stats.SignupsThisMonth}}</p>
-    <p class="text-xs text-slate-400 mt-1">Signups (30d)</p>
+
+  <div class="rounded-2xl border border-slate-800 p-6">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-500 mb-4">By plan</p>
+    <div class="space-y-4">
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1.5">
+          <span class="flex items-center gap-2 text-slate-300"><span class="h-2 w-2 rounded-full bg-indigo-400"></span>Paid Pro</span>
+          <span class="font-semibold text-slate-100">{{.Stats.ProPlan}}</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-indigo-400" style="width:{{pct .Stats.ProPlan .Stats.TotalSites}}%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1.5">
+          <span class="flex items-center gap-2 text-slate-300"><span class="h-2 w-2 rounded-full bg-slate-400"></span>Starter</span>
+          <span class="font-semibold text-slate-100">{{.Stats.StarterPlan}}</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-slate-400" style="width:{{pct .Stats.StarterPlan .Stats.TotalSites}}%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1.5">
+          <span class="flex items-center gap-2 text-slate-300"><span class="h-2 w-2 rounded-full bg-sky-400"></span>Trialing</span>
+          <span class="font-semibold text-slate-100">{{.Stats.TrialingSites}}</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-sky-400" style="width:{{pct .Stats.TrialingSites .Stats.TotalSites}}%"></div></div>
+      </div>
+    </div>
   </div>
 </div>
 

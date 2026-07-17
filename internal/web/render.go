@@ -22,6 +22,15 @@ func NewRenderer() *Renderer {
 
 var funcMap = template.FuncMap{
 	"add1": func(i int) int { return i + 1 },
+	// pct returns n as a percentage of total, 0 if total isn't positive —
+	// used to size proportion bars (e.g. superadmin's platform stats)
+	// without every caller having to guard against a divide-by-zero.
+	"pct": func(n, total int) int {
+		if total <= 0 {
+			return 0
+		}
+		return n * 100 / total
+	},
 }
 
 func (rd *Renderer) parse(key, base string, files ...string) error {
