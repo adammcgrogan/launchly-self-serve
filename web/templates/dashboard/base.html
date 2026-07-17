@@ -53,6 +53,7 @@
     });
   })();
   </script>
+  <div id="dash-content" class="contents">
   {{if not .EmailVerified}}
   <div class="max-w-5xl mx-auto px-6 mt-6">
     <p class="rounded-lg bg-amber-50 text-amber-700 text-sm px-4 py-3">
@@ -68,6 +69,7 @@
   <main class="max-w-5xl mx-auto px-6 py-10">
     {{template "content" .}}
   </main>
+  </div>
 </body>
 </html>
 {{end}}
