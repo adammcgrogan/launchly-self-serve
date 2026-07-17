@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
@@ -59,6 +60,10 @@ func (c *Cron) sendDueTrialReminders() {
 			if err != nil || site == nil {
 				continue
 			}
+			billing, err := postgres.GetSiteBilling(ctx, c.store.DB(), id)
+			if err != nil || billing == nil || billing.TrialEndsAt == nil {
+				continue
+			}
 			contact, err := postgres.GetSiteContact(ctx, c.store.DB(), id)
 			if err != nil {
 				continue
@@ -71,8 +76,12 @@ func (c *Cron) sendDueTrialReminders() {
 			if to == "" {
 				continue
 			}
-			daysLeft := 3
-			if kind == "final" {
+			// Computed from trial_ends_at rather than assumed from kind, so a
+			// cron gap that lets a site become due for both "first" and
+			// "final" in the same run doesn't send a falsely optimistic
+			// days-left count (see #148).
+			daysLeft := int(math.Ceil(time.Until(*billing.TrialEndsAt).Hours() / 24))
+			if daysLeft < 1 {
 				daysLeft = 1
 			}
 			dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, site.Slug)
