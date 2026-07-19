@@ -121,11 +121,11 @@ func main() {
 	}
 }
 
-// contentSecurityPolicy is tuned for the Tailwind CDN build and inline
-// <script>/<style> usage across the dashboard, auth, and site templates —
-// none of it is nonce-based yet, so 'unsafe-inline' stays in for now.
+// contentSecurityPolicy is tuned for the inline <script>/<style> usage
+// across the dashboard, auth, and site templates — none of it is
+// nonce-based yet, so 'unsafe-inline' stays in for now.
 const contentSecurityPolicy = "default-src 'self'; " +
-	"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " +
+	"script-src 'self' 'unsafe-inline'; " +
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
 	"font-src 'self' https://fonts.gstatic.com data:; " +
 	"img-src 'self' https: data:; " +

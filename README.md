@@ -33,7 +33,7 @@ Four site designs ship out of the box, each with its own layout and palette opti
 
 ## Stack
 
-Go (single binary, standard library HTTP server), Supabase (Postgres + Auth), server-rendered `html/template` with Tailwind (no frontend build step), Stripe, Resend for transactional email, deployed on Railway.
+Go (single binary, standard library HTTP server), Supabase (Postgres + Auth), server-rendered `html/template` with Tailwind (precompiled to a static stylesheet — no client-side/runtime build step), Stripe, Resend for transactional email, deployed on Railway.
 
 ## Project structure
 
@@ -54,6 +54,12 @@ web/
 ```
 
 Each layer only calls the layer below it: `web` → `service` → `repository`/`supabase`/`email`/`payment`.
+
+`web/static/css/app.css` is a committed, precompiled Tailwind stylesheet — it's read from disk at runtime like any other static asset, so the app itself still has no build step. Regenerate it after changing template classes with (requires Node only for this one-off command, not for running the app):
+
+```bash
+npx tailwindcss@3 -i web/static/css/input.css -o web/static/css/app.css --minify
+```
 
 ## Deployment
 
