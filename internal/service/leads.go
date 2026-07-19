@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
@@ -94,7 +95,8 @@ func (l *Leads) ListBySite(ctx context.Context, siteID int) ([]domain.Lead, erro
 
 // ListBySiteFiltered returns page (1-indexed) of a site's leads narrowed by
 // status (empty = all) and a name/email search term, along with the total
-// count of leads matching that filter (for pagination).
+// count of leads matching that filter (for pagination). Each lead's Notes
+// are batch-loaded in one extra query rather than one per lead.
 func (l *Leads) ListBySiteFiltered(ctx context.Context, siteID int, status domain.LeadStatus, search string, page int) ([]domain.Lead, int, error) {
 	if page < 1 {
 		page = 1
@@ -105,7 +107,33 @@ func (l *Leads) ListBySiteFiltered(ctx context.Context, siteID int, status domai
 		Limit:  LeadsPageSize,
 		Offset: (page - 1) * LeadsPageSize,
 	}
-	return postgres.ListLeadsBySiteFiltered(ctx, l.store.DB(), siteID, filter)
+	leads, total, err := postgres.ListLeadsBySiteFiltered(ctx, l.store.DB(), siteID, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := l.attachNotes(ctx, leads); err != nil {
+		return nil, 0, err
+	}
+	return leads, total, nil
+}
+
+// attachNotes populates each lead's Notes field via a single batch query.
+func (l *Leads) attachNotes(ctx context.Context, leads []domain.Lead) error {
+	if len(leads) == 0 {
+		return nil
+	}
+	leadIDs := make([]int, len(leads))
+	for i, lead := range leads {
+		leadIDs[i] = lead.ID
+	}
+	notesByLead, err := postgres.ListLeadNotesByLeadIDs(ctx, l.store.DB(), leadIDs)
+	if err != nil {
+		return err
+	}
+	for i := range leads {
+		leads[i].Notes = notesByLead[leads[i].ID]
+	}
+	return nil
 }
 
 // LeadsPageSize is how many leads ListBySiteFiltered returns per page.
@@ -120,4 +148,19 @@ func (l *Leads) Counts(ctx context.Context, siteID int) (domain.LeadCounts, erro
 // can't update a lead belonging to a site they don't own.
 func (l *Leads) UpdateStatus(ctx context.Context, siteID, leadID int, status domain.LeadStatus) error {
 	return postgres.UpdateLeadStatus(ctx, l.store.DB(), siteID, leadID, status)
+}
+
+// AddNote logs a follow-up note against a lead, scoped to siteID so an owner
+// can't note a lead belonging to a site they don't own. Notes are
+// owner-authored but still get the same length validation as other content;
+// returns sql.ErrNoRows if the lead doesn't exist or isn't on that site.
+func (l *Leads) AddNote(ctx context.Context, siteID, leadID int, body string) (*domain.LeadNote, error) {
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return nil, &ValidationError{Message: "note can't be empty.", Field: "note"}
+	}
+	if err := checkLen("note", body, maxLongField); err != nil {
+		return nil, err
+	}
+	return postgres.CreateLeadNote(ctx, l.store.DB(), siteID, leadID, body)
 }

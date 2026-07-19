@@ -2,6 +2,8 @@ package web
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
@@ -265,6 +267,46 @@ func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
 	// Called via fetch() from the lead-status pill, not a form submit, so
 	// there's no page to redirect back to.
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// AddLeadNote logs a follow-up note against a lead. Called via fetch() from
+// the lead notes panel, not a form submit, so it returns the created note as
+// JSON for the browser to append instead of redirecting back to the page.
+func (h *Handler) AddLeadNote(w http.ResponseWriter, r *http.Request) {
+	site := middleware.LightSiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
+		return
+	}
+	leadID, err := strconv.Atoi(r.PathValue("leadID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	note, err := h.leads.AddNote(r.Context(), site.ID, leadID, r.FormValue("body"))
+	if err != nil {
+		var verr *service.ValidationError
+		if errors.As(err, &verr) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": verr.Message})
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"body":      note.Body,
+		"createdAt": note.CreatedAt.Format("2 Jan 2006, 15:04"),
+	})
 }
 
 func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {

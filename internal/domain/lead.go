@@ -31,4 +31,14 @@ type Lead struct {
 	PreferredTime string
 	Status        LeadStatus
 	CreatedAt     time.Time
+	Notes         []LeadNote
+}
+
+// LeadNote is a free-text follow-up note an owner has logged against a lead,
+// oldest first.
+type LeadNote struct {
+	ID        int
+	LeadID    int
+	Body      string
+	CreatedAt time.Time
 }

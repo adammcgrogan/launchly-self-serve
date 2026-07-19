@@ -92,6 +92,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /dashboard/sites/{slug}/qr.png", owned(h.SiteQRCode))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/print", ownedFull(h.SitePrintPage))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/leads/{leadID}/status", owned(h.LeadStatusSubmit))
+	mux.HandleFunc("POST /dashboard/sites/{slug}/leads/{leadID}/notes", owned(h.AddLeadNote))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/announcement", owned(h.UpdateAnnouncement))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/analytics-frequency", owned(h.UpdateAnalyticsFrequency))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/notify-settings", owned(h.UpdateNotifySettings))
