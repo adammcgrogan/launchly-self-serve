@@ -24,17 +24,24 @@ import (
 // promise is site-in-minutes, so there's no reason to make them find "+ New
 // site" themselves.
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
-	sites, err := h.sites.ListSitesByOwner(r.Context(), middleware.UserID(r))
+	userID := middleware.UserID(r)
+	sites, err := h.sites.ListSitesByOwner(r.Context(), userID)
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
-	if len(sites) == 0 {
+	memberSites, err := h.members.ListSitesByMember(r.Context(), userID)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	if len(sites) == 0 && len(memberSites) == 0 {
 		http.Redirect(w, r, "/dashboard/sites/new", http.StatusSeeOther)
 		return
 	}
 	h.render.Render(w, "dashboard:sites", map[string]any{
 		"Sites":         sites,
+		"MemberSites":   memberSites,
 		"Flash":         middleware.GetFlash(w, r),
 		"EmailVerified": h.emailVerified(r),
 	})
@@ -79,6 +86,8 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	// stats query, and — when a custom domain is mid-verification — a live
 	// Cloudflare status check), so they run concurrently rather than
 	// stacking their latencies sequentially on every page load.
+	isOwner := site.OwnerUserID == middleware.UserID(r)
+
 	var (
 		leads          []domain.Lead
 		leadTotal      int
@@ -87,6 +96,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		chartPoints    []dailyViewPoint
 		period         analyticsPeriodOpt
 		domainHostname any
+		members        []domain.SiteMember
 	)
 	needsDomainRefresh := site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending
 
@@ -103,6 +113,12 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		stats, chartPoints, period = h.analyticsCardStats(gctx, &site.Site, r.URL.Query().Get("period"))
 		return nil
 	})
+	if isOwner {
+		g.Go(func() (err error) {
+			members, err = h.members.List(gctx, site.ID)
+			return
+		})
+	}
 	if needsDomainRefresh {
 		g.Go(func() error {
 			// Best-effort: a failed Cloudflare check just means the page
@@ -192,6 +208,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Domain":           h.cfg.Domain,
 		"DomainData":       domainData,
 		"UploadsAvailable": h.uploads.Available(),
+
+		"IsOwner": isOwner,
+		"Members": members,
 	})
 }
 

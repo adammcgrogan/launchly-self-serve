@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
+	"github.com/google/uuid"
 )
 
 // SiteLoader is satisfied by *service.Sites — kept as an interface here so
@@ -16,15 +17,34 @@ type SiteLoader interface {
 	ResolveSlugRedirect(ctx context.Context, oldSlug string) (string, bool, error)
 }
 
-// Ownership gates /dashboard/sites/{slug}/* routes so a user can only act on
-// sites they own. It loads the full site once and stashes it in the request
-// context so handlers don't have to fetch it again.
-type Ownership struct {
-	sites SiteLoader
+// MemberLoader is satisfied by *service.Members — checked alongside site
+// ownership so an accepted teammate can reach a site's dashboard too, not
+// just its owner.
+type MemberLoader interface {
+	IsAcceptedMember(ctx context.Context, siteID int, userID uuid.UUID) (bool, error)
 }
 
-func NewOwnership(sites SiteLoader) *Ownership {
-	return &Ownership{sites: sites}
+// Ownership gates /dashboard/sites/{slug}/* routes so only a site's owner or
+// an accepted team member can act on it. It loads the full site once and
+// stashes it in the request context so handlers don't have to fetch it
+// again.
+type Ownership struct {
+	sites   SiteLoader
+	members MemberLoader
+}
+
+func NewOwnership(sites SiteLoader, members MemberLoader) *Ownership {
+	return &Ownership{sites: sites, members: members}
+}
+
+// hasAccess reports whether userID may reach siteID's dashboard: either as
+// the owner, or as an accepted team member.
+func (o *Ownership) hasAccess(ctx context.Context, ownerUserID, userID uuid.UUID, siteID int) bool {
+	if ownerUserID == userID {
+		return true
+	}
+	ok, err := o.members.IsAcceptedMember(ctx, siteID, userID)
+	return err == nil && ok
 }
 
 func (o *Ownership) RequireSiteOwner(next http.HandlerFunc) http.HandlerFunc {
@@ -40,7 +60,7 @@ func (o *Ownership) RequireSiteOwner(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		// Same response for "not found" and "not yours" — don't leak existence.
-		if site.OwnerUserID != UserID(r) {
+		if !o.hasAccess(r.Context(), site.OwnerUserID, UserID(r), site.ID) {
 			http.NotFound(w, r)
 			return
 		}
@@ -49,7 +69,7 @@ func (o *Ownership) RequireSiteOwner(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // RequireSiteOwnerLight is RequireSiteOwner's lightweight counterpart: it
-// checks ownership from just the site's own row, without loading
+// checks access from just the site's own row, without loading
 // GetSiteAggregateBySlug's full fan-out of related-table queries. Use this
 // for routes whose handler only needs core fields (ID, Slug, ...) rather
 // than the full aggregate.
@@ -65,11 +85,32 @@ func (o *Ownership) RequireSiteOwnerLight(next http.HandlerFunc) http.HandlerFun
 			o.redirectRenamedOrNotFound(w, r, slug)
 			return
 		}
-		if site.OwnerUserID != UserID(r) {
+		if !o.hasAccess(r.Context(), site.OwnerUserID, UserID(r), site.ID) {
 			http.NotFound(w, r)
 			return
 		}
 		next(w, withLightSite(r, site))
+	}
+}
+
+// RequireOwnerRole re-checks that the caller is the site's actual owner —
+// not just an accepted member — for routes that must stay owner-only (site
+// deletion, billing, team management itself) even though RequireSiteOwner
+// (Light) above now admits members too. Must run after one of those, so the
+// site is already in the request context.
+func (o *Ownership) RequireOwnerRole(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var ownerUserID uuid.UUID
+		if site := LightSiteFromContext(r); site != nil {
+			ownerUserID = site.OwnerUserID
+		} else if site := SiteFromContext(r); site != nil {
+			ownerUserID = site.OwnerUserID
+		}
+		if ownerUserID != UserID(r) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next(w, r)
 	}
 }
 

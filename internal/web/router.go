@@ -44,20 +44,30 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /sites/{slug}/e", h.RecordSiteEventPath)
 
 	// Dashboard — every route requires a logged-in user; site-scoped routes
-	// additionally require that user to own the site. Most handlers only
-	// need the site's core fields (ID, Slug, ...), so they're wired through
-	// the lightweight ownership check (owned); only handlers that render the
-	// full aggregate (joined services/hours/gallery/etc.) use ownedFull.
+	// additionally require that user to be the site's owner or an accepted
+	// team member (see internal/web/middleware/ownership.go). Most handlers
+	// only need the site's core fields (ID, Slug, ...), so they're wired
+	// through the lightweight ownership check (owned); only handlers that
+	// render the full aggregate (joined services/hours/gallery/etc.) use
+	// ownedFull. ownerOnly further restricts a route to the owner alone.
 	owned := func(next http.HandlerFunc) http.HandlerFunc {
 		return h.auth.RequireUser(h.ownership.RequireSiteOwnerLight(next))
 	}
 	ownedFull := func(next http.HandlerFunc) http.HandlerFunc {
 		return h.auth.RequireUser(h.ownership.RequireSiteOwner(next))
 	}
+	// ownerOnly is for routes members must never reach even though owned/
+	// ownedFull now admit accepted members too — deleting the site,
+	// billing, and team management itself.
+	ownerOnly := func(next http.HandlerFunc) http.HandlerFunc {
+		return owned(h.ownership.RequireOwnerRole(next))
+	}
 	mux.HandleFunc("GET /dashboard", h.auth.RequireUser(h.Dashboard))
 	mux.HandleFunc("GET /dashboard/account", h.auth.RequireUser(h.Account))
 	mux.HandleFunc("GET /dashboard/account/export", h.auth.RequireUser(h.ExportAccountData))
 	mux.HandleFunc("POST /dashboard/account/delete", h.auth.RequireUser(h.DeleteAccount))
+	mux.HandleFunc("GET /dashboard/invites/{token}", h.auth.RequireUser(h.AcceptInviteForm))
+	mux.HandleFunc("POST /dashboard/invites/{token}/accept", h.auth.RequireUser(h.AcceptInviteSubmit))
 	mux.HandleFunc("GET /dashboard/sites/new", h.auth.RequireUser(h.NewSiteForm))
 	mux.HandleFunc("POST /dashboard/sites/new", h.auth.RequireUser(h.NewSiteSubmit))
 	mux.HandleFunc("POST /dashboard/sites/new/generate-copy", h.auth.RequireUser(h.GenerateCopy))
@@ -73,7 +83,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/{slug}/domain/remove", owned(h.DomainRemove))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/publish", owned(h.PublishSite))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/unpublish", owned(h.UnpublishSite))
-	mux.HandleFunc("POST /dashboard/sites/{slug}/delete", owned(h.DeleteSite))
+	mux.HandleFunc("POST /dashboard/sites/{slug}/delete", ownerOnly(h.DeleteSite))
+	mux.HandleFunc("POST /dashboard/sites/{slug}/members/invite", ownerOnly(h.InviteMember))
+	mux.HandleFunc("POST /dashboard/sites/{slug}/members/{memberID}/remove", ownerOnly(h.RemoveMember))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/leads.csv", owned(h.ExportLeads))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/analytics.csv", owned(h.ExportAnalytics))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/analytics-card", owned(h.SiteAnalyticsCard))
@@ -85,8 +97,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/{slug}/notify-settings", owned(h.UpdateNotifySettings))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/send-analytics", owned(h.SendAnalyticsNow))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/tracking-settings", owned(h.UpdateTrackingSettings))
-	mux.HandleFunc("POST /dashboard/sites/{slug}/upgrade", owned(h.UpgradeCheckout))
-	mux.HandleFunc("POST /dashboard/sites/{slug}/cancel-subscription", owned(h.CancelSubscription))
+	mux.HandleFunc("POST /dashboard/sites/{slug}/upgrade", ownerOnly(h.UpgradeCheckout))
+	mux.HandleFunc("POST /dashboard/sites/{slug}/cancel-subscription", ownerOnly(h.CancelSubscription))
 
 	// Superadmin — shared-password session, separate from customer auth.
 	mux.HandleFunc("GET /superadmin/login", h.SuperadminLoginForm)

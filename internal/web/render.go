@@ -70,7 +70,7 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 	}
 
 	dashBase := "web/templates/dashboard/base.html"
-	for _, p := range []string{"sites", "new_site", "launched", "account"} {
+	for _, p := range []string{"sites", "new_site", "launched", "account", "accept_invite"} {
 		if err := rd.parse("dashboard:"+p, dashBase, "web/templates/dashboard/"+p+".html"); err != nil {
 			return err
 		}

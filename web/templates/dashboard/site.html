@@ -22,7 +22,10 @@
   <button type="button" data-tab="overview" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Overview</button>
   <button type="button" data-tab="settings" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Edit site</button>
   <button type="button" data-tab="notifications" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Notifications</button>
+  {{if .IsOwner}}
+  <button type="button" data-tab="access" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Access</button>
   <button type="button" data-tab="billing" class="tab-btn rounded-t-lg px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800">Billing</button>
+  {{end}}
 </div>
 
 <div data-tab-panel="overview" class="space-y-6">
@@ -681,10 +684,12 @@
           <button class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white">Publish</button>
         </form>
         {{end}}
+        {{if .IsOwner}}
         <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/delete" onsubmit="return confirm('Delete this site? This cannot be undone.');">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Delete</button>
         </form>
+        {{end}}
       </div>
     </div>
   </div>
@@ -731,6 +736,42 @@
     {{end}}
   </div>
 </div>
+
+{{if .IsOwner}}
+<div data-tab-panel="access" class="space-y-6 hidden">
+  <div class="rounded-2xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-1">Invite a teammate</h2>
+    <p class="text-sm text-slate-500 mb-4">They'll be able to view leads and edit this site's content — billing and deletion stay yours alone.</p>
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/members/invite" class="flex flex-wrap gap-3">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="email" name="email" required placeholder="teammate@email.com" class="flex-1 min-w-[200px] rounded-lg border border-slate-200 px-3 py-2 text-sm">
+      <button type="submit" class="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white">Send invite</button>
+    </form>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Team</h2>
+    {{if .Members}}
+    <div class="divide-y divide-slate-100">
+      {{range .Members}}
+      <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+        <div class="min-w-0">
+          <p class="truncate text-sm font-medium text-slate-900">{{.Email}}</p>
+          <p class="text-xs text-slate-500">{{if eq (print .Status) "accepted"}}Accepted{{else}}Invite pending{{end}}</p>
+        </div>
+        <form method="POST" action="/dashboard/sites/{{$.Site.Slug}}/members/{{.ID}}/remove" class="shrink-0" onsubmit="return confirm('Remove this teammate?');">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <button class="rounded-full border border-red-200 text-red-600 px-4 py-1.5 text-sm font-medium hover:border-red-300">Remove</button>
+        </form>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <p class="text-sm text-slate-500">No teammates yet — invite one above.</p>
+    {{end}}
+  </div>
+</div>
+{{end}}
 
 <div data-tab-panel="billing" class="space-y-6 hidden">
   <div class="rounded-2xl border border-slate-200 bg-white p-6">

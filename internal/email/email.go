@@ -421,6 +421,19 @@ func (c *Client) SendAnalyticsDigest(to, businessName string, stats *domain.Site
 	return c.sendBulk(to, subject, wrap("Monthly report", content))
 }
 
+// SendTeamInvite invites a teammate to help manage a site's dashboard and
+// leads. inviterEmail is shown so the recipient knows who to expect this
+// from; acceptURL carries the one-time invite token and works whether or
+// not the recipient already has a Launchly account.
+func (c *Client) SendTeamInvite(to, inviterEmail, businessName, acceptURL string) error {
+	content := h1(fmt.Sprintf("You've been invited to help manage %s", businessName)) +
+		p(fmt.Sprintf("<strong>%s</strong> has invited you to manage %s's website — you'll be able to view leads and edit site content.", html.EscapeString(inviterEmail), html.EscapeString(businessName))) +
+		button(acceptURL, "Accept invite") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">If you weren't expecting this, you can safely ignore this email.</span>`)
+	return c.Send(to, fmt.Sprintf("You've been invited to manage %s on Launchly", businessName), wrap("Team invite", content))
+}
+
 // SendAdminAlert notifies the superadmin of noteworthy account events
 // (cancellations, payment failures) — informational only, never blocking.
 func (c *Client) SendAdminAlert(to, subject, message string) error {

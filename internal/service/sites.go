@@ -584,6 +584,12 @@ func (s *Sites) GetSiteBySlug(ctx context.Context, slug string) (*domain.Site, e
 	return postgres.GetSiteBySlug(ctx, s.store.DB(), slug)
 }
 
+// GetSiteByID loads just a site's own row by ID — used to resolve the site
+// behind a site_members row (e.g. accepting a team invite).
+func (s *Sites) GetSiteByID(ctx context.Context, id int) (*domain.Site, error) {
+	return postgres.GetSiteByID(ctx, s.store.DB(), id)
+}
+
 // GetSiteByCustomDomain is the lightweight counterpart to
 // GetSiteAggregateByCustomDomain, for callers that only need to know
 // whether a host resolves to a site (or need its core fields), not the

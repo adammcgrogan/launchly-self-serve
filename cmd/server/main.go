@@ -70,6 +70,7 @@ func main() {
 	cron := service.NewCron(store, mailer, analytics, baseURL)
 
 	domains := service.NewDomains(store, cf, cfg.CloudflareFallbackOrigin, cfg.Domain)
+	members := service.NewMembers(store, mailer, baseURL)
 
 	secureCookies := !strings.Contains(cfg.Domain, "localhost")
 	auth := middleware.NewAuth(cfg.SupabaseJWTSecret, supa, secureCookies)
@@ -77,7 +78,7 @@ func main() {
 
 	h, err := web.New(web.Deps{
 		Cfg: cfg, Store: store,
-		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains, Uploads: uploads, AI: aiClient,
+		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains, Uploads: uploads, Members: members, AI: aiClient,
 		Auth: auth, Superadmin: superadmin,
 	})
 	if err != nil {

@@ -33,6 +33,7 @@ type Handler struct {
 	cron      *service.Cron
 	domains   *service.Domains
 	uploads   *service.Uploads
+	members   *service.Members
 	ai        *ai.Client
 
 	loginLimiter              *middleware.RateLimiter
@@ -58,6 +59,7 @@ type Deps struct {
 	Cron      *service.Cron
 	Domains   *service.Domains
 	Uploads   *service.Uploads
+	Members   *service.Members
 	AI        *ai.Client
 
 	Auth       *middleware.Auth
@@ -70,7 +72,7 @@ func New(d Deps) (*Handler, error) {
 		store:                     d.Store,
 		auth:                      d.Auth,
 		superadmin:                d.Superadmin,
-		ownership:                 middleware.NewOwnership(d.Sites),
+		ownership:                 middleware.NewOwnership(d.Sites, d.Members),
 		csrf:                      middleware.NewCSRF(d.Cfg.CookieSigningKey),
 		accounts:                  d.Accounts,
 		sites:                     d.Sites,
@@ -80,6 +82,7 @@ func New(d Deps) (*Handler, error) {
 		cron:                      d.Cron,
 		domains:                   d.Domains,
 		uploads:                   d.Uploads,
+		members:                   d.Members,
 		ai:                        d.AI,
 		loginLimiter:              middleware.NewRateLimiter(10, 15*time.Minute),
 		signupLimiter:             middleware.NewRateLimiter(5, 15*time.Minute),
