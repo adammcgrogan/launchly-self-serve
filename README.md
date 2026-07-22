@@ -13,7 +13,7 @@ A self-serve website builder for local businesses. Sign up, pick a design, fill 
 
 ## Designs
 
-Four site designs ship out of the box, each with its own layout and palette options. A business can switch between them any time without losing their content.
+Seven site designs ship out of the box, each with its own layout and palette options. A business can switch between them any time without losing their content. The four general-purpose designs:
 
 | Aurora | Foundry |
 |---|---|
@@ -22,6 +22,12 @@ Four site designs ship out of the box, each with its own layout and palette opti
 | Meridian | Bloom |
 |---|---|
 | ![Meridian design — light, editorial, serif accents](docs/images/meridian.png) | ![Bloom design — soft, curved, pastel](docs/images/bloom.png) |
+
+Plus three industry-tailored designs, suggested by default for their trade in the builder wizard:
+
+- **Ember** — warm, tactile, menu-led; for restaurants, cafes, and food service (hospitality).
+- **Market** — bold, graphic, signage-led; for retail, shops, and boutiques (retail).
+- **Surge** — high-energy, athletic, dark-led; for gyms, studios, and fitness coaches (fitness).
 
 ## What's built in
 
