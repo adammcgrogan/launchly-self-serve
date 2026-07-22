@@ -182,7 +182,11 @@
       form.addEventListener('submit', function(e){
         e.preventDefault();
         if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent = ''; }
-        if (submitBtn) submitBtn.disabled = true;
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.dataset.defaultLabel = submitBtn.dataset.defaultLabel || submitBtn.textContent;
+          submitBtn.textContent = 'Sending…';
+        }
 
         fetch(form.getAttribute('action'), {
           method: 'POST',
@@ -211,7 +215,10 @@
         }).catch(function(err){
           if (errorEl) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); }
         }).finally(function(){
-          if (submitBtn) submitBtn.disabled = false;
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = submitBtn.dataset.defaultLabel;
+          }
         });
       });
     });
