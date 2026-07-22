@@ -320,108 +320,110 @@ var demoSites = []demoSite{
 	},
 }
 
-// SeedDemoSites ensures the built-in showcase demo sites exist and are
-// fully populated — one per template, owned by ownerID — so the /templates
-// gallery has a live example that shows off every content section the
-// builder supports, before any real customer opts into a showcase (#39).
-// Idempotent and safe to call on every boot: a demo site is created if
-// missing, and its content sections are always re-synced (so a code change
-// to the seed data takes effect on the next deploy) without touching the
-// underlying site row or slug.
+// SeedDemoSites ensures the built-in showcase demo sites exist — one per
+// template, owned by ownerID — so the /templates gallery has a live example
+// that shows off every content section the builder supports, before any
+// real customer opts into a showcase (#39). Seeds once: a demo slug that
+// already exists is left untouched (no content re-sync), so this is cheap
+// and quiet to call on every boot. To push a seed-data change to an
+// already-seeded site, delete its row (by slug) and let it reseed.
 func (s *Sites) SeedDemoSites(ctx context.Context, ownerID uuid.UUID) error {
 	for _, d := range demoSites {
-		siteID, err := s.upsertDemoSite(ctx, ownerID, d)
+		created, err := s.createDemoSiteIfMissing(ctx, ownerID, d)
 		if err != nil {
 			return fmt.Errorf("seed demo site %s: %w", d.slug, err)
 		}
-		slog.Info("demo site seeded", "slug", d.slug, "template", d.templateID, "site_id", siteID)
+		if created {
+			slog.Info("demo site seeded", "slug", d.slug, "template", d.templateID)
+		}
 	}
 	return nil
 }
 
-func (s *Sites) upsertDemoSite(ctx context.Context, ownerID uuid.UUID, d demoSite) (int, error) {
+// createDemoSiteIfMissing creates and fully populates one demo site, or
+// does nothing if a site with that slug already exists. Returns whether it
+// created a new site.
+func (s *Sites) createDemoSiteIfMissing(ctx context.Context, ownerID uuid.UUID, d demoSite) (bool, error) {
 	existing, err := postgres.GetSiteBySlug(ctx, s.store.DB(), d.slug)
 	if err != nil {
-		return 0, fmt.Errorf("check site: %w", err)
+		return false, fmt.Errorf("check site: %w", err)
+	}
+	if existing != nil {
+		return false, nil
 	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 	defer tx.Rollback()
 
-	siteID := 0
-	if existing == nil {
-		site := &domain.Site{
-			OwnerUserID:  ownerID,
-			Slug:         d.slug,
-			BusinessName: d.businessName,
-			Tagline:      d.tagline,
-			About:        d.about,
-			CTAText:      d.ctaText,
-			TemplateID:   d.templateID,
-			Palette:      d.palette,
-			Timezone:     "Europe/London",
-			IsDemo:       true,
-		}
-		siteID, err = postgres.CreateSite(ctx, tx, site)
-		if err != nil {
-			return 0, fmt.Errorf("create site: %w", err)
-		}
-		if err := postgres.CreateDemoSiteBilling(ctx, tx, siteID); err != nil {
-			return 0, fmt.Errorf("create billing: %w", err)
-		}
-		if err := postgres.UpsertSiteAnalyticsSettings(ctx, tx, &domain.SiteAnalyticsSettings{SiteID: siteID, AnalyticsFrequency: "off"}); err != nil {
-			return 0, fmt.Errorf("save analytics settings: %w", err)
-		}
-	} else {
-		siteID = existing.ID
+	site := &domain.Site{
+		OwnerUserID:  ownerID,
+		Slug:         d.slug,
+		BusinessName: d.businessName,
+		Tagline:      d.tagline,
+		About:        d.about,
+		CTAText:      d.ctaText,
+		TemplateID:   d.templateID,
+		Palette:      d.palette,
+		Timezone:     "Europe/London",
+		IsDemo:       true,
+	}
+	siteID, err := postgres.CreateSite(ctx, tx, site)
+	if err != nil {
+		return false, fmt.Errorf("create site: %w", err)
+	}
+	if err := postgres.CreateDemoSiteBilling(ctx, tx, siteID); err != nil {
+		return false, fmt.Errorf("create billing: %w", err)
+	}
+	if err := postgres.UpsertSiteAnalyticsSettings(ctx, tx, &domain.SiteAnalyticsSettings{SiteID: siteID, AnalyticsFrequency: "off"}); err != nil {
+		return false, fmt.Errorf("save analytics settings: %w", err)
 	}
 
 	if err := postgres.UpdateSiteFormType(ctx, tx, siteID, d.formType); err != nil {
-		return 0, fmt.Errorf("save form type: %w", err)
+		return false, fmt.Errorf("save form type: %w", err)
 	}
 	d.contact.SiteID = siteID
 	if err := postgres.UpsertSiteContact(ctx, tx, &d.contact); err != nil {
-		return 0, fmt.Errorf("save contact: %w", err)
+		return false, fmt.Errorf("save contact: %w", err)
 	}
 	if err := postgres.ReplaceSiteServices(ctx, tx, siteID, d.services); err != nil {
-		return 0, fmt.Errorf("save services: %w", err)
+		return false, fmt.Errorf("save services: %w", err)
 	}
 	if err := postgres.ReplaceSiteCertifications(ctx, tx, siteID, d.certifications); err != nil {
-		return 0, fmt.Errorf("save certifications: %w", err)
+		return false, fmt.Errorf("save certifications: %w", err)
 	}
 	if err := postgres.ReplaceSiteTestimonials(ctx, tx, siteID, d.testimonials); err != nil {
-		return 0, fmt.Errorf("save testimonials: %w", err)
+		return false, fmt.Errorf("save testimonials: %w", err)
 	}
 	if err := postgres.ReplaceSiteGalleryImages(ctx, tx, siteID, d.gallery); err != nil {
-		return 0, fmt.Errorf("save gallery: %w", err)
+		return false, fmt.Errorf("save gallery: %w", err)
 	}
 	if err := postgres.ReplaceSiteFAQItems(ctx, tx, siteID, d.faqItems); err != nil {
-		return 0, fmt.Errorf("save FAQ items: %w", err)
+		return false, fmt.Errorf("save FAQ items: %w", err)
 	}
 	if err := postgres.ReplaceSiteStaffMembers(ctx, tx, siteID, d.staff); err != nil {
-		return 0, fmt.Errorf("save staff members: %w", err)
+		return false, fmt.Errorf("save staff members: %w", err)
 	}
 	if err := postgres.ReplaceSiteBusinessHours(ctx, tx, siteID, d.hours); err != nil {
-		return 0, fmt.Errorf("save business hours: %w", err)
+		return false, fmt.Errorf("save business hours: %w", err)
 	}
 	if err := postgres.ReplaceSiteServiceAreas(ctx, tx, siteID, d.serviceAreas); err != nil {
-		return 0, fmt.Errorf("save service areas: %w", err)
+		return false, fmt.Errorf("save service areas: %w", err)
 	}
 	if err := postgres.ReplaceSiteSocialLinks(ctx, tx, siteID, d.social); err != nil {
-		return 0, fmt.Errorf("save social links: %w", err)
+		return false, fmt.Errorf("save social links: %w", err)
 	}
 	d.reviews.SiteID = siteID
 	if err := postgres.UpsertSiteReviews(ctx, tx, &d.reviews); err != nil {
-		return 0, fmt.Errorf("save reviews: %w", err)
+		return false, fmt.Errorf("save reviews: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("commit: %w", err)
+		return false, fmt.Errorf("commit: %w", err)
 	}
-	return siteID, nil
+	return true, nil
 }
 
 // DemoSiteURLSlugs returns templateID -> demo site slug for every seeded
