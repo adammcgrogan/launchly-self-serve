@@ -78,7 +78,7 @@ func Load() (*Config, error) {
 		StripeProPriceID:     getEnv("STRIPE_PRO_PRICE_ID", ""),
 
 		ResendAPIKey: getEnv("RESEND_API_KEY", ""),
-		EmailFrom:    getEnv("EMAIL_FROM", "noreply@launchly.ltd"),
+		EmailFrom:    getEnv("EMAIL_FROM", "Launchly <noreply@launchly.ltd>"),
 
 		TwilioAccountSID: getEnv("TWILIO_ACCOUNT_SID", ""),
 		TwilioAuthToken:  getEnv("TWILIO_AUTH_TOKEN", ""),
