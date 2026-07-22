@@ -54,7 +54,9 @@ func (h *Handler) writeOGImage(w http.ResponseWriter, r *http.Request, site *dom
 	// cheaply and pick up edits when the site changes.
 	etag := fmt.Sprintf(`"og-%d"`, hashOG(site.BusinessName, site.Tagline, site.Contact.Location, accent, site.UpdatedAt.String()))
 	w.Header().Set("ETag", etag)
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	// Short max-age + must-revalidate so caches consult the content-based ETag
+	// soon after an edit instead of serving a stale card for up to a day.
+	w.Header().Set("Cache-Control", "public, max-age=300, must-revalidate")
 	if match := r.Header.Get("If-None-Match"); match == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
