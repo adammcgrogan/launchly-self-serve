@@ -12,6 +12,11 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
+// maxCopyInputLen bounds the business/service name forwarded into the Gemini
+// prompt, matching service.validateSiteContent's maxShortField cap on the
+// same owner-entered fields.
+const maxCopyInputLen = 200
+
 // wizardStepForField maps a ValidationError's Field (the canonical name
 // passed to checkLen/checkURL/checkEmail/checkPhone in
 // internal/service/sites.go) to the new-site wizard step that contains it,
@@ -170,10 +175,17 @@ func (h *Handler) GenerateCopy(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "too many requests, try again shortly", http.StatusTooManyRequests)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 64*1024)
 
 	businessName := strings.TrimSpace(r.FormValue("business_name"))
 	if businessName == "" {
 		http.Error(w, "business name is required", http.StatusBadRequest)
+		return
+	}
+	// Cap prompt inputs like validateSiteContent caps owner content
+	// (maxShortField), so a single request can't balloon the Gemini prompt.
+	if len(businessName) > maxCopyInputLen {
+		http.Error(w, "business name is too long", http.StatusBadRequest)
 		return
 	}
 	businessType := "general business or trade"
@@ -195,6 +207,10 @@ func (h *Handler) GenerateCopy(w http.ResponseWriter, r *http.Request) {
 		serviceName := strings.TrimSpace(r.FormValue("service_name"))
 		if serviceName == "" {
 			http.Error(w, "service name is required", http.StatusBadRequest)
+			return
+		}
+		if len(serviceName) > maxCopyInputLen {
+			http.Error(w, "service name is too long", http.StatusBadRequest)
 			return
 		}
 		text, err = h.ai.GenerateServiceDescription(r.Context(), businessName, businessType, serviceName)
