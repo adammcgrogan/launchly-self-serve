@@ -167,6 +167,66 @@
   })();
   </script>
 
+  <script>
+  (function(){
+    // Submits the contact form via fetch and swaps in the confirmation
+    // state inline, instead of the old full-page redirect to ?lead=1 —
+    // keeps the visitor on the page and lets them dismiss the confirmation
+    // ("send another message") to get the form back.
+    document.querySelectorAll('[data-lead-form]').forEach(function(form){
+      var widget = form.closest('[data-contact-widget]');
+      var confirmation = widget ? widget.querySelector('[data-lead-confirmation]') : null;
+      var errorEl = form.querySelector('[data-lead-error]');
+      var submitBtn = form.querySelector('button[type="submit"]');
+
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent = ''; }
+        if (submitBtn) submitBtn.disabled = true;
+
+        fetch(form.getAttribute('action'), {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'fetch' },
+          body: new FormData(form),
+        }).then(function(res){
+          return res.text().then(function(text){
+            var data = {};
+            try { data = text ? JSON.parse(text) : {}; } catch (parseErr) {}
+            if (!res.ok) throw new Error(data.error || 'Something went wrong — please try again.');
+            return data;
+          });
+        }).then(function(data){
+          if (data.redirectURL) {
+            window.location.href = data.redirectURL;
+            return;
+          }
+          if (data.thankYouMessage && confirmation) {
+            var msg = confirmation.querySelector('[data-lead-message]');
+            if (msg) msg.textContent = data.thankYouMessage;
+          }
+          form.classList.add('hidden');
+          if (confirmation) confirmation.classList.remove('hidden');
+        }).catch(function(err){
+          if (errorEl) { errorEl.textContent = err.message; errorEl.classList.remove('hidden'); }
+        }).finally(function(){
+          if (submitBtn) submitBtn.disabled = false;
+        });
+      });
+    });
+
+    document.querySelectorAll('[data-lead-reset]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var widget = btn.closest('[data-contact-widget]');
+        if (!widget) return;
+        var confirmation = widget.querySelector('[data-lead-confirmation]');
+        var form = widget.querySelector('[data-lead-form]');
+        if (confirmation) confirmation.classList.add('hidden');
+        if (form) { form.classList.remove('hidden'); form.reset(); }
+      });
+    });
+  })();
+  </script>
+
   <footer class="py-8 text-center text-sm border-t" style="border-color:var(--line);background:var(--surface);color:var(--muted);">
     <p class="font-semibold" style="color:var(--ink);">{{.Site.BusinessName}}</p>
     {{if .Site.Contact.Address}}<p class="mt-1">{{.Site.Contact.Address}}</p>{{end}}

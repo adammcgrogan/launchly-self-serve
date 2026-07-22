@@ -91,7 +91,14 @@ type Site struct {
 	// VideoURL is an optional owner-supplied YouTube/Vimeo page URL (e.g.
 	// a promo clip or "meet the owner" walkthrough), rendered as a
 	// privacy-friendly click-to-load embed. See VideoEmbedURL.
-	VideoURL    string
+	VideoURL string
+	// ThankYouMessage is an optional owner-supplied replacement for the
+	// template's default contact-form confirmation text.
+	ThankYouMessage string
+	// RedirectURL is an optional owner-supplied https URL the visitor is
+	// sent to after a successful contact-form submission, instead of
+	// seeing the inline confirmation message.
+	RedirectURL string
 	TemplateID  string
 	FormType    FormType
 	Palette     string

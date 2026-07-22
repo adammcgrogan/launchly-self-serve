@@ -467,23 +467,50 @@ func (h *Handler) submitLeadForCustomDomain(w http.ResponseWriter, r *http.Reque
 }
 
 // submitLeadForSite validates and saves a contact-form submission for an
-// already-resolved, live site (by slug or custom domain).
+// already-resolved, live site (by slug or custom domain). Requests made by
+// the site's own contact-form JS (see web/static/js/site-form.js) carry
+// X-Requested-With: fetch and get a JSON response so the page can swap in
+// the confirmation state inline, without a redirect/reload. Anything else
+// (JS disabled) falls back to the classic redirect to redirectURL.
 func (h *Handler) submitLeadForSite(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, redirectURL string) {
+	isFetch := r.Header.Get("X-Requested-With") == "fetch"
+
+	respondErr := func(status int, message string) {
+		if isFetch {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode(map[string]string{"error": message})
+			return
+		}
+		http.Error(w, message, status)
+	}
+	respondOK := func() {
+		if isFetch {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"redirectURL":     site.RedirectURL,
+				"thankYouMessage": site.ThankYouMessage,
+			})
+			return
+		}
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, 64*1024)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		respondErr(http.StatusBadRequest, "bad request")
 		return
 	}
 
 	// Honeypot: silently succeed so bots don't know they were rejected.
 	if r.FormValue("website") != "" {
-		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		respondOK()
 		return
 	}
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		respondErr(http.StatusBadRequest, "name is required")
 		return
 	}
 
@@ -494,15 +521,15 @@ func (h *Handler) submitLeadForSite(w http.ResponseWriter, r *http.Request, site
 	); err != nil {
 		var verr *service.ValidationError
 		if errors.As(err, &verr) {
-			http.Error(w, verr.Message, http.StatusBadRequest)
+			respondErr(http.StatusBadRequest, verr.Message)
 			return
 		}
 		slog.Error("submit lead", "site_id", site.ID, "error", err)
-		http.Error(w, "could not save lead", http.StatusInternalServerError)
+		respondErr(http.StatusInternalServerError, "could not save lead")
 		return
 	}
 
-	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+	respondOK()
 }
 
 // extractSlug pulls the subdomain from the request host, e.g.

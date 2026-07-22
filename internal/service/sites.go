@@ -634,6 +634,8 @@ type UpdateContentInput struct {
 	LogoURL         string
 	CTAText         string
 	VideoURL        string
+	ThankYouMessage string
+	RedirectURL     string
 	Timezone        string
 	MetaTitle       string
 	MetaDescription string
@@ -666,6 +668,15 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	if err := validateVideoURL(in.VideoURL); err != nil {
 		return err
 	}
+	if err := checkLen("thank-you message", in.ThankYouMessage, maxMediumField); err != nil {
+		return err
+	}
+	if err := checkLen("redirect URL", in.RedirectURL, maxMediumField); err != nil {
+		return err
+	}
+	if err := checkURL("redirect URL", in.RedirectURL); err != nil {
+		return err
+	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -683,7 +694,8 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	}
 
 	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText, VideoURL: in.VideoURL, Timezone: in.Timezone,
-		MetaTitle: in.MetaTitle, MetaDescription: in.MetaDescription, OgImageURL: in.OgImageURL}
+		MetaTitle: in.MetaTitle, MetaDescription: in.MetaDescription, OgImageURL: in.OgImageURL,
+		ThankYouMessage: in.ThankYouMessage, RedirectURL: in.RedirectURL}
 	if err := postgres.UpdateSiteContent(ctx, tx, site); err != nil {
 		return fmt.Errorf("update site: %w", err)
 	}

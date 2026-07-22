@@ -85,6 +85,8 @@ func buildUpdateContentInput(r *http.Request, siteID int) service.UpdateContentI
 		LogoURL:         strings.TrimSpace(r.FormValue("logo_url")),
 		CTAText:         strings.TrimSpace(r.FormValue("cta_text")),
 		VideoURL:        strings.TrimSpace(r.FormValue("video_url")),
+		ThankYouMessage: strings.TrimSpace(r.FormValue("thank_you_message")),
+		RedirectURL:     strings.TrimSpace(r.FormValue("redirect_url")),
 		Timezone:        resolveTimezone(r.FormValue("timezone")),
 		MetaTitle:       strings.TrimSpace(r.FormValue("meta_title")),
 		MetaDescription: strings.TrimSpace(r.FormValue("meta_description")),

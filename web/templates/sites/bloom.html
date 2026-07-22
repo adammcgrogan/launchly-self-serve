@@ -139,14 +139,13 @@
       </div>
       {{end}}
     </div>
-    <div>
-      {{if .LeadSent}}
-      <div class="rounded-3xl p-8 text-center" style="background:var(--tint);">
+    <div data-contact-widget>
+      <div data-lead-confirmation class="rounded-3xl p-8 text-center{{if not .LeadSent}} hidden{{end}}" style="background:var(--tint);">
         <p class="font-display text-2xl">Thank you!</p>
-        <p class="mt-2" style="color:var(--muted);">We'll be in touch to confirm.</p>
+        <p class="mt-2" data-lead-message style="color:var(--muted);">{{if .Site.ThankYouMessage}}{{.Site.ThankYouMessage}}{{else}}We'll be in touch to confirm.{{end}}</p>
+        <button type="button" data-lead-reset class="mt-4 text-sm font-medium underline" style="color:var(--accent);">Send another message</button>
       </div>
-      {{else}}
-      <form method="POST" action="{{.FormAction}}" class="rounded-3xl p-8 space-y-4" style="background:var(--tint);">
+      <form data-lead-form method="POST" action="{{.FormAction}}" class="rounded-3xl p-8 space-y-4{{if .LeadSent}} hidden{{end}}" style="background:var(--tint);">
         <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
         <input type="text" name="name" placeholder="Your name" required class="w-full rounded-2xl px-4 py-3 border-0" style="background:var(--surface);">
         <input type="email" name="email" placeholder="Email" class="w-full rounded-2xl px-4 py-3 border-0" style="background:var(--surface);">
@@ -166,9 +165,9 @@
         </select>
         {{end}}
         <textarea name="message" placeholder="What would you like to book?" rows="4" class="w-full rounded-2xl px-4 py-3 border-0" style="background:var(--surface);"></textarea>
+        <p data-lead-error class="hidden text-sm" style="color:#dc2626;"></p>
         <button type="submit" class="w-full rounded-2xl px-6 py-3.5 font-semibold" style="background:var(--accent);color:var(--accent-ink);">Request booking</button>
       </form>
-      {{end}}
     </div>
   </div>
 </section>

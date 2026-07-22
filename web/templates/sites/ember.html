@@ -154,14 +154,13 @@
       <iframe src="{{.Site.Contact.MapEmbedURL}}" class="mt-6 w-full h-56 rounded-sm border-0" style="border:1px solid var(--line);" loading="lazy"></iframe>
       {{end}}
     </div>
-    <div>
-      {{if .LeadSent}}
-      <div class="ember-frame p-8 text-center">
+    <div data-contact-widget>
+      <div data-lead-confirmation class="ember-frame p-8 text-center{{if not .LeadSent}} hidden{{end}}">
         <p class="font-display text-2xl italic">Thank you!</p>
-        <p class="mt-2" style="color:var(--muted);">We'll confirm your reservation shortly.</p>
+        <p class="mt-2" data-lead-message style="color:var(--muted);">{{if .Site.ThankYouMessage}}{{.Site.ThankYouMessage}}{{else}}We'll confirm your reservation shortly.{{end}}</p>
+        <button type="button" data-lead-reset class="mt-4 text-sm font-medium underline" style="color:var(--accent);">Send another message</button>
       </div>
-      {{else}}
-      <form method="POST" action="{{.FormAction}}" class="ember-frame p-8 space-y-4">
+      <form data-lead-form method="POST" action="{{.FormAction}}" class="ember-frame p-8 space-y-4{{if .LeadSent}} hidden{{end}}">
         <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
         <input type="text" name="name" placeholder="Your name" required class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);">
         <input type="email" name="email" placeholder="Email" class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);">
@@ -181,9 +180,10 @@
         </select>
         {{end}}
         <textarea name="message" placeholder="Party size, occasion, allergies…" rows="4" class="w-full rounded-sm px-4 py-3 border" style="border-color:var(--line);"></textarea>
+        <p data-lead-error class="hidden text-sm" style="color:#dc2626;"></p>
         <button type="submit" class="w-full rounded-sm px-6 py-3.5 font-semibold" style="background:var(--accent);color:var(--accent-ink);">Send reservation request</button>
       </form>
-      {{end}}
+    </div>
     </div>
   </div>
 </section>

@@ -12,7 +12,7 @@ import (
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
 	template_id, form_type, palette, heading_font, brand_color, status, created_at, published_at, updated_at, slug_changed_at,
 	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at, timezone,
-	meta_title, meta_description, og_image_url, video_url, is_demo`
+	meta_title, meta_description, og_image_url, video_url, is_demo, thank_you_message, redirect_url`
 
 func scanSite(row *sql.Row) (*domain.Site, error) {
 	var s domain.Site
@@ -21,7 +21,7 @@ func scanSite(row *sql.Row) (*domain.Site, error) {
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
-		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo,
+		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo, &s.ThankYouMessage, &s.RedirectURL,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -41,7 +41,7 @@ func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
-		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo,
+		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo, &s.ThankYouMessage, &s.RedirectURL,
 	)
 	s.CustomDomain = customDomain.String
 	s.CustomDomainCFID = customDomainCFID.String
@@ -182,10 +182,12 @@ func ListLiveSites(ctx context.Context, q querier) ([]domain.Site, error) {
 func UpdateSiteContent(ctx context.Context, q querier, site *domain.Site) error {
 	_, err := q.ExecContext(ctx, `
 		UPDATE sites SET business_name = $1, tagline = $2, about = $3, logo_url = $4, cta_text = $5, timezone = $6,
-			meta_title = $7, meta_description = $8, og_image_url = $9, video_url = $10, updated_at = now()
-		WHERE id = $11
+			meta_title = $7, meta_description = $8, og_image_url = $9, video_url = $10,
+			thank_you_message = $11, redirect_url = $12, updated_at = now()
+		WHERE id = $13
 	`, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText, site.Timezone,
-		site.MetaTitle, site.MetaDescription, site.OgImageURL, site.VideoURL, site.ID)
+		site.MetaTitle, site.MetaDescription, site.OgImageURL, site.VideoURL,
+		site.ThankYouMessage, site.RedirectURL, site.ID)
 	return err
 }
 

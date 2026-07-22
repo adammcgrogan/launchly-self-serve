@@ -165,14 +165,13 @@
       </div>
       {{end}}
     </div>
-    <div>
-      {{if .LeadSent}}
-      <div class="rounded p-8 border text-center" style="border-color:var(--line);">
+    <div data-contact-widget>
+      <div data-lead-confirmation class="rounded p-8 border text-center{{if not .LeadSent}} hidden{{end}}" style="border-color:var(--line);">
         <p class="font-display text-2xl">Let's go!</p>
-        <p class="mt-2" style="color:var(--muted);">We'll be in touch shortly.</p>
+        <p class="mt-2" data-lead-message style="color:var(--muted);">{{if .Site.ThankYouMessage}}{{.Site.ThankYouMessage}}{{else}}We'll be in touch shortly.{{end}}</p>
+        <button type="button" data-lead-reset class="mt-4 text-sm font-medium underline" style="color:var(--accent);">Send another message</button>
       </div>
-      {{else}}
-      <form method="POST" action="{{.FormAction}}" class="rounded p-8 border space-y-4" style="border-color:var(--line);background:var(--surface);">
+      <form data-lead-form method="POST" action="{{.FormAction}}" class="rounded p-8 border space-y-4{{if .LeadSent}} hidden{{end}}" style="border-color:var(--line);background:var(--surface);">
         <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
         <input type="text" name="name" placeholder="Your name" required class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);">
         <input type="email" name="email" placeholder="Email" class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);">
@@ -192,9 +191,9 @@
         </select>
         {{end}}
         <textarea name="message" placeholder="Tell us your goals" rows="4" class="w-full rounded px-4 py-3 border" style="border-color:var(--line);background:var(--paper);color:var(--ink);"></textarea>
+        <p data-lead-error class="hidden text-sm" style="color:#dc2626;"></p>
         <button type="submit" class="w-full rounded px-6 py-3.5 font-bold uppercase" style="background:var(--accent);color:var(--accent-ink);">Send enquiry</button>
       </form>
-      {{end}}
     </div>
   </div>
 </section>
