@@ -78,7 +78,9 @@ func (a *Accounts) Logout(ctx context.Context, accessToken string) error {
 }
 
 func (a *Accounts) RequestPasswordReset(ctx context.Context, emailAddr string) error {
-	return a.supa.SendPasswordReset(ctx, emailAddr, a.baseURL+"/reset-password")
+	redirectTo := a.baseURL + "/reset-password"
+	slog.Info("password reset requested", "redirect_to", redirectTo)
+	return a.supa.SendPasswordReset(ctx, emailAddr, redirectTo)
 }
 
 func (a *Accounts) ResendVerificationEmail(ctx context.Context, emailAddr, next string) error {
