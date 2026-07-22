@@ -73,8 +73,15 @@ func main() {
 	if cfg.DemoOwnerUserID != "" {
 		if ownerID, err := uuid.Parse(cfg.DemoOwnerUserID); err != nil {
 			slog.Error("invalid DEMO_OWNER_USER_ID", "error", err)
-		} else if err := sites.SeedDemoSites(context.Background(), ownerID); err != nil {
-			slog.Error("seed demo sites failed", "error", err)
+		} else {
+			// Backgrounded: each demo site is ~15 sequential DB round-trips,
+			// which is too slow to block startup on — the server must bind
+			// its port promptly or Railway/Cloudflare serve 502s in the gap.
+			go func() {
+				if err := sites.SeedDemoSites(context.Background(), ownerID); err != nil {
+					slog.Error("seed demo sites failed", "error", err)
+				}
+			}()
 		}
 	}
 
