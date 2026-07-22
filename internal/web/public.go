@@ -18,7 +18,13 @@ func (h *Handler) Pricing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) TemplatesPage(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "templates", map[string]any{"Templates": siteTemplates})
+	demoURLs := map[string]string{}
+	if slugs, err := h.sites.DemoSiteURLSlugs(r.Context()); err == nil {
+		for templateID, slug := range slugs {
+			demoURLs[templateID] = h.siteURL(slug)
+		}
+	}
+	h.render.Render(w, "templates", map[string]any{"Templates": siteTemplates, "DemoURLs": demoURLs})
 }
 
 func (h *Handler) Privacy(w http.ResponseWriter, r *http.Request) {

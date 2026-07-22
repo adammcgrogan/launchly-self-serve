@@ -48,6 +48,11 @@ type Config struct {
 	AlertMinLevel   string // minimum slog level to post to the webhook: "info", "warn", or "error" (default)
 
 	GeminiAPIKey string // Google Gemini API key for AI-drafted site copy; unset disables the feature
+
+	// DemoOwnerUserID is the Supabase auth user ID that owns the seeded
+	// showcase demo sites (one per template, see service.Sites.SeedDemoSites).
+	// Unset skips seeding — there's no demo owner account to attach them to.
+	DemoOwnerUserID string
 }
 
 // Load reads configuration from the environment, loading a local .env file
@@ -91,6 +96,8 @@ func Load() (*Config, error) {
 		AlertMinLevel:   getEnv("ALERT_MIN_LEVEL", "error"),
 
 		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
+
+		DemoOwnerUserID: getEnv("DEMO_OWNER_USER_ID", ""),
 	}
 
 	if cfg.AnalyticsSalt == "" {

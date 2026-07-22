@@ -12,7 +12,7 @@ import (
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
 	template_id, form_type, palette, heading_font, brand_color, status, created_at, published_at, updated_at, slug_changed_at,
 	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at, timezone,
-	meta_title, meta_description, og_image_url, video_url`
+	meta_title, meta_description, og_image_url, video_url, is_demo`
 
 func scanSite(row *sql.Row) (*domain.Site, error) {
 	var s domain.Site
@@ -21,7 +21,7 @@ func scanSite(row *sql.Row) (*domain.Site, error) {
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
-		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL,
+		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -41,7 +41,7 @@ func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
-		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL,
+		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo,
 	)
 	s.CustomDomain = customDomain.String
 	s.CustomDomainCFID = customDomainCFID.String
@@ -55,13 +55,32 @@ func CreateSite(ctx context.Context, q querier, site *domain.Site) (int, error) 
 	now := time.Now().UTC()
 	err := q.QueryRowContext(ctx, `
 		INSERT INTO sites (owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
-		                   template_id, palette, heading_font, status, published_at, timezone)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'live', $11, $12)
+		                   template_id, palette, heading_font, status, published_at, timezone, is_demo)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'live', $11, $12, $13)
 		RETURNING id
 	`, site.OwnerUserID, site.Slug, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText,
-		site.TemplateID, site.Palette, site.HeadingFont, now, site.Timezone,
+		site.TemplateID, site.Palette, site.HeadingFont, now, site.Timezone, site.IsDemo,
 	).Scan(&site.ID)
 	return site.ID, err
+}
+
+// ListDemoSites returns the seeded showcase demo sites (one per template),
+// for the public /templates gallery's live-example links.
+func ListDemoSites(ctx context.Context, q querier) ([]domain.Site, error) {
+	rows, err := q.QueryContext(ctx, `SELECT `+siteColumns+` FROM sites WHERE is_demo ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sites []domain.Site
+	for rows.Next() {
+		s, err := scanSiteRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		sites = append(sites, *s)
+	}
+	return sites, rows.Err()
 }
 
 func GetSiteByID(ctx context.Context, q querier, id int) (*domain.Site, error) {
@@ -132,6 +151,7 @@ func GetPlatformStats(ctx context.Context, q querier) (domain.PlatformStats, err
 			COUNT(*) FILTER (WHERE s.created_at >= now() - interval '30 days')
 		FROM sites s
 		LEFT JOIN site_billing b ON b.site_id = s.id
+		WHERE NOT s.is_demo
 	`).Scan(
 		&s.TotalSites, &s.LiveSites, &s.DraftSites, &s.PausedSites,
 		&s.StarterPlan, &s.ProPlan, &s.TrialingSites,

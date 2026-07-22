@@ -120,6 +120,11 @@ type Site struct {
 	MetaTitle       string
 	MetaDescription string
 	OgImageURL      string
+
+	// IsDemo marks a Launchly-owned showcase site (seeded one per template
+	// so the /templates gallery always has a live example), as opposed to a
+	// real customer's site. Excluded from platform stats.
+	IsDemo bool
 }
 
 // BrandColorInk returns the readable foreground colour ("#000000" or

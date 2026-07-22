@@ -22,6 +22,19 @@ func CreateSiteBilling(ctx context.Context, q querier, siteID int, plan domain.P
 	return err
 }
 
+// CreateDemoSiteBilling creates the 1:1 billing row for a seeded demo site
+// as already paid Pro with no trial — demo sites are permanent showcases,
+// not subject to the trial-expiry pause cron (which only acts on
+// payment_status = 'trialing').
+func CreateDemoSiteBilling(ctx context.Context, q querier, siteID int) error {
+	now := time.Now().UTC()
+	_, err := q.ExecContext(ctx, `
+		INSERT INTO site_billing (site_id, plan, payment_status, paid_at)
+		VALUES ($1, 'pro', 'paid', $2)
+	`, siteID, now)
+	return err
+}
+
 // OwnerHasProSite reports whether any of an account's sites has active, paid
 // Pro access, used to lift the per-account site cap (see
 // service.Sites.canCreateSite) — plan is tracked per site, not per account.

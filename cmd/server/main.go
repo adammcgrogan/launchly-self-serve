@@ -25,6 +25,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/supabase"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -68,6 +69,14 @@ func main() {
 	sites := service.NewSites(store, billing, cf, uploads)
 	leads := service.NewLeads(store, mailer, sms)
 	cron := service.NewCron(store, mailer, analytics, baseURL)
+
+	if cfg.DemoOwnerUserID != "" {
+		if ownerID, err := uuid.Parse(cfg.DemoOwnerUserID); err != nil {
+			slog.Error("invalid DEMO_OWNER_USER_ID", "error", err)
+		} else if err := sites.SeedDemoSites(context.Background(), ownerID); err != nil {
+			slog.Error("seed demo sites failed", "error", err)
+		}
+	}
 
 	domains := service.NewDomains(store, cf, cfg.CloudflareFallbackOrigin, cfg.Domain)
 	members := service.NewMembers(store, mailer, baseURL)
