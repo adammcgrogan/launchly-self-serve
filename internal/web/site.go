@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -491,6 +492,11 @@ func (h *Handler) submitLeadForSite(w http.ResponseWriter, r *http.Request, site
 		strings.TrimSpace(r.FormValue("service_label")), strings.TrimSpace(r.FormValue("preferred_time")),
 		h.siteURL(site.Slug),
 	); err != nil {
+		var verr *service.ValidationError
+		if errors.As(err, &verr) {
+			http.Error(w, verr.Message, http.StatusBadRequest)
+			return
+		}
 		slog.Error("submit lead", "site_id", site.ID, "error", err)
 		http.Error(w, "could not save lead", http.StatusInternalServerError)
 		return
