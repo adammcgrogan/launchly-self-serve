@@ -508,8 +508,22 @@ func (s SiteAggregate) OpenNow() (open bool, label string) {
 	now := time.Now().In(loc)
 	nowClock := now.Format("15:04")
 
+	// An overnight span (closes at or before it opens, e.g. 18:00–02:00) that
+	// started yesterday may still be running past midnight into today.
+	if y := s.scheduleForDate(now.AddDate(0, 0, -1)); y != nil && !y.Closed && y.OpensAt != "" && y.ClosesAt != "" {
+		if y.ClosesAt <= y.OpensAt && nowClock < y.ClosesAt {
+			return true, "Open now"
+		}
+	}
+
 	if today := s.scheduleForDate(now); today != nil && !today.Closed && today.OpensAt != "" && today.ClosesAt != "" {
-		if nowClock >= today.OpensAt && nowClock < today.ClosesAt {
+		if today.ClosesAt <= today.OpensAt {
+			// Overnight span: open from OpensAt through to midnight (the
+			// after-midnight tail is covered by yesterday's row above).
+			if nowClock >= today.OpensAt {
+				return true, "Open now"
+			}
+		} else if nowClock >= today.OpensAt && nowClock < today.ClosesAt {
 			return true, "Open now"
 		}
 		if nowClock < today.OpensAt {
