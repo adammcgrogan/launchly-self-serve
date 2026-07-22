@@ -14,6 +14,11 @@ func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
+	if !h.domainLimiter.Allow(middleware.UserID(r).String()) {
+		middleware.SetFlash(w, "Too many domain requests — please wait a moment and try again.")
+		redirectToSite(w, r, site.Slug)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -36,6 +41,11 @@ func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 	site := middleware.LightSiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
+		return
+	}
+	if !h.domainLimiter.Allow(middleware.UserID(r).String()) {
+		middleware.SetFlash(w, "Too many domain requests — please wait a moment and try again.")
+		redirectToSite(w, r, site.Slug)
 		return
 	}
 	ctx, cancel := detachedContext(r)
