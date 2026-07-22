@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"strconv"
@@ -493,6 +494,9 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 		cw.Write([]string{csvSafe(l.Name), csvSafe(l.Email), csvSafe(l.Phone), csvSafe(l.ServiceLabel), csvSafe(l.PreferredTime), csvSafe(l.Message), string(l.Status), l.CreatedAt.Format("2006-01-02 15:04")})
 	}
 	cw.Flush()
+	if err := cw.Error(); err != nil {
+		slog.Warn("lead csv export incomplete", "site_id", site.ID, "error", err)
+	}
 }
 
 // ExportAnalytics downloads the site's page-view/referrer/conversion stats
