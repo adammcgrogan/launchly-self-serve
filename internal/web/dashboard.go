@@ -76,6 +76,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	leadStatus := domain.LeadStatus(r.URL.Query().Get("lead_status"))
+	if leadStatus != "" && !leadStatus.Valid() {
+		leadStatus = "" // ignore stale/invalid filters, fall back to all leads
+	}
 	leadSearch := strings.TrimSpace(r.URL.Query().Get("lead_q"))
 	leadPage, _ := strconv.Atoi(r.URL.Query().Get("lead_page"))
 	if leadPage < 1 {

@@ -12,6 +12,16 @@ const (
 	LeadStatusLost      LeadStatus = "lost"
 )
 
+// Valid reports whether s is one of the recognized lead statuses.
+func (s LeadStatus) Valid() bool {
+	switch s {
+	case LeadStatusNew, LeadStatusContacted, LeadStatusWon, LeadStatusLost:
+		return true
+	default:
+		return false
+	}
+}
+
 // LeadCounts summarizes a site's leads regardless of any list filter, for the
 // dashboard's "leads received" stat and "N new" badge.
 type LeadCounts struct {

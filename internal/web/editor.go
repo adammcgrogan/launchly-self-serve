@@ -254,9 +254,7 @@ func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	status := domain.LeadStatus(r.FormValue("status"))
-	switch status {
-	case domain.LeadStatusNew, domain.LeadStatusContacted, domain.LeadStatusWon, domain.LeadStatusLost:
-	default:
+	if !status.Valid() {
 		http.Error(w, "invalid status", http.StatusBadRequest)
 		return
 	}
