@@ -122,6 +122,7 @@ func validateSiteContent(businessName, tagline, about, logoURL, ctaText string, 
 		checkLen("map URL", contact.MapURL, maxMediumField),
 		checkURL("map URL", contact.MapURL),
 		checkLen("map embed URL", contact.MapEmbedURL, maxMediumField),
+		checkURL("map embed URL", contact.MapEmbedURL),
 	}
 	for _, sl := range social {
 		checks = append(checks, checkLen(string(sl.Platform)+" link", sl.URL, maxMediumField))
