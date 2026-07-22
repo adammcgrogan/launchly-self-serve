@@ -55,7 +55,7 @@
           <select name="business_type" data-business-type class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             {{$bt := .Values.Get "business_type"}}
             {{range $i, $b := .BusinessTypes}}
-            <option value="{{$b.ID}}" data-default-template="{{$b.DefaultTemplate}}" {{if or (eq $b.ID $bt) (and (not $bt) (eq $i 0))}}selected{{end}}>{{$b.Label}}</option>
+            <option value="{{$b.ID}}" data-default-template="{{$b.DefaultTemplate}}" data-category="{{$b.TemplateCategory}}" {{if or (eq $b.ID $bt) (and (not $bt) (eq $i 0))}}selected{{end}}>{{$b.Label}}</option>
             {{end}}
           </select>
           <p class="mt-1.5 text-sm text-slate-400">Just helps us suggest a design on the next step — you can pick any of them.</p>
@@ -71,10 +71,14 @@
 
       <section data-step="2" class="wizard-step space-y-5" hidden>
         <div>
-          <p class="text-sm font-medium text-slate-700 mb-2">Pick your look</p>
-          <div class="grid sm:grid-cols-2 gap-4">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-medium text-slate-700">Pick your look</p>
+            <button type="button" data-toggle-all-templates class="text-xs font-medium text-brand hover:text-brand-dark">Show all designs</button>
+          </div>
+          <p class="text-xs text-slate-400 mb-3" data-suggested-label>Suggested for your business type — you can pick any design.</p>
+          <div class="grid sm:grid-cols-2 gap-4" data-template-grid>
             {{range $i, $t := .Templates}}
-            <label class="relative flex flex-col gap-1 rounded-2xl border border-slate-200 p-5 cursor-pointer transition has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20 has-[:checked]:bg-brand/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand">
+            <label data-template-label class="relative flex flex-col gap-1 rounded-2xl border border-slate-200 p-5 cursor-pointer transition has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20 has-[:checked]:bg-brand/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand">
               <input type="radio" name="template_id" value="{{$t.ID}}" data-template-radio data-category="{{$t.Category}}" {{if or (eq $t.ID $selTemplate) (and (not $selTemplate) (eq $i 0))}}checked{{end}} class="sr-only">
               <span class="font-semibold text-slate-900">{{$t.Name}}</span>
               <span class="text-sm text-slate-500">{{$t.Description}}</span>
@@ -431,6 +435,30 @@
       headingPreview.style.fontFamily = font === 'serif' ? "'Fraunces',serif" : "'Inter',sans-serif";
     }
 
+    var showAllTemplates = false;
+    var templateGrid = form.querySelector('[data-template-grid]');
+    var suggestedLabel = form.querySelector('[data-suggested-label]');
+    var toggleTemplatesBtn = form.querySelector('[data-toggle-all-templates]');
+
+    function suggestedCategory() {
+      var opt = form.querySelector('[data-business-type]').selectedOptions[0];
+      return opt ? opt.getAttribute('data-category') : '';
+    }
+    function refreshTemplateVisibility() {
+      var category = suggestedCategory();
+      templateGrid.querySelectorAll('[data-template-label]').forEach(function (label) {
+        var radio = label.querySelector('[data-template-radio]');
+        var show = showAllTemplates || radio.checked || radio.getAttribute('data-category') === category;
+        label.classList.toggle('hidden', !show);
+      });
+      suggestedLabel.classList.toggle('hidden', showAllTemplates);
+      toggleTemplatesBtn.textContent = showAllTemplates ? 'Show suggested only' : 'Show all designs';
+    }
+    toggleTemplatesBtn.addEventListener('click', function () {
+      showAllTemplates = !showAllTemplates;
+      refreshTemplateVisibility();
+    });
+
     form.querySelectorAll('[data-template-radio]').forEach(function (radio) {
       radio.addEventListener('change', function () {
         templateTouched = true;
@@ -445,6 +473,7 @@
       radio.addEventListener('change', updatePalettePreview);
     });
     form.querySelector('[data-business-type]').addEventListener('change', function () {
+      refreshTemplateVisibility();
       if (templateTouched) return;
       var target = this.selectedOptions[0].getAttribute('data-default-template');
       var radio = target && form.querySelector('[data-template-radio][value="' + target + '"]');
@@ -456,6 +485,7 @@
         updatePalettePreview();
         updatePreviewFont();
         templateTouched = false;
+        refreshTemplateVisibility();
       }
     });
 
@@ -525,6 +555,7 @@
     updateSlugAndHeading();
     updatePalettePreview();
     updatePreviewFont();
+    refreshTemplateVisibility();
     var errorStep = Number(form.getAttribute('data-error-step')) || 1;
     showStep(errorStep);
 

@@ -87,6 +87,10 @@ type businessType struct {
 	ID              string
 	Label           string
 	DefaultTemplate string
+	// TemplateCategory is the Category of DefaultTemplate, backfilled in
+	// init() below. The builder wizard's step 2 uses it to lead with the
+	// templates suggested for the business type chosen in step 1.
+	TemplateCategory string
 }
 
 var businessTypes = []businessType{
@@ -96,6 +100,14 @@ var businessTypes = []businessType{
 	{ID: "professional", Label: "Professional services", DefaultTemplate: "meridian"},
 	{ID: "fitness", Label: "Fitness & gyms", DefaultTemplate: "surge"},
 	{ID: "salon", Label: "Salon, studio & wellness", DefaultTemplate: "bloom"},
+}
+
+func init() {
+	for i := range businessTypes {
+		if t, ok := findTemplate(businessTypes[i].DefaultTemplate); ok {
+			businessTypes[i].TemplateCategory = t.Category
+		}
+	}
 }
 
 func findTemplate(id string) (domain.Template, bool) {
