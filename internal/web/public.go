@@ -49,10 +49,21 @@ func (h *Handler) HelpAppearance(w http.ResponseWriter, r *http.Request) {
 	h.render.Render(w, "help_appearance", map[string]any{})
 }
 
-// Robots serves /robots.txt, pointing crawlers at the sitemap.
+// Robots serves /robots.txt, keeping crawlers out of the gated app/auth
+// areas (which only redirect or 404 for bots anyway) while allowing the
+// marketing pages and pointing at the sitemap.
 func (h *Handler) Robots(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "User-agent: *\nAllow: /\nSitemap: https://%s/sitemap.xml\n", h.cfg.Domain)
+	fmt.Fprintf(w, "User-agent: *\n"+
+		"Disallow: /dashboard\n"+
+		"Disallow: /superadmin\n"+
+		"Disallow: /login\n"+
+		"Disallow: /signup\n"+
+		"Disallow: /logout\n"+
+		"Disallow: /forgot-password\n"+
+		"Disallow: /reset-password\n"+
+		"Disallow: /resend-verification\n"+
+		"Sitemap: https://%s/sitemap.xml\n", h.cfg.Domain)
 }
 
 type sitemapURL struct {
