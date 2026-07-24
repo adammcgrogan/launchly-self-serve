@@ -3,6 +3,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -130,6 +131,23 @@ func (h *Handler) checkCSRF(w http.ResponseWriter, r *http.Request, subject, ses
 	}
 	http.Error(w, "invalid csrf token", http.StatusForbidden)
 	return false
+}
+
+// CSRFTokenRefresh mints a fresh CSRF token for the current, still-valid
+// session. CSRF tokens are embedded once into a rendered page and expire
+// after csrfTokenTTL; a dashboard tab left open longer than that has a
+// perfectly valid session but a stale token, so a save 403s with nothing the
+// user can do about it. The client-side ajax-form handler calls this on a
+// 403, splices the fresh token into the form, and retries the save once —
+// this endpoint only ever reissues a token bound to the caller's own
+// authenticated identity, it never lets a request mint a token for anyone
+// else, so it doesn't weaken checkCSRF's expiry or session-binding checks.
+// Requires the same session auth as other dashboard routes (wired via
+// h.auth.RequireUser in router.go), so it can't be used unauthenticated.
+func (h *Handler) CSRFTokenRefresh(w http.ResponseWriter, r *http.Request) {
+	token := h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"csrf_token": token})
 }
 
 // baseURL returns the scheme+host for the current request.
