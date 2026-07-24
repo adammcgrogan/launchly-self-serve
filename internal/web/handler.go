@@ -95,7 +95,7 @@ func New(d Deps) (*Handler, error) {
 		domainLimiter:             middleware.NewRateLimiter(20, time.Hour),
 	}
 
-	h.render = NewRenderer()
+	h.render = NewRenderer(d.Cfg.Domain)
 	if err := h.render.LoadAll(siteTemplates); err != nil {
 		return nil, fmt.Errorf("load templates: %w", err)
 	}

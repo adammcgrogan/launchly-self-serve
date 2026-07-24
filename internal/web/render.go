@@ -13,38 +13,51 @@ import (
 // Renderer parses every template once at startup and caches them, matching
 // the old app's pattern — server-rendered html/template, no build step.
 type Renderer struct {
-	tmpl map[string]*template.Template
+	tmpl    map[string]*template.Template
+	funcMap template.FuncMap
 }
 
-func NewRenderer() *Renderer {
-	return &Renderer{tmpl: make(map[string]*template.Template)}
-}
-
-var funcMap = template.FuncMap{
-	"add1": func(i int) int { return i + 1 },
-	// pct returns n as a percentage of total, 0 if total isn't positive —
-	// used to size proportion bars (e.g. superadmin's platform stats)
-	// without every caller having to guard against a divide-by-zero.
-	"pct": func(n, total int) int {
-		if total <= 0 {
-			return 0
-		}
-		return n * 100 / total
-	},
-	// paletteColor maps a palette ID to its representative hex swatch, so
-	// marketing pages can render each template's preview in its real accent
-	// colour. Falls back to the brand indigo for an unknown ID.
-	"paletteColor": func(id string) string {
-		if c, ok := paletteSwatchColors[id]; ok {
-			return c
-		}
-		return "#4F46E5"
-	},
+// NewRenderer builds a Renderer whose templates can construct absolute links
+// back to the marketing site (the "marketingURL" func, used by
+// public/base.html's nav and footer) — needed because those templates are
+// also rendered on customer subdomains, where a relative link like "/help"
+// would 404 (SubdomainRouter only allowlists a handful of paths and routes
+// everything else to the site handler).
+func NewRenderer(domain string) *Renderer {
+	fm := template.FuncMap{
+		"add1": func(i int) int { return i + 1 },
+		// pct returns n as a percentage of total, 0 if total isn't positive —
+		// used to size proportion bars (e.g. superadmin's platform stats)
+		// without every caller having to guard against a divide-by-zero.
+		"pct": func(n, total int) int {
+			if total <= 0 {
+				return 0
+			}
+			return n * 100 / total
+		},
+		// paletteColor maps a palette ID to its representative hex swatch, so
+		// marketing pages can render each template's preview in its real accent
+		// colour. Falls back to the brand indigo for an unknown ID.
+		"paletteColor": func(id string) string {
+			if c, ok := paletteSwatchColors[id]; ok {
+				return c
+			}
+			return "#4F46E5"
+		},
+		// marketingURL builds an absolute link to the marketing domain for a
+		// given path, so links in shared templates are correct regardless of
+		// which host (marketing domain or a customer subdomain) the current
+		// page is being served from.
+		"marketingURL": func(path string) string {
+			return "https://" + domain + path
+		},
+	}
+	return &Renderer{tmpl: make(map[string]*template.Template), funcMap: fm}
 }
 
 func (rd *Renderer) parse(key, base string, files ...string) error {
 	all := append([]string{base}, files...)
-	t, err := template.New(filepath.Base(base)).Funcs(funcMap).ParseFiles(all...)
+	t, err := template.New(filepath.Base(base)).Funcs(rd.funcMap).ParseFiles(all...)
 	if err != nil {
 		return fmt.Errorf("parse template %s: %w", key, err)
 	}
