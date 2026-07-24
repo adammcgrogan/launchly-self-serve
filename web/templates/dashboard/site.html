@@ -1392,7 +1392,7 @@
   // ourselves via fetch and swap the resulting #dash-content into the page
   // instead of letting the browser navigate there. Any failure (network
   // error, non-OK response) falls back to a real form submit, so this is
-  // pure progressive enhancement.
+  // pure progressive enhancement — except a 403, handled below.
   (function () {
     if (window.__ajaxFormBound) return;
     window.__ajaxFormBound = true;
@@ -1411,6 +1411,36 @@
       });
     }
 
+    function showFormError(form, msg) {
+      var el = form.querySelector('[data-ajax-form-error]');
+      if (!el) {
+        el = document.createElement('p');
+        el.setAttribute('data-ajax-form-error', '');
+        el.className = 'mt-3 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3';
+        form.appendChild(el);
+      }
+      el.textContent = msg;
+    }
+
+    function clearFormError(form) {
+      var el = form.querySelector('[data-ajax-form-error]');
+      if (el) el.remove();
+    }
+
+    // A dashboard tab left open longer than the CSRF token's 24h TTL still
+    // has a perfectly valid login session — only the token embedded in the
+    // page has gone stale. Fetch a fresh one from the session-authenticated
+    // /dashboard/csrf-token endpoint.
+    function refreshCSRFToken() {
+      return fetch('/dashboard/csrf-token').then(function (res) {
+        if (!res.ok) throw new Error('csrf refresh failed');
+        return res.json();
+      }).then(function (body) {
+        if (!body || !body.csrf_token) throw new Error('csrf refresh failed');
+        return body.csrf_token;
+      });
+    }
+
     document.addEventListener('submit', function (e) {
       var form = e.target;
       if (!form.matches || !form.matches('[data-ajax-form]') || e.defaultPrevented) return;
@@ -1425,28 +1455,59 @@
         submitter.disabled = true;
         submitter.textContent = 'Saving…';
       }
+      clearFormError(form);
 
-      fetch(form.action, { method: form.method || 'POST', body: new FormData(form) })
-        .then(function (res) {
-          if (!res.ok) throw new Error('save failed');
-          return res.text().then(function (html) { return { url: res.url, html: html }; });
-        })
-        .then(function (r) {
-          var parsed = new DOMParser().parseFromString(r.html, 'text/html');
-          var next = parsed.getElementById('dash-content');
-          var current = document.getElementById('dash-content');
-          if (!next || !current) throw new Error('missing #dash-content in response');
-          current.replaceWith(next);
-          history.pushState(null, '', r.url);
-          runScripts(next);
-        })
-        .catch(function () {
-          if (submitter) {
-            submitter.disabled = false;
-            submitter.textContent = originalText;
-          }
-          form.submit();
-        });
+      function resetSubmitter() {
+        if (submitter) {
+          submitter.disabled = false;
+          submitter.textContent = originalText;
+        }
+      }
+
+      // isRetry guards against looping: an expired token gets exactly one
+      // silent refresh-and-retry. If the retry still 403s (e.g. the session
+      // itself is gone, not just the token), that's a real error — surface
+      // it instead of retrying forever. The form and its in-memory values
+      // are never touched on failure, so the user's typed content survives
+      // and a manual retry (or copy-paste elsewhere) is still possible.
+      function attempt(isRetry) {
+        return fetch(form.action, { method: form.method || 'POST', body: new FormData(form) })
+          .then(function (res) {
+            if (res.status === 403 && !isRetry) {
+              return refreshCSRFToken().then(function (token) {
+                var input = form.querySelector('[name="csrf_token"]');
+                if (input) input.value = token;
+                return attempt(true);
+              });
+            }
+            if (!res.ok) {
+              var err = new Error('save failed');
+              err.status = res.status;
+              throw err;
+            }
+            return res.text().then(function (html) { return { url: res.url, html: html }; });
+          })
+          .then(function (r) {
+            var parsed = new DOMParser().parseFromString(r.html, 'text/html');
+            var next = parsed.getElementById('dash-content');
+            var current = document.getElementById('dash-content');
+            if (!next || !current) throw new Error('missing #dash-content in response');
+            current.replaceWith(next);
+            history.pushState(null, '', r.url);
+            runScripts(next);
+          });
+      }
+
+      attempt(false).catch(function (err) {
+        resetSubmitter();
+        if (err && err.status === 403) {
+          showFormError(form, 'Your save session had expired and refreshing it didn’t work. Your changes above are safe — copy them if needed, then reload the page and try again.');
+          return;
+        }
+        // Any other failure (network error, 5xx, malformed response): fall
+        // back to a real form submit, same as before this handler existed.
+        form.submit();
+      });
     });
   })();
 </script>

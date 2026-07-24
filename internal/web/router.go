@@ -63,6 +63,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 		return owned(h.ownership.RequireOwnerRole(next))
 	}
 	mux.HandleFunc("GET /dashboard", h.auth.RequireUser(h.Dashboard))
+	mux.HandleFunc("GET /dashboard/csrf-token", h.auth.RequireUser(h.CSRFTokenRefresh))
 	mux.HandleFunc("GET /dashboard/account", h.auth.RequireUser(h.Account))
 	mux.HandleFunc("GET /dashboard/account/export", h.auth.RequireUser(h.ExportAccountData))
 	mux.HandleFunc("POST /dashboard/account/delete", h.auth.RequireUser(h.DeleteAccount))
