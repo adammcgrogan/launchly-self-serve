@@ -112,13 +112,21 @@ func (c *Cron) withAdvisoryLock(ctx context.Context, key int64, fn func(conn *sq
 func (c *Cron) sendDueTrialReminders() {
 	ctx := context.Background()
 	c.withAdvisoryLock(ctx, advisoryLockTrialCron, func(conn *sql.Conn) {
-		for _, kind := range []string{"first", "final"} {
+		// "final" is checked first and sentThisSweep tracks sites already
+		// emailed in this pass, so a sweep that's behind enough for a site to
+		// match both queries sends only the higher-priority "final" reminder
+		// instead of both back-to-back (#198).
+		sentThisSweep := make(map[int]bool)
+		for _, kind := range []string{"final", "first"} {
 			ids, err := postgres.GetSiteIDsDueForTrialReminder(ctx, conn, kind)
 			if err != nil {
 				slog.Error("trial cron: list sites", "kind", kind, "error", err)
 				continue
 			}
 			for _, id := range ids {
+				if sentThisSweep[id] {
+					continue
+				}
 				site, err := postgres.GetSiteByID(ctx, conn, id)
 				if err != nil || site == nil {
 					continue
@@ -156,6 +164,7 @@ func (c *Cron) sendDueTrialReminders() {
 					slog.Error("trial cron: mark sent", "slug", site.Slug, "kind", kind, "error", err)
 				} else {
 					slog.Info("trial reminder sent", "slug", site.Slug, "kind", kind)
+					sentThisSweep[id] = true
 				}
 			}
 		}
