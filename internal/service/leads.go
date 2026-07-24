@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
@@ -15,10 +17,60 @@ type Leads struct {
 	store  *postgres.Store
 	mailer *email.Client
 	sms    *notify.SMSClient
+
+	autoReplyLimiter *autoReplyLimiter
 }
 
 func NewLeads(store *postgres.Store, mailer *email.Client, sms *notify.SMSClient) *Leads {
-	return &Leads{store: store, mailer: mailer, sms: sms}
+	return &Leads{store: store, mailer: mailer, sms: sms, autoReplyLimiter: newAutoReplyLimiter(autoReplyLimit, autoReplyWindow)}
+}
+
+// autoReplyLimit/autoReplyWindow bound how many Launchly-branded auto-reply
+// emails a single address can receive across all sites in a rolling window.
+// The public contact form's only other gate is per-IP rate limiting, which
+// rotating IPs can defeat, letting the endpoint be driven to spam arbitrary
+// third-party addresses (see #212). Lead recording and owner notification
+// are unaffected — only the visitor-facing auto-reply is throttled.
+const (
+	autoReplyLimit  = 3
+	autoReplyWindow = time.Hour
+)
+
+// autoReplyLimiter is a fixed-window, in-memory limiter keyed by recipient
+// email address. State is per-process, same tradeoff as
+// internal/web/middleware.RateLimiter.
+type autoReplyLimiter struct {
+	mu      sync.Mutex
+	windows map[string]*autoReplyWindowState
+	limit   int
+	window  time.Duration
+}
+
+type autoReplyWindowState struct {
+	count int
+	reset time.Time
+}
+
+func newAutoReplyLimiter(limit int, window time.Duration) *autoReplyLimiter {
+	return &autoReplyLimiter{windows: make(map[string]*autoReplyWindowState), limit: limit, window: window}
+}
+
+// allow reports whether another auto-reply may be sent to key (a lowercased
+// email address), incrementing its window count if so.
+func (rl *autoReplyLimiter) allow(key string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+	w, ok := rl.windows[key]
+	if !ok || now.After(w.reset) {
+		rl.windows[key] = &autoReplyWindowState{count: 1, reset: now.Add(rl.window)}
+		return true
+	}
+	if w.count >= rl.limit {
+		return false
+	}
+	w.count++
+	return true
 }
 
 // SubmitLead records a contact-form submission and forwards it to the
@@ -59,12 +111,16 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 	}
 
 	if emailAddr != "" {
-		hours, err := postgres.GetSiteBusinessHours(ctx, l.store.DB(), siteID)
-		if err != nil {
-			slog.Error("get site business hours for auto-reply", "error", err)
-		}
-		if err := l.mailer.SendLeadAutoReply(emailAddr, site.BusinessName, hours, contactPhone, siteURL); err != nil {
-			slog.Error("send lead auto-reply", "error", err)
+		if !l.autoReplyLimiter.allow(strings.ToLower(emailAddr)) {
+			slog.Warn("lead auto-reply rate limited", "email", emailAddr)
+		} else {
+			hours, err := postgres.GetSiteBusinessHours(ctx, l.store.DB(), siteID)
+			if err != nil {
+				slog.Error("get site business hours for auto-reply", "error", err)
+			}
+			if err := l.mailer.SendLeadAutoReply(emailAddr, site.BusinessName, hours, contactPhone, siteURL); err != nil {
+				slog.Error("send lead auto-reply", "error", err)
+			}
 		}
 	}
 
