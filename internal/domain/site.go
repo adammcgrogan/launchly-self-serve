@@ -41,6 +41,7 @@ const (
 	PaymentStatusTrialing  PaymentStatus = "trialing"
 	PaymentStatusPending   PaymentStatus = "pending"
 	PaymentStatusPaid      PaymentStatus = "paid"
+	PaymentStatusPastDue   PaymentStatus = "past_due"
 	PaymentStatusCancelled PaymentStatus = "cancelled"
 )
 
@@ -264,6 +265,15 @@ type SiteBilling struct {
 	TrialEndsAt              *time.Time
 	TrialReminderSentAt      *time.Time
 	TrialFinalReminderSentAt *time.Time
+
+	// PaymentFailedAt and the DunningXSentAt fields track a failed payment's
+	// own dunning timeline, independent of how many times Stripe itself
+	// retries the underlying charge — see the dunning cron in
+	// service.Cron.sendDueDunningReminders / cancelOverdueDunningSites.
+	PaymentFailedAt           *time.Time
+	DunningReminder1SentAt    *time.Time
+	DunningReminder2SentAt    *time.Time
+	DunningFinalWarningSentAt *time.Time
 }
 
 // BillingRisk is a short human-readable badge describing billing/trial risk
@@ -282,6 +292,8 @@ func (b SiteBilling) Risk() BillingRisk {
 	switch b.PaymentStatus {
 	case PaymentStatusCancelled:
 		return BillingRisk{Label: "Payment cancelled", Severity: "danger"}
+	case PaymentStatusPastDue:
+		return BillingRisk{Label: "Payment past due", Severity: "danger"}
 	case PaymentStatusPending:
 		return BillingRisk{Label: "Payment pending", Severity: "warning"}
 	case PaymentStatusTrialing:

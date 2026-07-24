@@ -125,6 +125,8 @@ func (b *Billing) HandleWebhookEvent(ctx context.Context, event *payment.Webhook
 		err = b.handleSubscriptionDeleted(ctx, event)
 	case "invoice.payment_failed":
 		err = b.handlePaymentFailed(ctx, event)
+	case "invoice.payment_succeeded":
+		err = b.handlePaymentRecovered(ctx, event)
 	}
 	if err != nil {
 		if event.ID != "" {
@@ -228,6 +230,13 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 	return nil
 }
 
+// handlePaymentFailed starts the dunning sequence the first time a payment
+// fails for a subscription (see postgres.SetSitePaymentFailed). Stripe sends
+// invoice.payment_failed on every retry attempt it makes for the same
+// underlying failure, not just once — first is guarded on so a business
+// already mid-sequence doesn't get the "payment failed" email and admin
+// alert repeated on every one of Stripe's own retries; the dunning cron
+// (service.Cron.sendDueDunningReminders) takes over the follow-ups from here.
 func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.WebhookEvent) error {
 	if event.SubscriptionID == "" {
 		return nil
@@ -243,6 +252,14 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 	}
 	slog.Warn("payment failed", "subscription_id", event.SubscriptionID)
 	if billing == nil {
+		return nil
+	}
+	first, err := postgres.SetSitePaymentFailed(ctx, b.store.DB(), event.SubscriptionID)
+	if err != nil {
+		return fmt.Errorf("set site payment failed: %w", err)
+	}
+	if !first {
+		slog.Info("payment failed, already in dunning sequence", "subscription_id", event.SubscriptionID)
 		return nil
 	}
 	site, _ := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
@@ -263,8 +280,51 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 	b.mailer.SendAdminAlert(
 		"hello@launchly.ltd",
 		fmt.Sprintf("Payment failed - %s", site.BusinessName),
-		fmt.Sprintf("A monthly payment has failed for <strong>%s</strong> (%s). Stripe will retry automatically.", site.BusinessName, to),
+		fmt.Sprintf("A monthly payment has failed for <strong>%s</strong> (%s). It's now in the dunning sequence — reminders will escalate over the next week before the subscription is cancelled if unresolved.", site.BusinessName, to),
 	)
+	return nil
+}
+
+// handlePaymentRecovered moves a site back out of the dunning sequence once
+// Stripe confirms an invoice succeeded. Stripe sends invoice.payment_succeeded
+// for every successful invoice, including routine renewals of an
+// already-'paid' subscription, so SetSitePaymentRecovered only acts (and this
+// only notifies) when the site was actually 'past_due' — anything else is a
+// no-op.
+func (b *Billing) handlePaymentRecovered(ctx context.Context, event *payment.WebhookEvent) error {
+	if event.SubscriptionID == "" {
+		return nil
+	}
+	recovered, err := postgres.SetSitePaymentRecovered(ctx, b.store.DB(), event.SubscriptionID)
+	if err != nil {
+		return fmt.Errorf("set site payment recovered: %w", err)
+	}
+	if !recovered {
+		return nil
+	}
+	slog.Info("payment recovered", "subscription_id", event.SubscriptionID)
+	billing, err := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	if err != nil || billing == nil {
+		return err
+	}
+	site, err := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
+	if err != nil || site == nil {
+		return err
+	}
+	contact, err := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
+	if err != nil {
+		return err
+	}
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail)
+	if to != "" {
+		if err := b.mailer.SendPaymentConfirmation(to, site.BusinessName, billing.Plan); err != nil {
+			slog.Error("send payment recovered email", "error", err)
+		}
+	}
 	return nil
 }
 
