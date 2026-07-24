@@ -68,12 +68,14 @@ func (m *Members) Invite(ctx context.Context, site *domain.Site, inviterEmail, i
 		return nil, fmt.Errorf("create invite: %w", err)
 	}
 
+	// Sent synchronously (not backgrounded in an untracked goroutine) so a
+	// SIGTERM mid-request can't drop it: Invite already blocks the caller on
+	// DB work, and the handler's detachedContext survives client disconnects,
+	// so the graceful-shutdown drain of in-flight requests covers this too.
 	acceptURL := m.baseURL + "/dashboard/invites/" + token
-	go func() {
-		if err := m.mailer.SendTeamInvite(inviteeEmail, inviterEmail, site.BusinessName, acceptURL); err != nil {
-			slog.Error("send team invite email", "error", err)
-		}
-	}()
+	if err := m.mailer.SendTeamInvite(inviteeEmail, inviterEmail, site.BusinessName, acceptURL); err != nil {
+		slog.Error("send team invite email", "error", err)
+	}
 
 	return member, nil
 }
