@@ -1047,7 +1047,17 @@ func (s *Sites) Publish(ctx context.Context, siteID int) error {
 }
 
 func (s *Sites) Unpublish(ctx context.Context, siteID int) error {
-	err := postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusDraft)
+	site, err := postgres.GetSiteByID(ctx, s.store.DB(), siteID)
+	if err != nil {
+		return err
+	}
+	if site == nil {
+		return fmt.Errorf("site %d not found", siteID)
+	}
+	if site.Status == domain.SiteStatusPaused {
+		return ErrSitePaused
+	}
+	err = postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusDraft)
 	if err == nil {
 		s.invalidateAggregate(siteID)
 	}

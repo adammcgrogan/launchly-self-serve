@@ -337,6 +337,11 @@ func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := detachedContext(r)
 	defer cancel()
 	if err := h.sites.Unpublish(ctx, site.ID); err != nil {
+		if err == service.ErrSitePaused {
+			middleware.SetFlash(w, err.Error())
+			redirectToSite(w, r, site.Slug)
+			return
+		}
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
