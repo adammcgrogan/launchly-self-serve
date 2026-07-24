@@ -60,3 +60,31 @@ func TestSuperadminTemplatesRender(t *testing.T) {
 		t.Error("site page missing business_name field")
 	}
 }
+
+// TestSafeSuperadminNext guards against the open redirect in #246: a
+// crafted next= value must never send a freshly authenticated superadmin
+// off to another host.
+func TestSafeSuperadminNext(t *testing.T) {
+	cases := []struct {
+		name string
+		next string
+		want string
+	}{
+		{"empty", "", "/superadmin"},
+		{"valid path", "/superadmin/sites/42", "/superadmin/sites/42"},
+		{"exact root", "/superadmin", "/superadmin"},
+		{"absolute external url", "https://evil.example", "/superadmin"},
+		{"protocol-relative", "//evil.example", "/superadmin"},
+		{"scheme-relative no slashes", "http://evil.example/superadmin", "/superadmin"},
+		{"dashboard path not superadmin", "/dashboard", "/superadmin"},
+		{"missing leading slash", "superadmin/sites/42", "/superadmin"},
+		{"javascript scheme", "javascript:alert(1)", "/superadmin"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := safeSuperadminNext(tc.next); got != tc.want {
+				t.Errorf("safeSuperadminNext(%q) = %q, want %q", tc.next, got, tc.want)
+			}
+		})
+	}
+}
