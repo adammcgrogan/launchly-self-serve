@@ -68,7 +68,7 @@ func main() {
 	billing := service.NewBilling(store, pay, mailer, baseURL)
 	sites := service.NewSites(store, billing, cf, uploads)
 	leads := service.NewLeads(store, mailer, sms)
-	cron := service.NewCron(store, mailer, analytics, baseURL)
+	cron := service.NewCron(store, mailer, analytics, billing, baseURL)
 
 	if cfg.DemoOwnerUserID != "" {
 		if ownerID, err := uuid.Parse(cfg.DemoOwnerUserID); err != nil {

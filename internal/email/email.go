@@ -347,6 +347,36 @@ func (c *Client) SendPaymentFailed(to, businessName string) error {
 	return c.Send(to, fmt.Sprintf("Action needed - payment failed for %s", businessName), wrap("Action needed", content))
 }
 
+// SendDunningReminder is an escalating follow-up sent while a subscription
+// stays past due after the initial SendPaymentFailed notice — daysPastDue
+// drives the urgency of the copy (see the dunning cron in
+// service.Cron.sendDueDunningReminders, which sends this at day 1 and day 3
+// after the failure before SendFinalPaymentWarning at day 7).
+func (c *Client) SendDunningReminder(to, businessName, dashboardURL string, daysPastDue int) error {
+	content := h1("Your payment is still overdue") +
+		p(fmt.Sprintf("We still haven't been able to collect your subscription payment for <strong>%s</strong> — it's now %d days overdue.", businessName, daysPastDue)) +
+		p("Please update your payment details from your dashboard to keep your site online.") +
+		button(dashboardURL, "Update payment details") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
+	return c.Send(to, fmt.Sprintf("Payment still overdue - %s", businessName), wrap("Action needed", content))
+}
+
+// SendFinalPaymentWarning is the last dunning step before the subscription is
+// cancelled — see the dunning cron in service.Cron.cancelOverdueDunningSites,
+// which cancels via Billing.CancelSubscription (letting Stripe's own
+// customer.subscription.deleted webhook send the actual cancellation email,
+// same as a self-serve cancel) if payment still hasn't been fixed after this.
+func (c *Client) SendFinalPaymentWarning(to, businessName, dashboardURL string) error {
+	content := h1("Final notice - your subscription will be cancelled") +
+		p(fmt.Sprintf("Your payment for <strong>%s</strong> has been overdue for a week. If it isn't resolved soon, your subscription will be cancelled and your site will be paused.", businessName)) +
+		p("Update your payment details now to avoid any disruption.") +
+		button(dashboardURL, "Update payment details") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
+	return c.Send(to, fmt.Sprintf("Final notice - update your payment for %s", businessName), wrap("Final notice", content))
+}
+
 // SendTrialWarning links straight to the dashboard upgrade button — there is
 // no admin-sent payment link in the self-serve flow.
 func (c *Client) SendTrialWarning(to, businessName, dashboardURL string, daysLeft int) error {

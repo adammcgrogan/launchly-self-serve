@@ -111,7 +111,7 @@ type WebhookEvent struct {
 	ID             string // Stripe event ID — used for idempotency
 	Type           string
 	SessionID      string // populated for checkout.session.completed
-	SubscriptionID string // populated for checkout.session.completed, customer.subscription.deleted, invoice.payment_failed
+	SubscriptionID string // populated for checkout.session.completed, customer.subscription.deleted, invoice.payment_failed, invoice.payment_succeeded
 	CustomerEmail  string // populated for invoice.payment_failed
 }
 
@@ -149,6 +149,14 @@ func (c *Client) ParseWebhook(payload []byte, sigHeader string) (*WebhookEvent, 
 			we.SubscriptionID = inv.Subscription.ID
 		}
 		we.CustomerEmail = inv.CustomerEmail
+	case "invoice.payment_succeeded":
+		var inv stripe.Invoice
+		if err := json.Unmarshal(event.Data.Raw, &inv); err != nil {
+			return nil, fmt.Errorf("unmarshal invoice: %w", err)
+		}
+		if inv.Subscription != nil {
+			we.SubscriptionID = inv.Subscription.ID
+		}
 	}
 	return we, nil
 }

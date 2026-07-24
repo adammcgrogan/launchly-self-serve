@@ -58,6 +58,7 @@ func scanSiteBilling(row *sql.Row, siteID int) (*domain.SiteBilling, error) {
 	err := row.Scan(
 		&b.Plan, &b.PaymentStatus, &b.StripeCustomerID, &b.StripeSessionID, &b.StripeSubscriptionID,
 		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt,
+		&b.PaymentFailedAt, &b.DunningReminder1SentAt, &b.DunningReminder2SentAt, &b.DunningFinalWarningSentAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -69,7 +70,8 @@ func scanSiteBilling(row *sql.Row, siteID int) (*domain.SiteBilling, error) {
 }
 
 const siteBillingColumns = `plan, payment_status, stripe_customer_id, stripe_session_id, stripe_subscription_id,
-	paid_at, trial_ends_at, trial_reminder_sent_at, trial_final_reminder_sent_at`
+	paid_at, trial_ends_at, trial_reminder_sent_at, trial_final_reminder_sent_at,
+	payment_failed_at, dunning_reminder_1_sent_at, dunning_reminder_2_sent_at, dunning_final_warning_sent_at`
 
 func GetSiteBilling(ctx context.Context, q querier, siteID int) (*domain.SiteBilling, error) {
 	return scanSiteBilling(q.QueryRowContext(ctx,
@@ -82,7 +84,8 @@ func GetSiteBillingBySessionID(ctx context.Context, q querier, sessionID string)
 	err := q.QueryRowContext(ctx,
 		`SELECT site_id, `+siteBillingColumns+` FROM site_billing WHERE stripe_session_id = $1`, sessionID,
 	).Scan(&siteID, &b.Plan, &b.PaymentStatus, &b.StripeCustomerID, &b.StripeSessionID, &b.StripeSubscriptionID,
-		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt)
+		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt,
+		&b.PaymentFailedAt, &b.DunningReminder1SentAt, &b.DunningReminder2SentAt, &b.DunningFinalWarningSentAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -99,7 +102,8 @@ func GetSiteBillingBySubscriptionID(ctx context.Context, q querier, subscription
 	err := q.QueryRowContext(ctx,
 		`SELECT site_id, `+siteBillingColumns+` FROM site_billing WHERE stripe_subscription_id = $1`, subscriptionID,
 	).Scan(&siteID, &b.Plan, &b.PaymentStatus, &b.StripeCustomerID, &b.StripeSessionID, &b.StripeSubscriptionID,
-		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt)
+		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt,
+		&b.PaymentFailedAt, &b.DunningReminder1SentAt, &b.DunningReminder2SentAt, &b.DunningFinalWarningSentAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -126,13 +130,56 @@ func SetSitePending(ctx context.Context, q querier, siteID int, plan domain.Plan
 
 // SetSitePaid marks a site as paid by Stripe session ID. Returns (true, nil)
 // if this was the first time (row updated), (false, nil) if already paid
-// (idempotent webhook retry).
+// (idempotent webhook retry). Also clears any in-flight dunning state, so a
+// site that was mid-checkout while past due (e.g. re-subscribing after
+// cancellation) doesn't carry stale payment-failure timestamps forward.
 func SetSitePaid(ctx context.Context, q querier, sessionID, subscriptionID string) (bool, error) {
 	now := time.Now().UTC()
 	res, err := q.ExecContext(ctx, `
-		UPDATE site_billing SET payment_status = 'paid', paid_at = $1, stripe_subscription_id = $2
+		UPDATE site_billing SET payment_status = 'paid', paid_at = $1, stripe_subscription_id = $2,
+			payment_failed_at = NULL, dunning_reminder_1_sent_at = NULL,
+			dunning_reminder_2_sent_at = NULL, dunning_final_warning_sent_at = NULL
 		WHERE stripe_session_id = $3 AND payment_status != 'paid'
 	`, now, subscriptionID, sessionID)
+	if err != nil {
+		return false, err
+	}
+	rows, _ := res.RowsAffected()
+	return rows > 0, nil
+}
+
+// SetSitePaymentFailed transitions a site into the past-due dunning sequence
+// the first time a payment fails, recording payment_failed_at as the anchor
+// for the dunning cron's escalating reminders. Guarded to payment_status !=
+// 'past_due' so repeat invoice.payment_failed deliveries for the same
+// underlying failure (Stripe retries several times before giving up) don't
+// keep resetting the clock and delaying the sequence indefinitely. Returns
+// true if this call caused the transition.
+func SetSitePaymentFailed(ctx context.Context, q querier, subscriptionID string) (bool, error) {
+	res, err := q.ExecContext(ctx, `
+		UPDATE site_billing SET payment_status = 'past_due', payment_failed_at = now()
+		WHERE stripe_subscription_id = $1 AND payment_status NOT IN ('past_due', 'cancelled')
+	`, subscriptionID)
+	if err != nil {
+		return false, err
+	}
+	rows, _ := res.RowsAffected()
+	return rows > 0, nil
+}
+
+// SetSitePaymentRecovered moves a site back to 'paid' once Stripe confirms an
+// invoice succeeded, clearing the dunning sequence. Only acts on sites
+// currently 'past_due' — a routine invoice.payment_succeeded for a site
+// that's already 'paid' is not a recovery and shouldn't reset anything.
+// Returns true if this call performed the recovery, so the caller knows
+// whether to send a confirmation email.
+func SetSitePaymentRecovered(ctx context.Context, q querier, subscriptionID string) (bool, error) {
+	res, err := q.ExecContext(ctx, `
+		UPDATE site_billing SET payment_status = 'paid', payment_failed_at = NULL,
+			dunning_reminder_1_sent_at = NULL, dunning_reminder_2_sent_at = NULL,
+			dunning_final_warning_sent_at = NULL
+		WHERE stripe_subscription_id = $1 AND payment_status = 'past_due'
+	`, subscriptionID)
 	if err != nil {
 		return false, err
 	}
@@ -263,6 +310,86 @@ func MarkTrialReminderSent(ctx context.Context, q querier, siteID int, kind stri
 	}
 	_, err := q.ExecContext(ctx, `UPDATE site_billing SET `+col+` = now() WHERE site_id = $1`, siteID)
 	return err
+}
+
+// GetSiteIDsDueForDunningReminder returns site IDs that are past due, whose
+// payment_failed_at is at least delay old, and haven't yet received the
+// reminder of the given kind ("reminder1", "reminder2", "final_warning") —
+// mirrors GetSiteIDsDueForTrialReminder's shape for the same reason: each
+// stage is its own timestamp column rather than a single stage counter, so a
+// stage can never be silently skipped by a cron gap.
+func GetSiteIDsDueForDunningReminder(ctx context.Context, q querier, kind string, delay time.Duration) ([]int, error) {
+	var col string
+	switch kind {
+	case "reminder1":
+		col = "dunning_reminder_1_sent_at"
+	case "reminder2":
+		col = "dunning_reminder_2_sent_at"
+	case "final_warning":
+		col = "dunning_final_warning_sent_at"
+	default:
+		return nil, fmt.Errorf("unknown dunning reminder kind: %s", kind)
+	}
+	rows, err := q.QueryContext(ctx, `
+		SELECT site_id FROM site_billing
+		WHERE payment_status = 'past_due' AND payment_failed_at IS NOT NULL
+		  AND payment_failed_at <= $1 AND `+col+` IS NULL
+	`, time.Now().UTC().Add(-delay))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func MarkDunningReminderSent(ctx context.Context, q querier, siteID int, kind string) error {
+	var col string
+	switch kind {
+	case "reminder1":
+		col = "dunning_reminder_1_sent_at"
+	case "reminder2":
+		col = "dunning_reminder_2_sent_at"
+	case "final_warning":
+		col = "dunning_final_warning_sent_at"
+	default:
+		return fmt.Errorf("unknown dunning reminder kind: %s", kind)
+	}
+	_, err := q.ExecContext(ctx, `UPDATE site_billing SET `+col+` = now() WHERE site_id = $1`, siteID)
+	return err
+}
+
+// GetSiteIDsDueForDunningCancellation returns site IDs still past due whose
+// final warning was sent at least delay ago — the customer had their chance
+// to fix payment after the final warning and didn't, so the dunning cron
+// cancels these deterministically instead of leaving them past-due forever
+// (Stripe's own retry schedule isn't guaranteed to ever give up on its own).
+func GetSiteIDsDueForDunningCancellation(ctx context.Context, q querier, delay time.Duration) ([]int, error) {
+	rows, err := q.QueryContext(ctx, `
+		SELECT site_id FROM site_billing
+		WHERE payment_status = 'past_due' AND dunning_final_warning_sent_at IS NOT NULL
+		  AND dunning_final_warning_sent_at <= $1
+	`, time.Now().UTC().Add(-delay))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 // MarkStripeEventProcessed records a Stripe webhook event ID. Returns true if

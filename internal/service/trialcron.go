@@ -45,11 +45,12 @@ type Cron struct {
 	store     *postgres.Store
 	mailer    *email.Client
 	analytics *Analytics
+	billing   *Billing
 	baseURL   string
 }
 
-func NewCron(store *postgres.Store, mailer *email.Client, analytics *Analytics, baseURL string) *Cron {
-	return &Cron{store: store, mailer: mailer, analytics: analytics, baseURL: baseURL}
+func NewCron(store *postgres.Store, mailer *email.Client, analytics *Analytics, billing *Billing, baseURL string) *Cron {
+	return &Cron{store: store, mailer: mailer, analytics: analytics, billing: billing, baseURL: baseURL}
 }
 
 // Start launches the background tickers. Call once at server startup.
@@ -58,6 +59,8 @@ func (c *Cron) Start() {
 	go c.runEvery(time.Hour, c.pauseDueSites)
 	go c.runEvery(time.Hour, c.sendDueAnalyticsDigests)
 	go c.runEvery(24*time.Hour, c.pruneOldRecords)
+	go c.runEvery(time.Hour, c.sendDueDunningReminders)
+	go c.runEvery(time.Hour, c.cancelOverdueDunningSites)
 }
 
 func (c *Cron) runEvery(interval time.Duration, fn func()) {
