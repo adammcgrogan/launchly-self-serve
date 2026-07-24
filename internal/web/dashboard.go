@@ -462,10 +462,11 @@ func (h *Handler) ExportAccountData(w http.ResponseWriter, r *http.Request) {
 	enc.Encode(export)
 }
 
-// DeleteAccount permanently deletes the logged-in user's account: any Stripe
-// subscriptions on their sites are cancelled first (Stripe isn't reachable
-// via the DB's cascading deletes), then the Supabase auth user is deleted,
-// which cascades away the profile, sites, and everything hanging off them.
+// DeleteAccount permanently deletes the logged-in user's account: each site
+// is deleted individually first via Sites.Delete, which cancels its Stripe
+// subscription and deregisters its Cloudflare custom hostname (neither is
+// reachable via the DB's cascading deletes), then the Supabase auth user is
+// deleted, which cascades away the profile and anything left hanging off it.
 func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserID(r)
 	if !h.checkCSRF(w, r, userID.String(), h.auth.SessionNonce(r)) {
@@ -477,7 +478,7 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, site := range sites {
-		if err := h.billing.CancelSubscriptionIfActive(r.Context(), site.ID); err != nil {
+		if err := h.sites.Delete(r.Context(), site.ID); err != nil {
 			h.render.RenderError(w, http.StatusInternalServerError)
 			return
 		}
