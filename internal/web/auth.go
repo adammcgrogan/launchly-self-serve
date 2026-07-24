@@ -11,6 +11,94 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
+// commonPasswords is a small denylist of frequently breached passwords.
+// It's not exhaustive — just enough to catch the obvious cases that a plain
+// length check lets through.
+var commonPasswords = map[string]struct{}{
+	"password":      {},
+	"password1":     {},
+	"password12":    {},
+	"password123":   {},
+	"12345678":      {},
+	"123456789":     {},
+	"1234567890":    {},
+	"12345678910":   {},
+	"qwerty123":     {},
+	"qwertyuiop":    {},
+	"qwerty12345":   {},
+	"letmein1":      {},
+	"letmein123":    {},
+	"iloveyou":      {},
+	"iloveyou1":     {},
+	"iloveyou123":   {},
+	"admin1234":     {},
+	"administrator": {},
+	"welcome1":      {},
+	"welcome123":    {},
+	"abc123456":     {},
+	"abcd1234":      {},
+	"abcd12345":     {},
+	"passw0rd":      {},
+	"passw0rd1":     {},
+	"password!":     {},
+	"p@ssw0rd":      {},
+	"p@ssword":      {},
+	"trustno1":      {},
+	"sunshine1":     {},
+	"princess1":     {},
+	"football1":     {},
+	"baseball1":     {},
+	"dragon123":     {},
+	"monkey123":     {},
+	"superman1":     {},
+	"master123":     {},
+	"shadow123":     {},
+	"michael1":      {},
+	"jennifer1":     {},
+	"starwars1":     {},
+	"whatever1":     {},
+	"freedom123":    {},
+	"summer2020":    {},
+	"summer2021":    {},
+	"summer2022":    {},
+	"summer2023":    {},
+	"summer2024":    {},
+	"winter2020":    {},
+	"winter2021":    {},
+	"changeme1":     {},
+	"changeme123":   {},
+	"letmein12":     {},
+	"password2020":  {},
+	"password2021":  {},
+	"password2022":  {},
+	"password2023":  {},
+	"password2024":  {},
+	"password2025":  {},
+	"password2026":  {},
+	"12341234":      {},
+	"11111111":      {},
+	"00000000":      {},
+	"87654321":      {},
+	"qazwsx123":     {},
+	"zxcvbnm123":    {},
+	"asdfghjk":      {},
+	"asdfghjkl":     {},
+	"asdf1234":      {},
+	"login1234":     {},
+	"newpassword1":  {},
+	"temppass123":   {},
+	"guest12345":    {},
+	"welcome2024":   {},
+	"iloveyou2024":  {},
+}
+
+// isCommonPassword reports whether password matches a known common/breached
+// password, checked case-insensitively.
+func isCommonPassword(password string) bool {
+	_, ok := commonPasswords[strings.ToLower(password)]
+	return ok
+}
+
 func (h *Handler) SignupForm(w http.ResponseWriter, r *http.Request) {
 	h.render.Render(w, "auth:signup", map[string]any{"Next": r.URL.Query().Get("next")})
 }
@@ -33,6 +121,12 @@ func (h *Handler) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	if emailAddr == "" || len(password) < 8 {
 		h.render.Render(w, "auth:signup", map[string]any{
 			"Error": "Enter a valid email and a password of at least 8 characters.", "Email": emailAddr, "Next": next,
+		})
+		return
+	}
+	if isCommonPassword(password) {
+		h.render.Render(w, "auth:signup", map[string]any{
+			"Error": "That password is too common — please choose a stronger one.", "Email": emailAddr, "Next": next,
 		})
 		return
 	}
@@ -192,6 +286,10 @@ func (h *Handler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if accessToken == "" || len(password) < 8 {
 		h.render.Render(w, "auth:reset_password", map[string]any{"Error": "Enter a password of at least 8 characters."})
+		return
+	}
+	if isCommonPassword(password) {
+		h.render.Render(w, "auth:reset_password", map[string]any{"Error": "That password is too common — please choose a stronger one."})
 		return
 	}
 	if err := h.accounts.UpdatePassword(r.Context(), accessToken, password); err != nil {
