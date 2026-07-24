@@ -44,7 +44,11 @@ func (h *Handler) SuperadminLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SuperadminDashboard(w http.ResponseWriter, r *http.Request) {
-	sites, err := h.sites.ListAllSites(r.Context())
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	sites, total, err := h.sites.ListAllSitesFiltered(r.Context(), page)
 	if err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
@@ -54,10 +58,18 @@ func (h *Handler) SuperadminDashboard(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	totalPages := (total + service.SitesPageSize - 1) / service.SitesPageSize
 	h.render.Render(w, "superadmin:dashboard", map[string]any{
-		"Sites": sites,
-		"Stats": stats,
-		"Flash": middleware.GetFlash(w, r),
+		"Sites":      sites,
+		"SiteTotal":  total,
+		"Stats":      stats,
+		"Flash":      middleware.GetFlash(w, r),
+		"Page":       page,
+		"TotalPages": totalPages,
+		"HasPrev":    page > 1,
+		"HasNext":    page < totalPages,
+		"PrevPage":   page - 1,
+		"NextPage":   page + 1,
 	})
 }
 
