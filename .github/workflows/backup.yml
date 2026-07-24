@@ -1,0 +1,32 @@
+name: Database backup
+
+# Supplemental nightly pg_dump of the Supabase Postgres database, on top of
+# Supabase's own managed backups/PITR (see docs/backups.md). Requires a
+# DATABASE_URL repo secret (the same Supabase connection string used in
+# Railway) to be added under Settings -> Secrets and variables -> Actions —
+# this workflow does nothing until that's configured.
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    if: ${{ vars.BACKUPS_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Run backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: ./scripts/backup-db.sh ./backups
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launchly-db-backup
+          path: ./backups/*.dump
+          retention-days: 30
