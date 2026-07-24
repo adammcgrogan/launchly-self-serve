@@ -18,7 +18,7 @@ func CreateLead(ctx context.Context, q querier, lead *domain.Lead) error {
 
 func ListLeadsBySite(ctx context.Context, q querier, siteID int) ([]domain.Lead, error) {
 	rows, err := q.QueryContext(ctx,
-		`SELECT id, site_id, name, email, phone, message, service_label, preferred_time, party_size, status, created_at FROM leads WHERE site_id = $1 ORDER BY created_at DESC`, siteID)
+		`SELECT id, site_id, name, email, phone, message, service_label, preferred_time, party_size, status, created_at, notify_failed FROM leads WHERE site_id = $1 ORDER BY created_at DESC`, siteID)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func ListLeadsBySite(ctx context.Context, q querier, siteID int) ([]domain.Lead,
 	var out []domain.Lead
 	for rows.Next() {
 		var l domain.Lead
-		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.PartySize, &l.Status, &l.CreatedAt); err != nil {
+		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.PartySize, &l.Status, &l.CreatedAt, &l.NotifyFailed); err != nil {
 			return nil, err
 		}
 		out = append(out, l)
@@ -66,7 +66,7 @@ func ListLeadsBySiteFiltered(ctx context.Context, q querier, siteID int, filter 
 	offsetPos := len(args)
 
 	rows, err := q.QueryContext(ctx, fmt.Sprintf(`
-		SELECT id, site_id, name, email, phone, message, service_label, preferred_time, party_size, status, created_at, COUNT(*) OVER() AS total_count
+		SELECT id, site_id, name, email, phone, message, service_label, preferred_time, party_size, status, created_at, notify_failed, COUNT(*) OVER() AS total_count
 		FROM leads %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d
@@ -80,7 +80,7 @@ func ListLeadsBySiteFiltered(ctx context.Context, q querier, siteID int, filter 
 	total := 0
 	for rows.Next() {
 		var l domain.Lead
-		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.PartySize, &l.Status, &l.CreatedAt, &total); err != nil {
+		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.PartySize, &l.Status, &l.CreatedAt, &l.NotifyFailed, &total); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, l)
@@ -115,4 +115,12 @@ func UpdateLeadStatus(ctx context.Context, q querier, siteID, leadID int, status
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+// MarkLeadNotifyFailed flags a lead whose owner-notification email failed to
+// send, so the dashboard can surface it — the lead itself was already stored
+// successfully by CreateLead before the notification send is attempted.
+func MarkLeadNotifyFailed(ctx context.Context, q querier, leadID int) error {
+	_, err := q.ExecContext(ctx, `UPDATE leads SET notify_failed = true WHERE id = $1`, leadID)
+	return err
 }

@@ -42,6 +42,7 @@ type Lead struct {
 	PartySize     string
 	Status        LeadStatus
 	CreatedAt     time.Time
+	NotifyFailed  bool
 	Notes         []LeadNote
 }
 

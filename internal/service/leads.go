@@ -107,6 +107,9 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 	if to != "" {
 		if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message, serviceLabel, preferredTime, partySize); err != nil {
 			slog.Error("send lead notification", "error", err)
+			if err := postgres.MarkLeadNotifyFailed(ctx, l.store.DB(), lead.ID); err != nil {
+				slog.Error("mark lead notify failed", "lead_id", lead.ID, "error", err)
+			}
 		}
 	}
 
