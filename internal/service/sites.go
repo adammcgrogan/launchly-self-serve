@@ -273,6 +273,23 @@ func validateReviews(r domain.SiteReviews) error {
 	return checkURL("review link", r.ReviewURL)
 }
 
+// validateBusinessHours rejects a row where OpensAt equals ClosesAt: that's
+// almost always a copy-paste mistake, not a genuine "open 24 hours" span, and
+// domain.SiteAggregate.OpenNow treats ClosesAt <= OpensAt as an overnight
+// span (e.g. 18:00-02:00), so an equal pair would otherwise be silently
+// misread as open all day and into the night.
+func validateBusinessHours(hours []domain.BusinessHours) error {
+	for _, h := range hours {
+		if h.Closed || h.OpensAt == "" || h.ClosesAt == "" {
+			continue
+		}
+		if h.OpensAt == h.ClosesAt {
+			return &ValidationError{Message: "opening and closing time can't be the same — mark the day as closed instead.", Field: "business hours"}
+		}
+	}
+	return nil
+}
+
 // Errors returned by RenameSlug — web handlers show these directly to the
 // site owner, so their text is user-facing.
 var (
@@ -375,6 +392,9 @@ const maxCreateSiteSlugAttempts = 5
 // same way — see canCreateSite.
 func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.SiteAggregate, error) {
 	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers, nil); err != nil {
+		return nil, err
+	}
+	if err := validateBusinessHours(in.BusinessHours); err != nil {
 		return nil, err
 	}
 
@@ -750,6 +770,9 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 		return err
 	}
 	if err := validateVideoURL(in.VideoURL); err != nil {
+		return err
+	}
+	if err := validateBusinessHours(in.BusinessHours); err != nil {
 		return err
 	}
 	if err := checkLen("thank-you message", in.ThankYouMessage, maxMediumField); err != nil {
