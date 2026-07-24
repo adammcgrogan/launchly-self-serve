@@ -65,6 +65,34 @@ func (c *Client) CreateCheckoutSession(plan domain.Plan, customerEmail, successU
 	return sess.ID, sess.URL, nil
 }
 
+// ChangeSubscriptionPlan swaps an existing subscription's price to the given
+// plan in place, prorating the difference — used for upgrading/downgrading a
+// site that's already paid, so the change never stacks a second Stripe
+// subscription alongside the original.
+func (c *Client) ChangeSubscriptionPlan(subscriptionID string, plan domain.Plan) error {
+	priceID, err := c.priceForPlan(plan)
+	if err != nil {
+		return err
+	}
+	sub, err := subscription.Get(subscriptionID, nil)
+	if err != nil {
+		return fmt.Errorf("get subscription: %w", err)
+	}
+	if len(sub.Items.Data) == 0 {
+		return fmt.Errorf("subscription %s has no items", subscriptionID)
+	}
+	_, err = subscription.Update(subscriptionID, &stripe.SubscriptionParams{
+		Items: []*stripe.SubscriptionItemsParams{
+			{ID: stripe.String(sub.Items.Data[0].ID), Price: stripe.String(priceID)},
+		},
+		ProrationBehavior: stripe.String("create_prorations"),
+	})
+	if err != nil {
+		return fmt.Errorf("update subscription: %w", err)
+	}
+	return nil
+}
+
 // CancelSubscription immediately cancels a Stripe subscription. If the
 // subscription no longer exists in Stripe, it is treated as already cancelled.
 func (c *Client) CancelSubscription(subscriptionID string) error {

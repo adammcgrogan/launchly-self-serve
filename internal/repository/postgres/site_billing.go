@@ -134,6 +134,15 @@ func SetSitePaid(ctx context.Context, q querier, sessionID, subscriptionID strin
 	return rows > 0, nil
 }
 
+// SetSitePlan updates the plan for a site whose existing Stripe subscription
+// was changed in place (see payment.Client.ChangeSubscriptionPlan) — there's
+// no new checkout session or webhook involved, so the plan is recorded here
+// directly once Stripe confirms the swap.
+func SetSitePlan(ctx context.Context, q querier, siteID int, plan domain.Plan) error {
+	_, err := q.ExecContext(ctx, `UPDATE site_billing SET plan = $1 WHERE site_id = $2`, plan, siteID)
+	return err
+}
+
 func SetSiteCancelled(ctx context.Context, q querier, subscriptionID string) error {
 	_, err := q.ExecContext(ctx, `UPDATE site_billing SET payment_status = 'cancelled' WHERE stripe_subscription_id = $1`, subscriptionID)
 	return err

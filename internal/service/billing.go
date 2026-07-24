@@ -26,10 +26,27 @@ func NewBilling(store *postgres.Store, pay *payment.Client, mailer *email.Client
 }
 
 // CreateUpgradeCheckout starts a Stripe Checkout session for a site's plan
-// upgrade and records it as pending.
+// upgrade and records it as pending. If the site already has an active paid
+// subscription, there's nothing to check out — the existing subscription is
+// changed in place instead, so a plan change never stacks a second Stripe
+// subscription and double-bills the customer.
 func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug string, plan domain.Plan, customerEmail string) (checkoutURL string, err error) {
 	successURL := fmt.Sprintf("%s/dashboard/sites/%s?upgraded=1", b.baseURL, slug)
 	cancelURL := fmt.Sprintf("%s/dashboard/sites/%s", b.baseURL, slug)
+
+	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)
+	if err != nil {
+		return "", fmt.Errorf("load site billing: %w", err)
+	}
+	if billing != nil && billing.PaymentStatus == domain.PaymentStatusPaid && billing.StripeSubscriptionID != "" {
+		if err := b.pay.ChangeSubscriptionPlan(billing.StripeSubscriptionID, plan); err != nil {
+			return "", fmt.Errorf("change subscription plan: %w", err)
+		}
+		if err := postgres.SetSitePlan(ctx, b.store.DB(), siteID, plan); err != nil {
+			return "", fmt.Errorf("record plan change: %w", err)
+		}
+		return successURL, nil
+	}
 
 	sessionID, checkoutURL, err := b.pay.CreateCheckoutSession(plan, customerEmail, successURL, cancelURL)
 	if err != nil {
