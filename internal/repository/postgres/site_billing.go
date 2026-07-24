@@ -154,48 +154,83 @@ func SetSiteCancelled(ctx context.Context, q querier, subscriptionID string) err
 	return err
 }
 
-// GetSiteIDsDueForTrialReminder returns site IDs whose trial is ending soon
-// and haven't yet received a reminder of the given kind ("first" = 3 days out,
-// "final" = 1 day out).
-func GetSiteIDsDueForTrialReminder(ctx context.Context, q querier, kind string) ([]int, error) {
-	var query string
+// DueTrialReminder is a site due for a trial reminder email, with every
+// field the cron sweep needs (site, billing, and the resolved notification
+// email) already joined in — see GetSitesDueForTrialReminder.
+type DueTrialReminder struct {
+	SiteID       int
+	Slug         string
+	BusinessName string
+	TrialEndsAt  time.Time
+	NotifyEmail  string
+}
+
+// GetSitesDueForTrialReminder returns sites whose trial is ending soon and
+// haven't yet received a reminder of the given kind ("first" = 3 days out,
+// "final" = 1 day out), along with each site's resolved notification email
+// (the account owner's login email, falling back to the site's public
+// contact email — mirroring notifyEmail) computed in the same query. This
+// joins in everything the cron sweep's per-site loop needs so it doesn't
+// have to follow up with a GetSiteByID/GetSiteContact/GetProfile per ID (#218).
+func GetSitesDueForTrialReminder(ctx context.Context, q querier, kind string) ([]DueTrialReminder, error) {
+	var cond string
 	switch kind {
 	case "first":
-		query = `SELECT site_id FROM site_billing
-			WHERE trial_ends_at IS NOT NULL AND payment_status NOT IN ('paid', 'cancelled')
-			  AND trial_ends_at <= now() + INTERVAL '3 days' AND trial_ends_at > now()
-			  AND trial_reminder_sent_at IS NULL`
+		cond = `sb.trial_ends_at <= now() + INTERVAL '3 days' AND sb.trial_ends_at > now()
+			  AND sb.trial_reminder_sent_at IS NULL`
 	case "final":
-		query = `SELECT site_id FROM site_billing
-			WHERE trial_ends_at IS NOT NULL AND payment_status NOT IN ('paid', 'cancelled')
-			  AND trial_ends_at <= now() + INTERVAL '1 day' AND trial_ends_at > now()
-			  AND trial_final_reminder_sent_at IS NULL`
+		cond = `sb.trial_ends_at <= now() + INTERVAL '1 day' AND sb.trial_ends_at > now()
+			  AND sb.trial_final_reminder_sent_at IS NULL`
 	default:
 		return nil, fmt.Errorf("unknown trial reminder kind: %s", kind)
 	}
-	rows, err := q.QueryContext(ctx, query)
+	rows, err := q.QueryContext(ctx, `
+		SELECT s.id, s.slug, s.business_name, sb.trial_ends_at,
+		       COALESCE(NULLIF(p.email, ''), c.email, '') AS notify_email
+		FROM site_billing sb
+		JOIN sites s ON s.id = sb.site_id
+		LEFT JOIN profiles p ON p.id = s.owner_user_id
+		LEFT JOIN site_contact c ON c.site_id = s.id
+		WHERE sb.trial_ends_at IS NOT NULL AND sb.payment_status NOT IN ('paid', 'cancelled')
+		  AND `+cond)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var ids []int
+	var due []DueTrialReminder
 	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
+		var d DueTrialReminder
+		if err := rows.Scan(&d.SiteID, &d.Slug, &d.BusinessName, &d.TrialEndsAt, &d.NotifyEmail); err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		due = append(due, d)
 	}
-	return ids, rows.Err()
+	return due, rows.Err()
 }
 
-// GetSiteIDsDueForTrialPause returns IDs of live sites whose trial ended
-// before cutoff (i.e. trial_ends_at + grace period) with no paid
-// subscription, so the trial cron can pause them.
-func GetSiteIDsDueForTrialPause(ctx context.Context, q querier, cutoff time.Time) ([]int, error) {
+// DueTrialPause is a live site whose trial has ended with no paid
+// subscription, with every field the cron sweep needs already joined in —
+// see GetSitesDueForTrialPause.
+type DueTrialPause struct {
+	SiteID       int
+	Slug         string
+	BusinessName string
+	NotifyEmail  string
+}
+
+// GetSitesDueForTrialPause returns live sites whose trial ended before
+// cutoff (i.e. trial_ends_at + grace period) with no paid subscription,
+// along with each site's resolved notification email, joined in here so the
+// trial cron doesn't need a GetSiteByID/GetSiteContact/GetProfile per ID
+// after pausing (#218).
+func GetSitesDueForTrialPause(ctx context.Context, q querier, cutoff time.Time) ([]DueTrialPause, error) {
 	rows, err := q.QueryContext(ctx, `
-		SELECT sb.site_id FROM site_billing sb
+		SELECT s.id, s.slug, s.business_name,
+		       COALESCE(NULLIF(p.email, ''), c.email, '') AS notify_email
+		FROM site_billing sb
 		JOIN sites s ON s.id = sb.site_id
+		LEFT JOIN profiles p ON p.id = s.owner_user_id
+		LEFT JOIN site_contact c ON c.site_id = s.id
 		WHERE sb.trial_ends_at IS NOT NULL
 		  AND sb.trial_ends_at < $1
 		  AND sb.payment_status != 'paid'
@@ -205,15 +240,15 @@ func GetSiteIDsDueForTrialPause(ctx context.Context, q querier, cutoff time.Time
 		return nil, err
 	}
 	defer rows.Close()
-	var ids []int
+	var due []DueTrialPause
 	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
+		var d DueTrialPause
+		if err := rows.Scan(&d.SiteID, &d.Slug, &d.BusinessName, &d.NotifyEmail); err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		due = append(due, d)
 	}
-	return ids, rows.Err()
+	return due, rows.Err()
 }
 
 func MarkTrialReminderSent(ctx context.Context, q querier, siteID int, kind string) error {

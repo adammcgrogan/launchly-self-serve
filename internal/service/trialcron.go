@@ -8,7 +8,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 )
@@ -118,53 +117,33 @@ func (c *Cron) sendDueTrialReminders() {
 		// instead of both back-to-back (#198).
 		sentThisSweep := make(map[int]bool)
 		for _, kind := range []string{"final", "first"} {
-			ids, err := postgres.GetSiteIDsDueForTrialReminder(ctx, conn, kind)
+			due, err := postgres.GetSitesDueForTrialReminder(ctx, conn, kind)
 			if err != nil {
 				slog.Error("trial cron: list sites", "kind", kind, "error", err)
 				continue
 			}
-			for _, id := range ids {
-				if sentThisSweep[id] {
-					continue
-				}
-				site, err := postgres.GetSiteByID(ctx, conn, id)
-				if err != nil || site == nil {
-					continue
-				}
-				billing, err := postgres.GetSiteBilling(ctx, conn, id)
-				if err != nil || billing == nil || billing.TrialEndsAt == nil {
-					continue
-				}
-				contact, err := postgres.GetSiteContact(ctx, conn, id)
-				if err != nil {
-					continue
-				}
-				contactEmail := ""
-				if contact != nil {
-					contactEmail = contact.Email
-				}
-				to := notifyEmail(ctx, c.store, site.OwnerUserID, contactEmail)
-				if to == "" {
+			for _, d := range due {
+				if sentThisSweep[d.SiteID] || d.NotifyEmail == "" {
 					continue
 				}
 				// Computed from trial_ends_at rather than assumed from kind, so a
 				// cron gap that lets a site become due for both "first" and
 				// "final" in the same run doesn't send a falsely optimistic
 				// days-left count (see #148).
-				daysLeft := int(math.Ceil(time.Until(*billing.TrialEndsAt).Hours() / 24))
+				daysLeft := int(math.Ceil(time.Until(d.TrialEndsAt).Hours() / 24))
 				if daysLeft < 1 {
 					daysLeft = 1
 				}
-				dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, site.Slug)
-				if err := c.mailer.SendTrialWarning(to, site.BusinessName, dashboardURL, daysLeft); err != nil {
-					slog.Error("trial cron: send reminder", "slug", site.Slug, "kind", kind, "error", err)
+				dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, d.Slug)
+				if err := c.mailer.SendTrialWarning(d.NotifyEmail, d.BusinessName, dashboardURL, daysLeft); err != nil {
+					slog.Error("trial cron: send reminder", "slug", d.Slug, "kind", kind, "error", err)
 					continue
 				}
-				if err := postgres.MarkTrialReminderSent(ctx, conn, id, kind); err != nil {
-					slog.Error("trial cron: mark sent", "slug", site.Slug, "kind", kind, "error", err)
+				if err := postgres.MarkTrialReminderSent(ctx, conn, d.SiteID, kind); err != nil {
+					slog.Error("trial cron: mark sent", "slug", d.Slug, "kind", kind, "error", err)
 				} else {
-					slog.Info("trial reminder sent", "slug", site.Slug, "kind", kind)
-					sentThisSweep[id] = true
+					slog.Info("trial reminder sent", "slug", d.Slug, "kind", kind)
+					sentThisSweep[d.SiteID] = true
 				}
 			}
 		}
@@ -179,37 +158,30 @@ func (c *Cron) pauseDueSites() {
 	ctx := context.Background()
 	c.withAdvisoryLock(ctx, advisoryLockTrialCron, func(conn *sql.Conn) {
 		cutoff := time.Now().UTC().Add(-trialGracePeriod)
-		ids, err := postgres.GetSiteIDsDueForTrialPause(ctx, conn, cutoff)
+		due, err := postgres.GetSitesDueForTrialPause(ctx, conn, cutoff)
 		if err != nil {
 			slog.Error("trial cron: list sites due for pause", "error", err)
 			return
 		}
-		for _, id := range ids {
-			site, err := postgres.GetSiteByID(ctx, conn, id)
-			if err != nil || site == nil {
+		if len(due) == 0 {
+			return
+		}
+		ids := make([]int, len(due))
+		for i, d := range due {
+			ids[i] = d.SiteID
+		}
+		if err := postgres.SetSitesPaused(ctx, conn, ids); err != nil {
+			slog.Error("trial cron: pause sites", "error", err)
+			return
+		}
+		for _, d := range due {
+			slog.Info("trial site paused", "slug", d.Slug)
+			if d.NotifyEmail == "" {
 				continue
 			}
-			if err := postgres.SetSiteStatus(ctx, conn, id, domain.SiteStatusPaused); err != nil {
-				slog.Error("trial cron: pause site", "slug", site.Slug, "error", err)
-				continue
-			}
-			slog.Info("trial site paused", "slug", site.Slug)
-
-			contact, err := postgres.GetSiteContact(ctx, conn, id)
-			if err != nil {
-				continue
-			}
-			contactEmail := ""
-			if contact != nil {
-				contactEmail = contact.Email
-			}
-			to := notifyEmail(ctx, c.store, site.OwnerUserID, contactEmail)
-			if to == "" {
-				continue
-			}
-			dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, site.Slug)
-			if err := c.mailer.SendSitePaused(to, site.BusinessName, dashboardURL); err != nil {
-				slog.Error("trial cron: send paused email", "slug", site.Slug, "error", err)
+			dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, d.Slug)
+			if err := c.mailer.SendSitePaused(d.NotifyEmail, d.BusinessName, dashboardURL); err != nil {
+				slog.Error("trial cron: send paused email", "slug", d.Slug, "error", err)
 			}
 		}
 	})
@@ -234,21 +206,27 @@ func (c *Cron) pruneOldRecords() {
 func (c *Cron) sendDueAnalyticsDigests() {
 	ctx := context.Background()
 	c.withAdvisoryLock(ctx, advisoryLockAnalyticsCron, func(conn *sql.Conn) {
-		ids, err := postgres.GetSiteIDsDueForAnalytics(ctx, conn)
+		due, err := postgres.GetSitesDueForAnalytics(ctx, conn)
 		if err != nil {
 			slog.Error("analytics cron: list sites", "error", err)
 			return
 		}
-		for _, id := range ids {
-			if err := c.SendAnalyticsReport(ctx, id); err != nil {
-				slog.Error("analytics cron: send report", "site_id", id, "error", err)
+		for _, d := range due {
+			if d.NotifyEmail == "" {
+				slog.Error("analytics cron: send report", "site_id", d.SiteID, "error", "no notification email on file")
+				continue
+			}
+			if err := c.sendAnalyticsReport(ctx, d.SiteID, d.Slug, d.BusinessName, d.Timezone, d.NotifyEmail); err != nil {
+				slog.Error("analytics cron: send report", "site_id", d.SiteID, "error", err)
 			}
 		}
 	})
 }
 
 // SendAnalyticsReport builds stats and emails the analytics digest for a
-// site. Used by both the cron ticker and the dashboard's "send now" action.
+// site. Used by the dashboard's "send now" action, which only ever targets
+// one site at a time, so it looks up the site/contact/owner email itself
+// rather than going through the cron sweep's batched query.
 func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 	site, err := postgres.GetSiteByID(ctx, c.store.DB(), siteID)
 	if err != nil || site == nil {
@@ -266,13 +244,21 @@ func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 	if to == "" {
 		return fmt.Errorf("no notification email on file for site %d", siteID)
 	}
+	return c.sendAnalyticsReport(ctx, siteID, site.Slug, site.BusinessName, site.Timezone, to)
+}
+
+// sendAnalyticsReport is the shared core of SendAnalyticsReport: given a
+// site's identifying fields and resolved notification email (either looked
+// up fresh, or already joined in by the cron sweep's batched query — see
+// GetSitesDueForAnalytics, #218), it computes stats and sends the digest.
+func (c *Cron) sendAnalyticsReport(ctx context.Context, siteID int, slug, businessName, timezone, to string) error {
 	since := time.Now().UTC().Add(-30 * 24 * time.Hour)
-	stats, err := c.analytics.GetSiteStats(ctx, siteID, since, site.Timezone)
+	stats, err := c.analytics.GetSiteStats(ctx, siteID, since, timezone)
 	if err != nil {
 		return fmt.Errorf("get stats: %w", err)
 	}
-	siteURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, site.Slug)
-	if err := c.mailer.SendAnalyticsDigest(to, site.BusinessName, stats, siteURL); err != nil {
+	siteURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, slug)
+	if err := c.mailer.SendAnalyticsDigest(to, businessName, stats, siteURL); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}
 	return postgres.UpdateAnalyticsLastSent(ctx, c.store.DB(), siteID)
