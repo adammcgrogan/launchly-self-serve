@@ -36,7 +36,7 @@ func chdirToRepoRoot(t *testing.T) {
 func TestSiteBadgeHiddenForProShownForStarter(t *testing.T) {
 	chdirToRepoRoot(t)
 
-	r := NewRenderer()
+	r := NewRenderer("launchly.ltd")
 	if err := r.LoadAll(siteTemplates); err != nil {
 		t.Fatalf("LoadAll: %v", err)
 	}
