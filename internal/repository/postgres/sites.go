@@ -117,6 +117,20 @@ func CountSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) (int, 
 	return n, err
 }
 
+// LockOwnerForSiteCreate takes a Postgres transaction-scoped advisory lock
+// keyed on ownerID, serializing concurrent CreateSite calls for the same
+// account. It must be called on the *sql.Tx that will also perform the cap
+// check and insert (the lock auto-releases on commit/rollback) — this closes
+// the race where two concurrent creates both read the pre-insert site count
+// as 0 and both pass service.Sites.canCreateSite (see #214). hashtext folds
+// the uuid down to the int4 pg_advisory_xact_lock expects; a same-owner hash
+// collision only ever over-serializes (blocks an unrelated create briefly),
+// never under-serializes, so it's safe to use as the lock key.
+func LockOwnerForSiteCreate(ctx context.Context, q querier, ownerID uuid.UUID) error {
+	_, err := q.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, ownerID.String())
+	return err
+}
+
 func ListSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) ([]domain.Site, error) {
 	rows, err := q.QueryContext(ctx, `SELECT `+siteColumns+` FROM sites WHERE owner_user_id = $1 ORDER BY created_at DESC`, ownerID)
 	if err != nil {

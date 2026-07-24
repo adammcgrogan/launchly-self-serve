@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -369,18 +370,12 @@ const maxCreateSiteSlugAttempts = 5
 // insert transaction, so two concurrent creates for the same business name
 // can both pick the same slug; if the insert then loses that race on the
 // slug's unique constraint, we regenerate and retry rather than surfacing a
-// 500.
+// 500. The per-account site cap, by contrast, is enforced inside
+// createSiteTx itself (behind an advisory lock), so it can't be raced the
+// same way — see canCreateSite.
 func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.SiteAggregate, error) {
 	if err := validateSiteContent(in.BusinessName, in.Tagline, in.About, in.LogoURL, in.CTAText, in.Contact, in.SocialLinks, in.Services, in.Certifications, in.Testimonials, in.GalleryImages, in.FAQItems, in.StaffMembers, nil); err != nil {
 		return nil, err
-	}
-
-	allowed, err := s.canCreateSite(ctx, in.OwnerUserID)
-	if err != nil {
-		return nil, fmt.Errorf("check site limit: %w", err)
-	}
-	if !allowed {
-		return nil, ErrSiteLimitReached
 	}
 
 	var siteID int
@@ -394,6 +389,9 @@ func (s *Sites) CreateSite(ctx context.Context, in CreateSiteInput) (*domain.Sit
 		if err == nil {
 			slog.Info("site created", "site_id", siteID, "owner_id", in.OwnerUserID, "slug", slug)
 			break
+		}
+		if errors.Is(err, ErrSiteLimitReached) {
+			return nil, err
 		}
 		if !isUniqueSlugViolation(err) || attempt >= maxCreateSiteSlugAttempts {
 			return nil, err
@@ -420,6 +418,21 @@ func (s *Sites) createSiteTx(ctx context.Context, in CreateSiteInput, slug strin
 		return 0, err
 	}
 	defer tx.Rollback()
+
+	// Take an advisory lock scoped to this owner before checking the cap, so
+	// a second concurrent CreateSite for the same account blocks here until
+	// the first transaction commits or rolls back, instead of both reading
+	// the pre-insert site count and both passing the check (#214).
+	if err := postgres.LockOwnerForSiteCreate(ctx, tx, in.OwnerUserID); err != nil {
+		return 0, fmt.Errorf("lock owner: %w", err)
+	}
+	allowed, err := s.canCreateSite(ctx, tx, in.OwnerUserID)
+	if err != nil {
+		return 0, fmt.Errorf("check site limit: %w", err)
+	}
+	if !allowed {
+		return 0, ErrSiteLimitReached
+	}
 
 	site := &domain.Site{
 		OwnerUserID:  in.OwnerUserID,
@@ -482,16 +495,19 @@ func (s *Sites) createSiteTx(ctx context.Context, in CreateSiteInput, slug strin
 
 // canCreateSite enforces the per-account site cap: an account with no
 // Pro-plan site is limited to 1 site total; having Pro on any existing site
-// lifts the cap, since plan is tracked per site rather than per account.
-func (s *Sites) canCreateSite(ctx context.Context, ownerID uuid.UUID) (bool, error) {
-	count, err := postgres.CountSitesByOwner(ctx, s.store.DB(), ownerID)
+// lifts the cap, since plan is tracked per site rather than per account. tx
+// must be the same transaction createSiteTx will insert on, and the caller
+// must have already taken LockOwnerForSiteCreate on it — otherwise this
+// count-then-check is racy across concurrent CreateSite calls (#214).
+func (s *Sites) canCreateSite(ctx context.Context, tx *sql.Tx, ownerID uuid.UUID) (bool, error) {
+	count, err := postgres.CountSitesByOwner(ctx, tx, ownerID)
 	if err != nil {
 		return false, err
 	}
 	if count == 0 {
 		return true, nil
 	}
-	return postgres.OwnerHasProSite(ctx, s.store.DB(), ownerID)
+	return postgres.OwnerHasProSite(ctx, tx, ownerID)
 }
 
 func (s *Sites) uniqueSlug(ctx context.Context, businessName string) (string, error) {
