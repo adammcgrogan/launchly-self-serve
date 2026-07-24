@@ -61,7 +61,8 @@ func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, 
 	h.renderSite(w, r, site, formAction)
 }
 
-// renderSite renders an already-resolved site (by slug or custom domain).
+// renderSite renders an already-resolved site (by slug or custom domain) for
+// public, unauthenticated traffic — draft/paused sites are never shown here.
 func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, formAction string) {
 	if site.Status == domain.SiteStatusPaused {
 		h.render.Render(w, "paused", map[string]any{"BusinessName": site.BusinessName})
@@ -72,14 +73,32 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		return
 	}
 	go h.recordPageView(r, site.ID, site.OwnerUserID)
+	h.renderSiteTemplate(w, site, formAction, r.URL.Query().Get("lead") == "1", false)
+}
 
+// PreviewSite renders the real public template for a site regardless of its
+// status (draft/paused/live) — reachable only via
+// /dashboard/sites/{slug}/preview, gated by RequireSiteOwner (owner or
+// accepted team member). This is the only path that shows an unpublished
+// site's actual content; the public routes above still 404/show the paused
+// page for anyone else.
+func (h *Handler) PreviewSite(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	h.renderSiteTemplate(w, site, "/dashboard/sites/"+site.Slug+"/preview", false, true)
+}
+
+// renderSiteTemplate renders the site's template with the standard page
+// data. No page view is recorded here — callers that serve real public
+// traffic (renderSite) record it themselves; PreviewSite never should, since
+// every visitor there is already the owner or a team member.
+func (h *Handler) renderSiteTemplate(w http.ResponseWriter, site *domain.SiteAggregate, formAction string, leadSent, preview bool) {
 	open, openLabel := site.OpenNow()
 
 	tmplKey := "site:" + site.TemplateID
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	h.render.Render(w, tmplKey, map[string]any{
 		"Site":        site,
-		"LeadSent":    r.URL.Query().Get("lead") == "1",
+		"LeadSent":    leadSent,
 		"FormAction":  formAction,
 		"EventAction": strings.TrimSuffix(formAction, "/contact") + "/e",
 		"Socials":     socialLinksMap(site.SocialLinks),
@@ -87,6 +106,7 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		"OpenLabel":   openLabel,
 		"JSONLD":      localBusinessJSONLD(site, h.siteURL(site.Slug)),
 		"FAQJSONLD":   faqPageJSONLD(site),
+		"Preview":     preview,
 	})
 }
 
