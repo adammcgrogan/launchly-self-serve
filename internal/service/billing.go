@@ -12,13 +12,24 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 )
 
+// billingMailer is the subset of email.Client's methods billing.go calls.
+// Depending on this narrow interface (rather than *email.Client directly)
+// lets tests substitute a fake mailer that records calls instead of hitting
+// Resend over the network.
+type billingMailer interface {
+	SendPaymentConfirmation(to, businessName string, plan domain.Plan) error
+	SendCancellationConfirmation(to, businessName string) error
+	SendPaymentFailed(to, businessName string) error
+	SendAdminAlert(to, subject, message string) error
+}
+
 // Billing handles self-serve plan upgrades: the customer starts checkout
 // from their dashboard, Stripe's webhook confirms payment — there is no
 // admin-sent payment link anywhere in this flow.
 type Billing struct {
 	store   *postgres.Store
 	pay     *payment.Client
-	mailer  *email.Client
+	mailer  billingMailer
 	baseURL string
 }
 

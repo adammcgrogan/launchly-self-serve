@@ -43,6 +43,13 @@ type Store struct {
 // non-transactional repository calls.
 func (s *Store) DB() *sql.DB { return s.db }
 
+// NewWithDB wraps an already-open *sql.DB in a Store, skipping the dial/ping
+// New performs. It exists for tests that need to inject a mock database
+// connection (e.g. sqlmock) without a real Postgres instance.
+func NewWithDB(db *sql.DB) *Store {
+	return &Store{db: db}
+}
+
 // BeginTx starts a transaction for multi-table writes.
 func (s *Store) BeginTx(ctx context.Context) (*sql.Tx, error) {
 	return s.db.BeginTx(ctx, nil)
