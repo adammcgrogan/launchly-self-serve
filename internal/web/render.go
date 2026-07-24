@@ -100,7 +100,7 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 	}
 
 	superBase := "web/templates/superadmin/base.html"
-	for _, p := range []string{"login", "dashboard", "site"} {
+	for _, p := range []string{"login", "dashboard", "site", "audit"} {
 		if err := rd.parse("superadmin:"+p, superBase, "web/templates/superadmin/"+p+".html"); err != nil {
 			return err
 		}

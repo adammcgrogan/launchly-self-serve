@@ -102,11 +102,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/{slug}/upgrade", ownerOnly(h.UpgradeCheckout))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/cancel-subscription", ownerOnly(h.CancelSubscription))
 
-	// Superadmin — shared-password session, separate from customer auth.
+	// Superadmin — per-admin accounts + audit log (see #94), separate from customer auth.
 	mux.HandleFunc("GET /superadmin/login", h.SuperadminLoginForm)
 	mux.HandleFunc("POST /superadmin/login", h.SuperadminLoginSubmit)
 	mux.HandleFunc("GET /superadmin/logout", h.SuperadminLogout)
 	mux.HandleFunc("GET /superadmin", h.superadmin.RequireSuperadmin(h.SuperadminDashboard))
+	mux.HandleFunc("GET /superadmin/audit", h.superadmin.RequireSuperadmin(h.SuperadminAuditLog))
 	mux.HandleFunc("GET /superadmin/sites/{id}", h.superadmin.RequireSuperadmin(h.SuperadminSiteView))
 	mux.HandleFunc("POST /superadmin/sites/{id}/edit", h.superadmin.RequireSuperadmin(h.SuperadminEditSubmit))
 	mux.HandleFunc("POST /superadmin/sites/{id}/unpublish", h.superadmin.RequireSuperadmin(h.SuperadminUnpublish))

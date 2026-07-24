@@ -10,9 +10,12 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
-// Superadmin is a cross-account view for Adam — nothing here is on the path
-// a customer's site or payment depends on. It's gated by a single shared
-// password (an env var), entirely separate from customer Supabase accounts.
+// Superadmin is a cross-account view for Adam and any other admins granted
+// their own account — nothing here is on the path a customer's site or
+// payment depends on. It's gated by per-admin accounts (email + bcrypt
+// password hash in superadmin_admins, see #94), entirely separate from
+// customer Supabase accounts. Every login and destructive action is
+// recorded in the superadmin_audit_log table via h.superadminSvc.LogAction.
 
 func (h *Handler) SuperadminLoginForm(w http.ResponseWriter, r *http.Request) {
 	if h.superadmin.IsAuthenticated(r) {
@@ -27,11 +30,13 @@ func (h *Handler) SuperadminLoginSubmit(w http.ResponseWriter, r *http.Request) 
 		h.render.Render(w, "superadmin:login", map[string]any{"Error": "Too many attempts. Please wait a moment and try again."})
 		return
 	}
-	if !h.superadmin.CheckPassword(r.FormValue("password")) {
-		h.render.Render(w, "superadmin:login", map[string]any{"Error": "Incorrect password.", "Next": r.FormValue("next")})
+	email := r.FormValue("email")
+	if err := h.superadminSvc.Authenticate(r.Context(), email, r.FormValue("password")); err != nil {
+		h.render.Render(w, "superadmin:login", map[string]any{"Error": "Incorrect email or password.", "Next": r.FormValue("next"), "Email": email})
 		return
 	}
-	h.superadmin.SetSession(w)
+	h.superadmin.SetSession(w, email)
+	h.superadminSvc.LogAction(r.Context(), email, "login", nil, "")
 	http.Redirect(w, r, safeSuperadminNext(r.FormValue("next")), http.StatusSeeOther)
 }
 
@@ -146,6 +151,7 @@ func (h *Handler) SuperadminEditSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.superadminSvc.LogAction(r.Context(), h.superadmin.CurrentAdmin(r), "edit_content", &id, "")
 	middleware.SetFlash(w, "Changes saved.")
 	http.Redirect(w, r, "/superadmin/sites/"+strconv.Itoa(id), http.StatusSeeOther)
 }
@@ -166,6 +172,7 @@ func (h *Handler) SuperadminUnpublish(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	h.superadminSvc.LogAction(r.Context(), h.superadmin.CurrentAdmin(r), "unpublish", &id, "")
 	middleware.SetFlash(w, "Site unpublished.")
 	http.Redirect(w, r, "/superadmin/sites/"+strconv.Itoa(id), http.StatusSeeOther)
 }
@@ -183,6 +190,31 @@ func (h *Handler) SuperadminDelete(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	h.superadminSvc.LogAction(r.Context(), h.superadmin.CurrentAdmin(r), "delete", &id, "")
 	middleware.SetFlash(w, "Site deleted.")
 	http.Redirect(w, r, "/superadmin", http.StatusSeeOther)
+}
+
+// SuperadminAuditLog shows the audit trail of superadmin logins and
+// destructive actions (unpublish/delete/edit) — who did what, when.
+func (h *Handler) SuperadminAuditLog(w http.ResponseWriter, r *http.Request) {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	entries, total, err := h.superadminSvc.ListAuditLog(r.Context(), page)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	totalPages := (total + service.SuperadminAuditLogPageSize - 1) / service.SuperadminAuditLogPageSize
+	h.render.Render(w, "superadmin:audit", map[string]any{
+		"Entries":    entries,
+		"Page":       page,
+		"TotalPages": totalPages,
+		"HasPrev":    page > 1,
+		"HasNext":    page < totalPages,
+		"PrevPage":   page - 1,
+		"NextPage":   page + 1,
+	})
 }
