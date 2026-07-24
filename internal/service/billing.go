@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
@@ -42,7 +43,7 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug st
 		if err := b.pay.ChangeSubscriptionPlan(billing.StripeSubscriptionID, plan); err != nil {
 			return "", fmt.Errorf("change subscription plan: %w", err)
 		}
-		if err := postgres.SetSitePlan(ctx, b.store.DB(), siteID, plan); err != nil {
+		if err := b.setSitePlanAfterStripeChange(ctx, siteID, plan, billing.StripeSubscriptionID); err != nil {
 			return "", fmt.Errorf("record plan change: %w", err)
 		}
 		return successURL, nil
@@ -56,6 +57,33 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug st
 		return "", fmt.Errorf("record pending payment: %w", err)
 	}
 	return checkoutURL, nil
+}
+
+// setSitePlanAfterStripeChange persists a plan change once Stripe has already
+// committed it — that commit can't be cleanly undone, so a transient DB
+// failure here would otherwise leave site_billing.plan silently out of sync
+// with what the customer is actually being billed. A few retries absorb
+// transient errors; if it still fails, this alerts at error level with
+// enough detail (site, subscription, target plan) for manual reconciliation.
+func (b *Billing) setSitePlanAfterStripeChange(ctx context.Context, siteID int, plan domain.Plan, subscriptionID string) error {
+	const maxAttempts = 3
+	var err error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if err = postgres.SetSitePlan(ctx, b.store.DB(), siteID, plan); err == nil {
+			return nil
+		}
+		if attempt < maxAttempts {
+			time.Sleep(time.Duration(attempt) * 200 * time.Millisecond)
+		}
+	}
+	slog.Error("stripe/db plan desync: subscription updated but db write failed after retries",
+		"site_id", siteID, "subscription_id", subscriptionID, "target_plan", plan, "error", err)
+	b.mailer.SendAdminAlert(
+		"hello@launchly.ltd",
+		"Stripe/DB plan desync needs manual reconciliation",
+		fmt.Sprintf("Site <strong>%d</strong> subscription <strong>%s</strong> was changed to <strong>%s</strong> in Stripe, but the local plan record failed to update after %d attempts: %v. site_billing.plan is now out of sync with Stripe and needs manual correction.", siteID, subscriptionID, plan, maxAttempts, err),
+	)
+	return err
 }
 
 // ParseWebhook verifies the Stripe webhook signature and returns a parsed
