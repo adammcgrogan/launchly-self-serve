@@ -16,3 +16,6 @@ CLAUDE.md
 
 # old repo kept on disk for reference only — not part of this project's history
 /reference-old-launchly/
+
+# local pg_dump output from scripts/backup-db.sh
+/backups/
