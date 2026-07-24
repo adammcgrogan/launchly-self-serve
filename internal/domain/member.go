@@ -31,5 +31,12 @@ type SiteMember struct {
 	Status      SiteMemberStatus
 	InviteToken string
 	InvitedAt   time.Time
+	ExpiresAt   time.Time
 	AcceptedAt  *time.Time
+}
+
+// Expired reports whether a pending invite's token is past its expiry
+// window. Accepted invites never expire.
+func (m *SiteMember) Expired() bool {
+	return m.Status == SiteMemberStatusPending && time.Now().After(m.ExpiresAt)
 }

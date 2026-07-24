@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-const siteMemberColumns = `id, site_id, user_id, email, role, status, invite_token, invited_at, accepted_at`
+const siteMemberColumns = `id, site_id, user_id, email, role, status, invite_token, invited_at, expires_at, accepted_at`
 
 func scanSiteMember(row *sql.Row) (*domain.SiteMember, error) {
 	var m domain.SiteMember
 	var userID uuid.NullUUID
-	err := row.Scan(&m.ID, &m.SiteID, &userID, &m.Email, &m.Role, &m.Status, &m.InviteToken, &m.InvitedAt, &m.AcceptedAt)
+	err := row.Scan(&m.ID, &m.SiteID, &userID, &m.Email, &m.Role, &m.Status, &m.InviteToken, &m.InvitedAt, &m.ExpiresAt, &m.AcceptedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -29,7 +29,7 @@ func scanSiteMember(row *sql.Row) (*domain.SiteMember, error) {
 func scanSiteMemberRows(rows *sql.Rows) (*domain.SiteMember, error) {
 	var m domain.SiteMember
 	var userID uuid.NullUUID
-	err := rows.Scan(&m.ID, &m.SiteID, &userID, &m.Email, &m.Role, &m.Status, &m.InviteToken, &m.InvitedAt, &m.AcceptedAt)
+	err := rows.Scan(&m.ID, &m.SiteID, &userID, &m.Email, &m.Role, &m.Status, &m.InviteToken, &m.InvitedAt, &m.ExpiresAt, &m.AcceptedAt)
 	if err != nil {
 		return nil, err
 	}

@@ -72,7 +72,7 @@ func (h *Handler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AcceptInviteForm(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	invite, err := h.members.GetByToken(r.Context(), token)
-	if err != nil || invite == nil {
+	if err != nil || invite == nil || invite.Expired() {
 		h.render.Render(w, "dashboard:accept_invite", map[string]any{
 			"Error": "That invite link is invalid or has expired.",
 		})

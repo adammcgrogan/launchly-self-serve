@@ -96,6 +96,9 @@ func (m *Members) Accept(ctx context.Context, token string, userID uuid.UUID, us
 		}
 		return nil, ErrInviteNotFound
 	}
+	if invite.Expired() {
+		return nil, ErrInviteNotFound
+	}
 	if !strings.EqualFold(invite.Email, userEmail) {
 		return nil, ErrInviteEmailMismatch
 	}
