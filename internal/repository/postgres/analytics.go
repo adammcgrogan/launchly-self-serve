@@ -22,6 +22,20 @@ func RecordSiteEvent(ctx context.Context, q querier, e *domain.SiteEvent) error 
 	return err
 }
 
+// PruneOldPageViews deletes page_views rows older than before, so the table
+// doesn't grow forever now that the dashboard's analytics window is bounded.
+func PruneOldPageViews(ctx context.Context, q querier, before time.Time) error {
+	_, err := q.ExecContext(ctx, `DELETE FROM page_views WHERE created_at < $1`, before)
+	return err
+}
+
+// PruneOldSiteEvents deletes site_events rows older than before, matching
+// PruneOldPageViews' retention window.
+func PruneOldSiteEvents(ctx context.Context, q querier, before time.Time) error {
+	_, err := q.ExecContext(ctx, `DELETE FROM site_events WHERE created_at < $1`, before)
+	return err
+}
+
 // GetSiteStats runs every aggregate (totals, top referrers, daily views,
 // event-kind counts) as a single round trip via CTEs + json_agg, rather
 // than five separate queries — this is called twice per dashboard render

@@ -18,6 +18,16 @@ import (
 // trial_ends_at) so a future policy change only needs to touch this line.
 const trialGracePeriod = 0 * time.Hour
 
+// analyticsRetention bounds page_views/site_events — matches the dashboard's
+// longest analytics period (see analyticsPeriods' "Max" option in
+// internal/web/dashboard.go), so pruning past it never changes what the
+// dashboard or digest can show.
+const analyticsRetention = 180 * 24 * time.Hour
+
+// stripeEventRetention bounds stripe_events, which only exist to dedupe
+// webhook retries — kept well past Stripe's few-day retry window.
+const stripeEventRetention = 30 * 24 * time.Hour
+
 // Cron runs background reminders: trial-ending emails and scheduled
 // analytics digests. Trial reminders link straight to the dashboard upgrade
 // button — there is no admin-sent payment link to wait on.
@@ -37,6 +47,7 @@ func (c *Cron) Start() {
 	go c.runEvery(time.Hour, c.sendDueTrialReminders)
 	go c.runEvery(time.Hour, c.pauseDueSites)
 	go c.runEvery(time.Hour, c.sendDueAnalyticsDigests)
+	go c.runEvery(24*time.Hour, c.pruneOldRecords)
 }
 
 func (c *Cron) runEvery(interval time.Duration, fn func()) {
@@ -137,6 +148,22 @@ func (c *Cron) pauseDueSites() {
 		if err := c.mailer.SendSitePaused(to, site.BusinessName, dashboardURL); err != nil {
 			slog.Error("trial cron: send paused email", "slug", site.Slug, "error", err)
 		}
+	}
+}
+
+// pruneOldRecords deletes rows past their retention window from the
+// high-volume tables that are never pruned otherwise — nothing else bounds
+// their growth.
+func (c *Cron) pruneOldRecords() {
+	ctx := context.Background()
+	if err := postgres.PruneOldPageViews(ctx, c.store.DB(), time.Now().UTC().Add(-analyticsRetention)); err != nil {
+		slog.Error("prune cron: page_views", "error", err)
+	}
+	if err := postgres.PruneOldSiteEvents(ctx, c.store.DB(), time.Now().UTC().Add(-analyticsRetention)); err != nil {
+		slog.Error("prune cron: site_events", "error", err)
+	}
+	if err := postgres.PruneOldStripeEvents(ctx, c.store.DB(), time.Now().UTC().Add(-stripeEventRetention)); err != nil {
+		slog.Error("prune cron: stripe_events", "error", err)
 	}
 }
 

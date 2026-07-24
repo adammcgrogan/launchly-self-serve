@@ -276,17 +276,24 @@ const (
 )
 
 // analyticsPeriodOpt is one option in the analytics card's period toggle.
-// Days is 0 for "all time" (since the site was created, no daily chart).
+// Days is 0 for the "max" option (since the site was created, capped at
+// maxAnalyticsPeriodDays, no daily chart).
 type analyticsPeriodOpt struct {
 	Key   string
 	Label string
 	Days  int
 }
 
+// maxAnalyticsPeriodDays caps the "max" period's lookback at the retention
+// window page_views/site_events are pruned to (see analyticsRetention in
+// internal/service/trialcron.go) — since() must never reach further back
+// than what the pruned tables can actually still show.
+const maxAnalyticsPeriodDays = 180
+
 var analyticsPeriods = []analyticsPeriodOpt{
 	{Key: "7", Label: "7 days", Days: 7},
 	{Key: "30", Label: "30 days", Days: 30},
-	{Key: "all", Label: "All time", Days: 0},
+	{Key: "all", Label: "Max (180 days)", Days: 0},
 }
 
 func analyticsPeriodFromKey(key string) analyticsPeriodOpt {
@@ -300,7 +307,11 @@ func analyticsPeriodFromKey(key string) analyticsPeriodOpt {
 
 func (p analyticsPeriodOpt) since(siteCreatedAt time.Time) time.Time {
 	if p.Days == 0 {
-		return siteCreatedAt
+		cutoff := time.Now().UTC().Add(-maxAnalyticsPeriodDays * 24 * time.Hour)
+		if siteCreatedAt.After(cutoff) {
+			return siteCreatedAt
+		}
+		return cutoff
 	}
 	return time.Now().UTC().Add(-time.Duration(p.Days) * 24 * time.Hour)
 }

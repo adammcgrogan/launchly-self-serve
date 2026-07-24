@@ -239,3 +239,11 @@ func MarkStripeEventProcessed(ctx context.Context, q querier, eventID string) (b
 	rows, _ := res.RowsAffected()
 	return rows > 0, nil
 }
+
+// PruneOldStripeEvents deletes stripe_events rows older than before. These
+// only exist to dedupe webhook retries, so they can be dropped well before
+// Stripe's retry window (a few days) ever needs them.
+func PruneOldStripeEvents(ctx context.Context, q querier, before time.Time) error {
+	_, err := q.ExecContext(ctx, `DELETE FROM stripe_events WHERE processed_at < $1`, before)
+	return err
+}
