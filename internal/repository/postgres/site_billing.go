@@ -110,10 +110,16 @@ func GetSiteBillingBySubscriptionID(ctx context.Context, q querier, subscription
 	return b, nil
 }
 
-// SetSitePending records that a Stripe Checkout session was created for a site's upgrade.
+// SetSitePending records that a Stripe Checkout session was created for a
+// site's upgrade. It refuses to touch a row that's already 'paid' — an
+// abandoned checkout must not clobber a settled, paying customer's billing
+// state (see CreateUpgradeCheckout, which routes already-paid sites through
+// ChangeSubscriptionPlan instead of a new checkout session in the first
+// place, but this guard holds regardless of caller).
 func SetSitePending(ctx context.Context, q querier, siteID int, plan domain.Plan, sessionID string) error {
 	_, err := q.ExecContext(ctx,
-		`UPDATE site_billing SET payment_status = 'pending', plan = $1, stripe_session_id = $2 WHERE site_id = $3`,
+		`UPDATE site_billing SET payment_status = 'pending', plan = $1, stripe_session_id = $2
+		 WHERE site_id = $3 AND payment_status != 'paid'`,
 		plan, sessionID, siteID)
 	return err
 }
