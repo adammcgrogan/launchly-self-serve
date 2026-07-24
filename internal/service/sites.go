@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -26,10 +27,49 @@ type Sites struct {
 	billing *Billing
 	cf      DomainRegistrar
 	uploads *Uploads
+
+	aggCacheMu sync.RWMutex
+	aggCache   map[int]cachedAggregate
+}
+
+// siteAggregateCacheTTL bounds how stale a cached SiteAggregate can be. It's
+// short enough that an unexpected miss on invalidation (e.g. a billing
+// webhook updating SiteBilling outside the Sites service) self-heals within
+// seconds, while still absorbing crawler/burst traffic on the public site
+// render path (see #215).
+const siteAggregateCacheTTL = 15 * time.Second
+
+type cachedAggregate struct {
+	agg     *domain.SiteAggregate
+	expires time.Time
 }
 
 func NewSites(store *postgres.Store, billing *Billing, cf DomainRegistrar, uploads *Uploads) *Sites {
-	return &Sites{store: store, billing: billing, cf: cf, uploads: uploads}
+	return &Sites{store: store, billing: billing, cf: cf, uploads: uploads, aggCache: make(map[int]cachedAggregate)}
+}
+
+func (s *Sites) cachedAggregate(id int) (*domain.SiteAggregate, bool) {
+	s.aggCacheMu.RLock()
+	defer s.aggCacheMu.RUnlock()
+	entry, ok := s.aggCache[id]
+	if !ok || time.Now().After(entry.expires) {
+		return nil, false
+	}
+	return entry.agg, true
+}
+
+func (s *Sites) cacheAggregate(id int, agg *domain.SiteAggregate) {
+	s.aggCacheMu.Lock()
+	defer s.aggCacheMu.Unlock()
+	s.aggCache[id] = cachedAggregate{agg: agg, expires: time.Now().Add(siteAggregateCacheTTL)}
+}
+
+// invalidateAggregate drops a site's cached aggregate so the next render
+// picks up an edit/publish immediately instead of waiting out the TTL.
+func (s *Sites) invalidateAggregate(id int) {
+	s.aggCacheMu.Lock()
+	defer s.aggCacheMu.Unlock()
+	delete(s.aggCache, id)
 }
 
 var (
@@ -476,8 +516,24 @@ func (s *Sites) uniqueSlug(ctx context.Context, businessName string) (string, er
 	}
 }
 
-// GetSiteAggregate loads a site and everything related to it.
+// GetSiteAggregate loads a site and everything related to it, serving from
+// a short-lived in-memory cache when available to spare the public site
+// render path its 16-query fan-out on every hit (see #215).
 func (s *Sites) GetSiteAggregate(ctx context.Context, id int) (*domain.SiteAggregate, error) {
+	if agg, ok := s.cachedAggregate(id); ok {
+		return agg, nil
+	}
+	agg, err := s.loadSiteAggregate(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if agg != nil {
+		s.cacheAggregate(id, agg)
+	}
+	return agg, nil
+}
+
+func (s *Sites) loadSiteAggregate(ctx context.Context, id int) (*domain.SiteAggregate, error) {
 	q := s.store.DB()
 
 	site, err := postgres.GetSiteByID(ctx, q, id)
@@ -742,6 +798,7 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 		return err
 	}
 
+	s.invalidateAggregate(in.SiteID)
 	s.deleteStaleImages(ctx, prevSite, prevGallery, in)
 	return nil
 }
@@ -774,13 +831,21 @@ func (s *Sites) deleteStaleImages(ctx context.Context, prevSite *domain.Site, pr
 }
 
 func (s *Sites) UpdateAppearance(ctx context.Context, siteID int, palette, headingFont, brandColor string) error {
-	return postgres.UpdateSiteAppearance(ctx, s.store.DB(), siteID, palette, headingFont, brandColor)
+	err := postgres.UpdateSiteAppearance(ctx, s.store.DB(), siteID, palette, headingFont, brandColor)
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 // UpdateFormType switches a site's public form between the plain contact
 // form and the booking form (service + preferred time).
 func (s *Sites) UpdateFormType(ctx context.Context, siteID int, formType domain.FormType) error {
-	return postgres.UpdateSiteFormType(ctx, s.store.DB(), siteID, formType)
+	err := postgres.UpdateSiteFormType(ctx, s.store.DB(), siteID, formType)
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 // SwitchTemplate changes a site's design. The palette is reset (not carried
@@ -807,7 +872,11 @@ func (s *Sites) SwitchTemplate(ctx context.Context, siteID int, templateID strin
 	if err := postgres.UpdateSiteAppearance(ctx, tx, siteID, "", current.HeadingFont, current.BrandColor); err != nil {
 		return fmt.Errorf("reset palette: %w", err)
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	s.invalidateAggregate(siteID)
+	return nil
 }
 
 // RenameSlug changes a site's subdomain, recording the old slug in
@@ -857,7 +926,11 @@ func (s *Sites) RenameSlug(ctx context.Context, siteID int, newSlugRaw string) (
 	if err := postgres.RenameSiteSlug(ctx, tx, siteID, newSlug); err != nil {
 		return "", fmt.Errorf("rename slug: %w", err)
 	}
-	return newSlug, tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+	s.invalidateAggregate(siteID)
+	return newSlug, nil
 }
 
 // ResolveSlugRedirect looks up the current slug an old, renamed-away-from
@@ -877,15 +950,23 @@ func (s *Sites) ResolveSlugRedirect(ctx context.Context, oldSlug string) (string
 // UpdateAnnouncement sets or clears a site's temporary banner. An empty
 // text clears it regardless of expiresAt.
 func (s *Sites) UpdateAnnouncement(ctx context.Context, siteID int, text string, expiresAt *time.Time, tone domain.AnnouncementTone, linkURL, linkLabel string) error {
-	return postgres.UpsertSiteAnnouncement(ctx, s.store.DB(), &domain.SiteAnnouncement{
+	err := postgres.UpsertSiteAnnouncement(ctx, s.store.DB(), &domain.SiteAnnouncement{
 		SiteID: siteID, Text: text, ExpiresAt: expiresAt, Tone: tone, LinkURL: linkURL, LinkLabel: linkLabel,
 	})
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 func (s *Sites) UpdateAnalyticsFrequency(ctx context.Context, siteID int, frequency string) error {
-	return postgres.UpsertSiteAnalyticsSettings(ctx, s.store.DB(), &domain.SiteAnalyticsSettings{
+	err := postgres.UpsertSiteAnalyticsSettings(ctx, s.store.DB(), &domain.SiteAnalyticsSettings{
 		SiteID: siteID, AnalyticsFrequency: frequency,
 	})
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 // UpdateNotifySettings sets a site's SMS lead alert opt-in. Enabling it
@@ -905,9 +986,13 @@ func (s *Sites) UpdateNotifySettings(ctx context.Context, siteID int, mobileNumb
 			return ErrNotifyInvalidNumber
 		}
 	}
-	return postgres.UpsertSiteNotifySettings(ctx, s.store.DB(), &domain.SiteNotifySettings{
+	err := postgres.UpsertSiteNotifySettings(ctx, s.store.DB(), &domain.SiteNotifySettings{
 		SiteID: siteID, MobileNumber: mobileNumber, SMSAlertsEnabled: enabled,
 	})
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 // UpdateTrackingSettings saves a Pro site's own GA4 measurement ID and Meta
@@ -933,7 +1018,11 @@ func (s *Sites) UpdateTrackingSettings(ctx context.Context, siteID int, gaMeasur
 			return ErrTrackingInvalid
 		}
 	}
-	return postgres.UpsertSiteTrackingIDs(ctx, s.store.DB(), siteID, gaMeasurementID, metaPixelID)
+	err := postgres.UpsertSiteTrackingIDs(ctx, s.store.DB(), siteID, gaMeasurementID, metaPixelID)
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 // Publish and Unpublish let an owner take their own site up/down at will —
@@ -950,11 +1039,19 @@ func (s *Sites) Publish(ctx context.Context, siteID int) error {
 	if site.Status == domain.SiteStatusPaused {
 		return ErrSitePaused
 	}
-	return postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusLive)
+	err = postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusLive)
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 func (s *Sites) Unpublish(ctx context.Context, siteID int) error {
-	return postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusDraft)
+	err := postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusDraft)
+	if err == nil {
+		s.invalidateAggregate(siteID)
+	}
+	return err
 }
 
 // Delete removes a site and, if it had an active paid subscription,
@@ -977,6 +1074,7 @@ func (s *Sites) Delete(ctx context.Context, siteID int) error {
 	if err := postgres.DeleteSite(ctx, s.store.DB(), siteID); err != nil {
 		return err
 	}
+	s.invalidateAggregate(siteID)
 	slog.Info("site deleted", "site_id", siteID)
 	return nil
 }
