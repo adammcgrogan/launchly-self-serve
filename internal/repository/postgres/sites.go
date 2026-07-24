@@ -154,18 +154,66 @@ type SiteFilter struct {
 	Offset int
 }
 
+// scanSiteWithBillingRowsWithCount is scanSiteRowsWithCount plus the site's
+// billing snapshot (nullable via the LEFT JOIN — a site should always have a
+// 1:1 billing row, but this doesn't assume it).
+func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, int, error) {
+	var sb domain.SiteWithBilling
+	var customDomain, customDomainCFID sql.NullString
+	var plan, paymentStatus, stripeCustomerID, stripeSessionID, stripeSubscriptionID sql.NullString
+	var paidAt, trialEndsAt, trialReminderSentAt, trialFinalReminderSentAt sql.NullTime
+	var total int
+	err := rows.Scan(
+		&sb.ID, &sb.OwnerUserID, &sb.Slug, &sb.BusinessName, &sb.Tagline, &sb.About, &sb.LogoURL, &sb.CTAText,
+		&sb.TemplateID, &sb.FormType, &sb.Palette, &sb.HeadingFont, &sb.BrandColor, &sb.Status, &sb.CreatedAt, &sb.PublishedAt, &sb.UpdatedAt, &sb.SlugChangedAt,
+		&customDomain, &sb.CustomDomainStatus, &customDomainCFID, &sb.CustomDomainAddedAt, &sb.Timezone,
+		&sb.MetaTitle, &sb.MetaDescription, &sb.OgImageURL, &sb.VideoURL, &sb.IsDemo, &sb.ThankYouMessage, &sb.RedirectURL,
+		&plan, &paymentStatus, &stripeCustomerID, &stripeSessionID, &stripeSubscriptionID,
+		&paidAt, &trialEndsAt, &trialReminderSentAt, &trialFinalReminderSentAt,
+		&total,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	sb.CustomDomain = customDomain.String
+	sb.CustomDomainCFID = customDomainCFID.String
+	sb.Billing = domain.SiteBilling{
+		SiteID:               sb.ID,
+		Plan:                 domain.Plan(plan.String),
+		PaymentStatus:        domain.PaymentStatus(paymentStatus.String),
+		StripeCustomerID:     stripeCustomerID.String,
+		StripeSessionID:      stripeSessionID.String,
+		StripeSubscriptionID: stripeSubscriptionID.String,
+	}
+	if paidAt.Valid {
+		sb.Billing.PaidAt = &paidAt.Time
+	}
+	if trialEndsAt.Valid {
+		sb.Billing.TrialEndsAt = &trialEndsAt.Time
+	}
+	if trialReminderSentAt.Valid {
+		sb.Billing.TrialReminderSentAt = &trialReminderSentAt.Time
+	}
+	if trialFinalReminderSentAt.Valid {
+		sb.Billing.TrialFinalReminderSentAt = &trialFinalReminderSentAt.Time
+	}
+	return &sb, total, nil
+}
+
 // ListAllSitesFiltered lists a page of sites, newest first, along with the
-// total count of sites (for pagination), computed in the same query via
-// COUNT(*) OVER(). Used by the superadmin dashboard.
-func ListAllSitesFiltered(ctx context.Context, q querier, filter SiteFilter) ([]domain.Site, int, error) {
+// total count of sites (for pagination) and each site's billing snapshot
+// (trial/payment status), computed in the same query via COUNT(*) OVER() and
+// a LEFT JOIN. Used by the superadmin dashboard.
+func ListAllSitesFiltered(ctx context.Context, q querier, filter SiteFilter) ([]domain.SiteWithBilling, int, error) {
 	limit := filter.Limit
 	if limit <= 0 {
 		limit = 20
 	}
 
 	rows, err := q.QueryContext(ctx, `
-		SELECT `+siteColumns+`, COUNT(*) OVER() AS total_count
+		SELECT `+siteColumns+`, `+siteBillingColumns+`, COUNT(*) OVER() AS total_count
 		FROM sites
+		LEFT JOIN site_billing b ON b.site_id = sites.id
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`, limit, filter.Offset)
@@ -174,10 +222,10 @@ func ListAllSitesFiltered(ctx context.Context, q querier, filter SiteFilter) ([]
 	}
 	defer rows.Close()
 
-	var sites []domain.Site
+	var sites []domain.SiteWithBilling
 	total := 0
 	for rows.Next() {
-		s, t, err := scanSiteRowsWithCount(rows)
+		s, t, err := scanSiteWithBillingRowsWithCount(rows)
 		if err != nil {
 			return nil, 0, err
 		}

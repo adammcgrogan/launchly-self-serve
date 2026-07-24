@@ -509,7 +509,7 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, site := range sites {
-		if err := h.sites.Delete(r.Context(), site.ID); err != nil {
+		if err := h.sites.Delete(r.Context(), site.ID, service.ActorOwner); err != nil {
 			h.render.RenderError(w, http.StatusInternalServerError)
 			return
 		}
