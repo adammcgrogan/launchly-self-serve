@@ -1,14 +1,52 @@
+{{/*
+  Terms of Service — drafted to reflect Launchly's actual product behaviour
+  (trial/billing flow, instant publish with no review, subdomain/custom
+  domain hosting, lead capture). This is engineer-drafted content, not
+  lawyer-drafted or lawyer-reviewed — have a qualified solicitor review it
+  before relying on it in a dispute or regulatory context.
+*/}}
 {{define "content"}}
 <section class="max-w-3xl mx-auto px-6 pt-20 pb-24 prose prose-slate">
   <h1 class="font-display text-4xl font-bold text-slate-900">Terms of Service</h1>
-  <p class="mt-6 text-slate-600">By creating an account and publishing a site with Launchly, you agree to the following.</p>
-  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Your site, your content</h2>
-  <p class="text-slate-600">You own the content you add to your site and are responsible for its accuracy and legality. Sites publish immediately with no review. You're in control of what goes live.</p>
-  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Billing</h2>
-  <p class="text-slate-600">New accounts get a 7-day free trial. After that, your site stays live if you upgrade to a paid plan from your dashboard; subscriptions can be cancelled any time.</p>
-  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Acceptable use</h2>
-  <p class="text-slate-600">Sites used for spam, fraud, or illegal content may be taken down without notice.</p>
+  <p class="mt-2 text-sm text-slate-400">Last updated 24 July 2026</p>
+  <p class="mt-6 text-slate-600">These terms are a contract between you and Launchly ("Launchly", "we", "us", "our"), operated from Belfast, Northern Ireland. They apply from the moment you create a Launchly account and govern your use of the website builder, hosting, and related services (the "Service"). By creating an account you agree to them; if you don't agree, please don't use the Service.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">1. Your account</h2>
+  <p class="text-slate-600">You must provide accurate information when signing up and keep your login credentials confidential. You're responsible for all activity that happens under your account, including sites and content added by anyone you share access with. Tell us immediately at <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a> if you believe your account has been compromised.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">2. Your site, your content</h2>
+  <p class="text-slate-600">You own the content you add to your site — text, images, business details, and anything else you upload — and you're responsible for its accuracy and legality. Sites publish immediately with no manual review before going live, so you're in control of what your visitors see and when. You confirm you have the rights to any content you upload, including images and logos, and that it doesn't infringe anyone else's rights.</p>
+  <p class="text-slate-600">We may generate draft copy, images, or suggestions for your site using AI tools to help you get started faster. You're responsible for reviewing and editing anything AI-generated before publishing it, including checking it's accurate for your business.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">3. Leads and visitor enquiries</h2>
+  <p class="text-slate-600">If your site includes a contact or enquiry form, visitor submissions (name, email, phone, and message, and where relevant a preferred time, party size, or service requested) are stored in your dashboard and forwarded to your account email. You're responsible for how you use and respond to that information, including complying with any obligations you owe your own site's visitors under applicable data protection law. Our <a href="{{marketingURL "/dpa"}}" class="text-brand">Data Processing Agreement</a> sets out the terms under which we process that data on your behalf.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">4. Plans, billing, and trials</h2>
+  <p class="text-slate-600">New accounts get a 7-day free trial with full access to build and preview a site. After the trial, your site stays live only if you upgrade to a paid plan from your dashboard; unpaid trial sites are taken offline but not deleted for a period before removal, giving you a chance to subscribe. Paid subscriptions are billed in advance on a recurring basis (monthly or annually, depending on the plan you choose) via Stripe, our payment processor — we don't store your card details ourselves. Prices are shown in your dashboard before you subscribe and may change with notice; changes won't apply retroactively to a billing period you've already paid for.</p>
+  <p class="text-slate-600">You can cancel your subscription at any time from your dashboard. Cancelling stops future renewals but doesn't refund the current billing period unless required by law; your site remains live until the end of the period you've already paid for, then moves to the same unpaid state as an expired trial.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">5. Domains</h2>
+  <p class="text-slate-600">Every site gets a subdomain of launchly.ltd. If you connect a custom domain you already own, you're responsible for its registration and DNS settings; we help route traffic to your site but don't register or resell domains on your behalf. If you cancel your subscription or close your account, we'll stop routing your custom domain to Launchly, and you're responsible for updating or releasing your own DNS records.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">6. Acceptable use</h2>
+  <p class="text-slate-600">You agree not to use the Service to publish content that is illegal, fraudulent, deceptive, defamatory, or infringes someone else's intellectual property or privacy rights; to send spam or unsolicited bulk communications; to distribute malware; or to misrepresent your identity or business. Sites that breach this may be suspended or taken down without notice, and repeated or serious breaches may result in account termination.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">7. Suspension and termination</h2>
+  <p class="text-slate-600">We may suspend or terminate your account if you breach these terms, if required by law, or if your payment fails and isn't resolved within a reasonable period. You may close your account at any time by contacting us. On termination, your site is taken offline; we retain your data for the period described in our <a href="{{marketingURL "/privacy"}}" class="text-brand">Privacy Policy</a> before permanent deletion, in case you want to export your content or reactivate.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">8. Availability and changes to the Service</h2>
+  <p class="text-slate-600">We aim to keep the Service available and reliable but don't guarantee uninterrupted access — we may need to take it down temporarily for maintenance, or to fix a fault. We may add, change, or remove features over time; where a change materially reduces functionality you rely on, we'll try to give reasonable notice.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">9. Disclaimers and liability</h2>
+  <p class="text-slate-600">The Service is provided "as is." To the fullest extent permitted by law, we exclude all implied warranties and aren't liable for indirect or consequential losses (such as lost profits or lost business) arising from your use of the Service. Nothing in these terms limits liability that can't be limited under applicable law, including liability for death or personal injury caused by negligence, or for fraud. Subject to that, our total liability to you for any claim arising from the Service is limited to the amount you paid us in the 12 months before the claim arose.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">10. Governing law</h2>
+  <p class="text-slate-600">These terms are governed by the law of Northern Ireland, and any dispute will be subject to the exclusive jurisdiction of the courts of Northern Ireland. This doesn't remove any statutory protections you have as a consumer under the law of the country where you live.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">11. Changes to these terms</h2>
+  <p class="text-slate-600">We may update these terms from time to time to reflect changes to the Service or the law. We'll update the "last updated" date above; for material changes, we'll try to let you know by email before they take effect.</p>
+
   <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Contact</h2>
-  <p class="text-slate-600">Questions? Email <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a>.</p>
+  <p class="text-slate-600">Questions about these terms? Email <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a>.</p>
 </section>
 {{end}}

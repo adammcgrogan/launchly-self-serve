@@ -39,6 +39,11 @@ func (h *Handler) Terms(w http.ResponseWriter, r *http.Request) {
 	h.render.Render(w, "terms", map[string]any{"LoggedIn": loggedIn})
 }
 
+func (h *Handler) DPA(w http.ResponseWriter, r *http.Request) {
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "dpa", map[string]any{"LoggedIn": loggedIn})
+}
+
 func (h *Handler) Help(w http.ResponseWriter, r *http.Request) {
 	_, loggedIn := h.auth.CheckUser(w, r)
 	h.render.Render(w, "help", map[string]any{"LoggedIn": loggedIn})

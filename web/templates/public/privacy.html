@@ -1,12 +1,61 @@
+{{/*
+  Privacy Policy — drafted to reflect Launchly's actual data flows (account
+  data, site content, visitor leads, Stripe billing, Resend email, and the
+  subprocessors we actually use). This is engineer-drafted content, not
+  lawyer-drafted or lawyer-reviewed — have a qualified solicitor review it
+  before relying on it for real-world UK GDPR compliance.
+*/}}
 {{define "content"}}
 <section class="max-w-3xl mx-auto px-6 pt-20 pb-24 prose prose-slate">
   <h1 class="font-display text-4xl font-bold text-slate-900">Privacy Policy</h1>
-  <p class="mt-6 text-slate-600">Launchly ("we", "us") provides self-serve website building for local businesses. This policy explains what we collect and why.</p>
+  <p class="mt-2 text-sm text-slate-400">Last updated 24 July 2026</p>
+  <p class="mt-6 text-slate-600">Launchly ("we", "us", "our") provides self-serve website building and hosting for local businesses, operated from Belfast, Northern Ireland. This policy explains what personal data we collect, why, and the rights you have over it. We're the data controller for account holders ("you", if you have a Launchly account) and the data processor for your site's visitors, on your behalf — see the "If you run a Launchly site" section below and our <a href="{{marketingURL "/dpa"}}" class="text-brand">Data Processing Agreement</a>.</p>
+
   <h2 class="font-display text-xl font-bold text-slate-900 mt-10">What we collect</h2>
-  <p class="text-slate-600">Your account email, the content you add to your site, and contact-form submissions from your site's visitors. We use a salted hash of visitor IPs for approximate analytics, never the raw address.</p>
+  <ul class="text-slate-600">
+    <li><strong>Account data:</strong> your email address, hashed password (managed by our authentication provider, Supabase — we never see or store your plain-text password), and any billing name/address associated with your subscription.</li>
+    <li><strong>Site content:</strong> the text, images, business details, and settings you add while building your site.</li>
+    <li><strong>Visitor enquiries ("leads"):</strong> if your site has a contact form, the name, email, phone number, message, and any preferred time, party size, or service requested that a visitor submits.</li>
+    <li><strong>Payment data:</strong> handled directly by Stripe when you subscribe to a paid plan. We receive confirmation that a payment succeeded or failed, and limited billing metadata (plan, renewal date) — we don't receive or store your full card number.</li>
+    <li><strong>Technical data:</strong> a salted, one-way hash of visitor IP addresses (never the raw address) used for approximate visit counts on your site's analytics; standard web server logs (timestamps, URLs requested, user agent) kept briefly for security and debugging.</li>
+  </ul>
+
   <h2 class="font-display text-xl font-bold text-slate-900 mt-10">How we use it</h2>
-  <p class="text-slate-600">To run your site, forward enquiries to you, process payment via Stripe, and send account and billing emails via Resend.</p>
+  <p class="text-slate-600">We use this data to: run and host your site; forward visitor enquiries to your account email; process payment and manage your subscription via Stripe; send account, billing, and service emails via Resend; provide customer support; and keep the Service secure and working reliably. We don't sell your data or your visitors' data to third parties, and we don't use visitor lead data for our own marketing.</p>
+  <p class="text-slate-600">Our legal bases for processing account holder data are performance of our contract with you (running your account and site) and our legitimate interests in operating and improving the Service. Where we process your site's visitor data, we do so as your processor, on your instructions, under the terms of our Data Processing Agreement — you (the site owner) are responsible for having a legal basis to collect it from your visitors in the first place.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Cookies and tracking</h2>
+  <p class="text-slate-600">Our marketing site and dashboard use a small number of essential cookies to keep you signed in and to remember that you've dismissed our cookie notice; we don't use these to build advertising profiles. We currently don't run our own third-party analytics (such as Google Analytics) on the marketing site.</p>
+  <p class="text-slate-600">Launchly currently lets site owners optionally add their own Google Analytics or Meta Pixel tracking ID to their published site's dashboard settings. If you're a site owner who adds one, that script runs on your site under your own Google/Meta account, and you're responsible for giving your visitors any notice or consent mechanism required by law in your visitors' location. If you're a visitor to a Launchly-built site, check that site's own privacy notice, or contact the business directly, to find out what tracking it uses.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Who we share data with</h2>
+  <p class="text-slate-600">We use a small number of subprocessors to run the Service, each acting under their own data processing terms:</p>
+  <ul class="text-slate-600">
+    <li><strong>Supabase</strong> — database hosting and account authentication.</li>
+    <li><strong>Stripe</strong> — payment processing and subscription billing.</li>
+    <li><strong>Resend</strong> — transactional email delivery (account, billing, and lead-notification emails).</li>
+    <li><strong>Railway</strong> — application hosting infrastructure.</li>
+    <li><strong>Cloudflare</strong> — DNS and routing for custom domains connected to your site.</li>
+  </ul>
+  <p class="text-slate-600">We don't share your data with anyone else except where required by law, to enforce our terms, or to protect the rights, safety, or property of Launchly or others. If we ever add or change a subprocessor in a way that affects how your data is handled, we'll update this page and, for material changes, try to let you know by email.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">International transfers</h2>
+  <p class="text-slate-600">Some of our subprocessors (including Supabase, Stripe, and Resend) may process data outside the UK/EEA, including in the United States. Where that happens, they do so under recognised safeguards such as the EU-US Data Privacy Framework or Standard Contractual Clauses.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">How long we keep it</h2>
+  <p class="text-slate-600">We keep account and site data for as long as your account is active. If you cancel or your account is terminated, we keep your data for up to 30 days in case you want to export it or reactivate, then delete it, except where we need to keep limited records for longer to comply with tax, accounting, or legal obligations (for example, billing records). Visitor lead data is kept for as long as the site that collected it exists, and deleted along with the site.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Your rights</h2>
+  <p class="text-slate-600">If you're an account holder, under UK GDPR you have the right to access, correct, export, or delete your personal data, to object to or restrict some processing, and to withdraw consent where we rely on it. You can access, edit, or export most of your account and site data directly from your dashboard, or email us at <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a> to exercise any of these rights. You also have the right to complain to the UK Information Commissioner's Office (ico.org.uk) if you think we've mishandled your data.</p>
+  <p class="text-slate-600">If you're a visitor who submitted an enquiry through a Launchly-built site, the business that runs that site is the controller of your data and the right party to contact about your rights over it; we'll help that business fulfil a valid request as their processor.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Children</h2>
+  <p class="text-slate-600">The Service is intended for business use and isn't directed at children. We don't knowingly collect personal data from children.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Changes to this policy</h2>
+  <p class="text-slate-600">We may update this policy from time to time. We'll update the "last updated" date above; for material changes, we'll try to let you know by email before they take effect.</p>
+
   <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Contact</h2>
-  <p class="text-slate-600">Questions? Email <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a>.</p>
+  <p class="text-slate-600">Questions, or want to exercise a data right? Email <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a>.</p>
 </section>
 {{end}}

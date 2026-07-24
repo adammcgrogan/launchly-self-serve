@@ -1,0 +1,61 @@
+{{/*
+  Data Processing Agreement — sets out the controller (site owner) /
+  processor (Launchly) relationship for visitor lead data, as required
+  under UK GDPR Article 28. This is engineer-drafted content, not
+  lawyer-drafted or lawyer-reviewed — have a qualified solicitor review it
+  before relying on it as a real Article 28 contract.
+*/}}
+{{define "content"}}
+<section class="max-w-3xl mx-auto px-6 pt-20 pb-24 prose prose-slate">
+  <h1 class="font-display text-4xl font-bold text-slate-900">Data Processing Agreement</h1>
+  <p class="mt-2 text-sm text-slate-400">Last updated 24 July 2026</p>
+  <p class="mt-6 text-slate-600">This Data Processing Agreement ("DPA") forms part of the agreement between you, the Launchly account holder ("Customer", "you", the "Controller"), and Launchly ("Processor", "we", "us"), and applies to any personal data of your site's visitors that we process on your behalf — most commonly, contact-form and enquiry ("lead") submissions. It supplements our <a href="{{marketingURL "/terms"}}" class="text-brand">Terms of Service</a> and takes effect automatically for every account, without needing a separately signed copy, unless you and Launchly agree otherwise in writing.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">1. Roles</h2>
+  <p class="text-slate-600">When a visitor to your Launchly-built site submits a contact form, you are the controller of that visitor's personal data — you decide to collect it and what to do with it — and Launchly is your processor, storing and forwarding it on your instructions as described below.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">2. Subject matter and duration</h2>
+  <p class="text-slate-600">The subject matter of processing is the operation of your site's contact/enquiry forms and the storage and forwarding of resulting lead data in your Launchly dashboard. Processing lasts for as long as your account and site remain active, and ends when your site or account is deleted, subject to the retention period in our <a href="{{marketingURL "/privacy"}}" class="text-brand">Privacy Policy</a>.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">3. Nature and purpose of processing</h2>
+  <p class="text-slate-600">We process lead data solely to: (a) store submissions so they appear in your dashboard; (b) send you an email notification of new submissions via Resend; and (c) let you manage, note, and action leads (for example, marking them as contacted). We don't use lead data for our own marketing, analytics, or any purpose other than providing the Service to you.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">4. Categories of data subjects and data</h2>
+  <p class="text-slate-600">Data subjects are visitors to your site who choose to submit a contact or enquiry form. The categories of personal data are whatever fields your site's form template collects — typically name, email address, and phone number, plus a free-text message and, on some templates, a preferred appointment time, party size, or requested service. No special category data (e.g. health or financial data) is intentionally collected by our form templates; you shouldn't configure your site to request it without your own assessment of the additional obligations that creates.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">5. Our obligations as processor</h2>
+  <p class="text-slate-600">We will:</p>
+  <ul class="text-slate-600">
+    <li>process lead data only on your documented instructions (which include the standard behaviour of the Service — storing and forwarding submissions — and any configuration you choose in your dashboard);</li>
+    <li>ensure people authorised to process the data (our staff and contractors) are bound by confidentiality obligations;</li>
+    <li>implement appropriate technical and organisational security measures, including encryption in transit, access controls limiting who can view lead data to you and Launchly personnel who need it to operate the Service, and a salted hash rather than raw storage of visitor IP addresses used for analytics;</li>
+    <li>only engage the subprocessors listed in section 7, and notify you of any change by updating that list;</li>
+    <li>assist you, so far as reasonably possible, in responding to data subject requests (access, deletion, etc.) and in meeting your own obligations around security, breach notification, and data protection impact assessments where they relate to our processing;</li>
+    <li>notify you without undue delay after becoming aware of a personal data breach affecting your site's visitor data;</li>
+    <li>at your choice, delete or return lead data to you at the end of the relationship (via your dashboard's export, or on request), and delete existing copies after the retention period described in our Privacy Policy, except where we're required to keep it longer by law;</li>
+    <li>make available the information reasonably necessary to demonstrate compliance with this DPA and allow for audits, including inspections, conducted by you or an auditor you appoint, on reasonable notice.</li>
+  </ul>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">6. Your obligations as controller</h2>
+  <p class="text-slate-600">You're responsible for having a valid legal basis to collect visitor data through your site's forms, for giving your visitors any privacy notice required by law, for the accuracy of instructions you give us (including any configuration choices in your dashboard), and for not configuring your site to request special category or otherwise high-risk data without your own legal assessment.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">7. Subprocessors</h2>
+  <p class="text-slate-600">You give general authorisation for us to engage the following subprocessors, each of which is bound by data protection terms consistent with this DPA:</p>
+  <ul class="text-slate-600">
+    <li><strong>Supabase</strong> — database hosting and storage of lead records.</li>
+    <li><strong>Resend</strong> — delivery of email notifications when a lead is submitted.</li>
+    <li><strong>Railway</strong> — application hosting infrastructure that processes form submissions in transit.</li>
+    <li><strong>Cloudflare</strong> — DNS and routing for custom domains, incidentally routing traffic that includes form submissions.</li>
+  </ul>
+  <p class="text-slate-600">We'll update this list if we add or replace a subprocessor and, for a new subprocessor with access to lead data, give you the opportunity to object on reasonable data-protection grounds by contacting <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a> within 14 days of the update; if we can't resolve your objection, either of us may terminate the affected part of the Service.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">8. International transfers</h2>
+  <p class="text-slate-600">Where a subprocessor processes lead data outside the UK/EEA, it does so under recognised safeguards such as the EU-US Data Privacy Framework or Standard Contractual Clauses, consistent with our <a href="{{marketingURL "/privacy"}}" class="text-brand">Privacy Policy</a>.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">9. Liability</h2>
+  <p class="text-slate-600">Liability under this DPA is subject to the limitations set out in our <a href="{{marketingURL "/terms"}}" class="text-brand">Terms of Service</a>, except where a limitation isn't permitted under applicable data protection law.</p>
+
+  <h2 class="font-display text-xl font-bold text-slate-900 mt-10">Contact</h2>
+  <p class="text-slate-600">Questions about this DPA, or want to raise a subprocessor objection? Email <a href="mailto:hello@launchly.ltd" class="text-brand">hello@launchly.ltd</a>.</p>
+</section>
+{{end}}
