@@ -665,10 +665,22 @@ func (s *Sites) ListSitesByOwner(ctx context.Context, ownerID uuid.UUID) ([]doma
 	return postgres.ListSitesByOwner(ctx, s.store.DB(), ownerID)
 }
 
-// ListAllSites is used by the superadmin cross-account view.
-func (s *Sites) ListAllSites(ctx context.Context) ([]domain.Site, error) {
-	return postgres.ListAllSites(ctx, s.store.DB())
+// ListAllSitesFiltered returns page (1-indexed) of all sites, newest first,
+// along with the total count of sites (for pagination). Used by the
+// superadmin cross-account view.
+func (s *Sites) ListAllSitesFiltered(ctx context.Context, page int) ([]domain.Site, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	filter := postgres.SiteFilter{
+		Limit:  SitesPageSize,
+		Offset: (page - 1) * SitesPageSize,
+	}
+	return postgres.ListAllSitesFiltered(ctx, s.store.DB(), filter)
 }
+
+// SitesPageSize is how many sites ListAllSitesFiltered returns per page.
+const SitesPageSize = 20
 
 // PlatformStats returns platform-wide site/plan counts for the superadmin
 // dashboard's stats view.

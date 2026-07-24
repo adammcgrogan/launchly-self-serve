@@ -48,6 +48,24 @@ func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
 	return &s, err
 }
 
+// scanSiteRowsWithCount is scanSiteRows plus a trailing COUNT(*) OVER()
+// column, for paginated queries that report a total alongside the page.
+func scanSiteRowsWithCount(rows *sql.Rows) (*domain.Site, int, error) {
+	var s domain.Site
+	var customDomain, customDomainCFID sql.NullString
+	var total int
+	err := rows.Scan(
+		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
+		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
+		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
+		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo, &s.ThankYouMessage, &s.RedirectURL,
+		&total,
+	)
+	s.CustomDomain = customDomain.String
+	s.CustomDomainCFID = customDomainCFID.String
+	return &s, total, err
+}
+
 // CreateSite inserts a site's core row. Status is set to live and
 // published_at to now — sites go live immediately, there is no draft/review
 // step in the self-serve flow.
@@ -116,22 +134,43 @@ func ListSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) ([]doma
 	return sites, rows.Err()
 }
 
-// ListAllSites returns every site, newest first — used by the superadmin view.
-func ListAllSites(ctx context.Context, q querier) ([]domain.Site, error) {
-	rows, err := q.QueryContext(ctx, `SELECT `+siteColumns+` FROM sites ORDER BY created_at DESC`)
+// SiteFilter pages through ListAllSitesFiltered's results with Limit/Offset.
+type SiteFilter struct {
+	Limit  int
+	Offset int
+}
+
+// ListAllSitesFiltered lists a page of sites, newest first, along with the
+// total count of sites (for pagination), computed in the same query via
+// COUNT(*) OVER(). Used by the superadmin dashboard.
+func ListAllSitesFiltered(ctx context.Context, q querier, filter SiteFilter) ([]domain.Site, int, error) {
+	limit := filter.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	rows, err := q.QueryContext(ctx, `
+		SELECT `+siteColumns+`, COUNT(*) OVER() AS total_count
+		FROM sites
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`, limit, filter.Offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
+
 	var sites []domain.Site
+	total := 0
 	for rows.Next() {
-		s, err := scanSiteRows(rows)
+		s, t, err := scanSiteRowsWithCount(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
+		total = t
 		sites = append(sites, *s)
 	}
-	return sites, rows.Err()
+	return sites, total, rows.Err()
 }
 
 // GetPlatformStats returns platform-wide site/plan counts, for the
