@@ -72,3 +72,5 @@ npx tailwindcss@3 -i web/static/css/input.css -o web/static/css/app.css --minify
 Runs on Railway. Set these as env vars in the Railway dashboard (see `internal/config` for the full list): `DATABASE_URL`, `DOMAIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_STARTER_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `RESEND_API_KEY`, `EMAIL_FROM`, `SUPERADMIN_PASSWORD`, `COOKIE_SIGNING_KEY`.
 
 Migrations apply automatically on startup — there's no separate migration command to run.
+
+If the Supabase project has Auth → "Confirm email" enabled, Auth's own SMTP must also be configured (Auth → Settings → SMTP Settings in the Supabase dashboard) — it's separate from this app's `RESEND_API_KEY`/`EMAIL_FROM`, which only cover our own transactional email. Without it, GoTrue can fail to send the confirmation email on `/auth/v1/signup` after already creating the user, which surfaces to the user as a signup error and turns a retry into a confusing "already registered" response.

@@ -126,6 +126,18 @@ func toSession(t gotrueTokenResponse) (*Session, error) {
 // ErrUserAlreadyExists is returned by SignUp when the email is already
 // registered, so callers can show a friendly "log in instead" message
 // rather than a raw GoTrue error string.
+//
+// Note: this same error can also surface on what looks like a *first*
+// signup attempt. If the Supabase project has "Confirm email" enabled but
+// Auth's own SMTP isn't configured (Auth → Settings → SMTP Settings in the
+// Supabase dashboard), GoTrue can create the auth.users row and then still
+// return a >=400 error because it failed to send the confirmation email —
+// there's no distinguishing signal in the error body itself. A retry with
+// the same address then hits this "already exists" path even though the
+// user never got a working account. Fixing that requires SMTP to be
+// configured on the Supabase side; this client can't detect or work around
+// it, so callers should word their "already exists" messaging to cover
+// both cases (see internal/web/auth.go's SignupSubmit).
 var ErrUserAlreadyExists = errors.New("user already registered")
 
 // ErrEmailNotConfirmed is returned by SignInWithPassword when the account's

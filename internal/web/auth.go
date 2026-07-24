@@ -41,7 +41,17 @@ func (h *Handler) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errMsg := "Something went wrong creating your account. Please try again."
 		if errors.Is(err, supabase.ErrUserAlreadyExists) {
-			errMsg = `Looks like you already have an account — <a href="/login" class="underline font-medium">log in instead</a>.`
+			// This can also fire on what feels like a *first* signup attempt:
+			// if Supabase's "Confirm email" setting is on but its own SMTP
+			// isn't configured, GoTrue can create the auth.users row and then
+			// still return an error because it couldn't send the confirmation
+			// email — so a retry with the same address lands here even though
+			// no account was ever successfully finished. Cover both cases in
+			// the copy rather than flatly asserting the account exists.
+			errMsg = `An account with this email may already exist — ` +
+				`<a href="/login" class="underline font-medium">log in</a>, ` +
+				`<a href="/forgot-password" class="underline font-medium">reset your password</a>, or ` +
+				`<a href="/resend-verification?email=` + url.QueryEscape(emailAddr) + `" class="underline font-medium">resend the confirmation email</a>.`
 		}
 		h.render.Render(w, "auth:signup", map[string]any{"Error": template.HTML(errMsg), "Email": emailAddr, "Next": next})
 		return
