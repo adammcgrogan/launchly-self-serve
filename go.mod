@@ -12,11 +12,10 @@ require (
 )
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
+	golang.org/x/crypto v0.54.0
 	golang.org/x/image v0.44.0
 	golang.org/x/sync v0.22.0
 )
 
-require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
-	golang.org/x/text v0.40.0 // indirect
-)
+require golang.org/x/text v0.40.0 // indirect

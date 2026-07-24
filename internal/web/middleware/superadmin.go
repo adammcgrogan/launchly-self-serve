@@ -3,40 +3,41 @@ package middleware
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 const superadminSessionCookie = "_superadmin_session"
 
-// Superadmin gates the read-mostly cross-account view behind a single
-// shared password (an env var, like the old admin panel) — entirely
-// separate from customer Supabase auth.
+// Superadmin gates the read-mostly cross-account view behind per-admin
+// accounts (see #94) — entirely separate from customer Supabase auth. This
+// type only handles the session cookie (who's currently logged in);
+// checking an email/password pair against the superadmin_admins table is
+// service.Superadmin's job, since that requires a DB round-trip and web
+// isn't allowed to touch the database directly.
 type Superadmin struct {
-	password      string
 	signingKey    string
 	secureCookies bool
 }
 
-func NewSuperadmin(password, signingKey string, secureCookies bool) *Superadmin {
-	return &Superadmin{password: password, signingKey: signingKey, secureCookies: secureCookies}
+func NewSuperadmin(signingKey string, secureCookies bool) *Superadmin {
+	return &Superadmin{signingKey: signingKey, secureCookies: secureCookies}
 }
 
-func (s *Superadmin) deriveToken(ctx string) string {
+// deriveToken binds the session token to the specific admin's email, so one
+// admin's cookie can't be replayed as another's and audit log entries can
+// attribute the action to whoever is actually signed in.
+func (s *Superadmin) deriveToken(email string) string {
 	mac := hmac.New(sha256.New, []byte(s.signingKey))
-	mac.Write([]byte(ctx))
+	mac.Write([]byte("superadmin-session-v2:" + email))
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func (s *Superadmin) CheckPassword(pw string) bool {
-	return subtle.ConstantTimeCompare([]byte(pw), []byte(s.password)) == 1
-}
-
-func (s *Superadmin) SetSession(w http.ResponseWriter) {
+func (s *Superadmin) SetSession(w http.ResponseWriter, email string) {
 	http.SetCookie(w, &http.Cookie{
-		Name: superadminSessionCookie, Value: s.deriveToken("superadmin-session-v1"), Path: "/superadmin",
+		Name: superadminSessionCookie, Value: email + "|" + s.deriveToken(email), Path: "/superadmin",
 		HttpOnly: true, Secure: s.secureCookies, SameSite: http.SameSiteLaxMode, MaxAge: 86400 * 7,
 	})
 }
@@ -45,12 +46,22 @@ func (s *Superadmin) ClearSession(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{Name: superadminSessionCookie, Path: "/superadmin", MaxAge: -1})
 }
 
-func (s *Superadmin) IsAuthenticated(r *http.Request) bool {
+// CurrentAdmin returns the signed-in admin's email, or "" if the session
+// cookie is missing or its signature doesn't match.
+func (s *Superadmin) CurrentAdmin(r *http.Request) string {
 	c, err := r.Cookie(superadminSessionCookie)
 	if err != nil {
-		return false
+		return ""
 	}
-	return hmac.Equal([]byte(c.Value), []byte(s.deriveToken("superadmin-session-v1")))
+	email, sig, ok := strings.Cut(c.Value, "|")
+	if !ok || !hmac.Equal([]byte(sig), []byte(s.deriveToken(email))) {
+		return ""
+	}
+	return email
+}
+
+func (s *Superadmin) IsAuthenticated(r *http.Request) bool {
+	return s.CurrentAdmin(r) != ""
 }
 
 func (s *Superadmin) RequireSuperadmin(next http.HandlerFunc) http.HandlerFunc {

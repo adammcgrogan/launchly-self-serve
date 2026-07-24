@@ -4,6 +4,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
@@ -58,6 +59,19 @@ func TestSuperadminTemplatesRender(t *testing.T) {
 	}
 	if !strings.Contains(body, `name="business_name"`) {
 		t.Error("site page missing business_name field")
+	}
+
+	siteID := 42
+	auditData := map[string]any{
+		"Entries": []domain.SuperadminAuditLogEntry{
+			{ID: 1, AdminEmail: "adam@launchly.ltd", Action: "unpublish", SiteID: &siteID, CreatedAt: time.Now()},
+		},
+		"Page": 1, "TotalPages": 1,
+	}
+	auditW := httptest.NewRecorder()
+	r.Render(auditW, "superadmin:audit", auditData)
+	if !strings.Contains(auditW.Body.String(), "unpublish") {
+		t.Error("audit page missing action content")
 	}
 }
 

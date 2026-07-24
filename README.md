@@ -69,7 +69,7 @@ npx tailwindcss@3 -i web/static/css/input.css -o web/static/css/app.css --minify
 
 ## Deployment
 
-Runs on Railway. Set these as env vars in the Railway dashboard (see `internal/config` for the full list): `DATABASE_URL`, `DOMAIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_STARTER_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `RESEND_API_KEY`, `EMAIL_FROM`, `SUPERADMIN_PASSWORD`, `COOKIE_SIGNING_KEY`.
+Runs on Railway. Set these as env vars in the Railway dashboard (see `internal/config` for the full list): `DATABASE_URL`, `DOMAIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_STARTER_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `RESEND_API_KEY`, `EMAIL_FROM`, `SUPERADMIN_BOOTSTRAP_EMAIL`, `SUPERADMIN_BOOTSTRAP_PASSWORD`, `COOKIE_SIGNING_KEY`.
 
 Migrations apply automatically on startup — there's no separate migration command to run.
 

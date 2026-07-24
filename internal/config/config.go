@@ -36,9 +36,16 @@ type Config struct {
 	TwilioAuthToken  string
 	TwilioFromNumber string
 
-	SuperadminPassword string
-	CookieSigningKey   string // HMAC key for CSRF/flash cookies (not auth — auth uses Supabase JWTs)
-	AnalyticsSalt      string // salts the visitor-IP hash; independent of CookieSigningKey so rotating one doesn't affect the other
+	// SuperadminBootstrapEmail/Password seed the first per-admin superadmin
+	// account (see #94) on a fresh environment where superadmin_admins is
+	// empty — see service.Superadmin.Bootstrap. Once at least one admin
+	// account exists these are ignored, so they're safe to leave set
+	// permanently; additional admins beyond the first are added directly
+	// in the DB (no self-serve "add admin" UI yet).
+	SuperadminBootstrapEmail    string
+	SuperadminBootstrapPassword string
+	CookieSigningKey            string // HMAC key for CSRF/flash cookies (not auth — auth uses Supabase JWTs)
+	AnalyticsSalt               string // salts the visitor-IP hash; independent of CookieSigningKey so rotating one doesn't affect the other
 
 	CloudflareAPIToken       string
 	CloudflareZoneID         string
@@ -84,9 +91,10 @@ func Load() (*Config, error) {
 		TwilioAuthToken:  getEnv("TWILIO_AUTH_TOKEN", ""),
 		TwilioFromNumber: getEnv("TWILIO_FROM_NUMBER", ""),
 
-		SuperadminPassword: os.Getenv("SUPERADMIN_PASSWORD"),
-		CookieSigningKey:   os.Getenv("COOKIE_SIGNING_KEY"),
-		AnalyticsSalt:      os.Getenv("ANALYTICS_SALT"),
+		SuperadminBootstrapEmail:    getEnv("SUPERADMIN_BOOTSTRAP_EMAIL", ""),
+		SuperadminBootstrapPassword: getEnv("SUPERADMIN_BOOTSTRAP_PASSWORD", ""),
+		CookieSigningKey:            os.Getenv("COOKIE_SIGNING_KEY"),
+		AnalyticsSalt:               os.Getenv("ANALYTICS_SALT"),
 
 		CloudflareAPIToken:       getEnv("CLOUDFLARE_API_TOKEN", ""),
 		CloudflareZoneID:         getEnv("CLOUDFLARE_ZONE_ID", ""),
@@ -114,7 +122,6 @@ func Load() (*Config, error) {
 		"SUPABASE_URL":        cfg.SupabaseURL,
 		"SUPABASE_ANON_KEY":   cfg.SupabaseAnonKey,
 		"SUPABASE_JWT_SECRET": cfg.SupabaseJWTSecret,
-		"SUPERADMIN_PASSWORD": cfg.SuperadminPassword,
 		"COOKIE_SIGNING_KEY":  cfg.CookieSigningKey,
 	}
 	for key, val := range required {

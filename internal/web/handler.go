@@ -26,16 +26,17 @@ type Handler struct {
 	ownership  *middleware.Ownership
 	csrf       *middleware.CSRF
 
-	accounts  *service.Accounts
-	sites     *service.Sites
-	billing   *service.Billing
-	leads     *service.Leads
-	analytics *service.Analytics
-	cron      *service.Cron
-	domains   *service.Domains
-	uploads   *service.Uploads
-	members   *service.Members
-	ai        *ai.Client
+	accounts      *service.Accounts
+	sites         *service.Sites
+	billing       *service.Billing
+	leads         *service.Leads
+	analytics     *service.Analytics
+	cron          *service.Cron
+	domains       *service.Domains
+	uploads       *service.Uploads
+	members       *service.Members
+	ai            *ai.Client
+	superadminSvc *service.Superadmin
 
 	loginLimiter              *middleware.RateLimiter
 	signupLimiter             *middleware.RateLimiter
@@ -64,8 +65,9 @@ type Deps struct {
 	Members   *service.Members
 	AI        *ai.Client
 
-	Auth       *middleware.Auth
-	Superadmin *middleware.Superadmin
+	Auth          *middleware.Auth
+	Superadmin    *middleware.Superadmin
+	SuperadminSvc *service.Superadmin
 }
 
 func New(d Deps) (*Handler, error) {
@@ -74,6 +76,7 @@ func New(d Deps) (*Handler, error) {
 		store:                     d.Store,
 		auth:                      d.Auth,
 		superadmin:                d.Superadmin,
+		superadminSvc:             d.SuperadminSvc,
 		ownership:                 middleware.NewOwnership(d.Sites, d.Members),
 		csrf:                      middleware.NewCSRF(d.Cfg.CookieSigningKey),
 		accounts:                  d.Accounts,

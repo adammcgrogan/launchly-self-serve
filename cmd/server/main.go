@@ -88,14 +88,23 @@ func main() {
 	domains := service.NewDomains(store, cf, cfg.CloudflareFallbackOrigin, cfg.Domain)
 	members := service.NewMembers(store, mailer, baseURL)
 
+	superadminSvc := service.NewSuperadmin(store)
+	if err := superadminSvc.Bootstrap(context.Background(), cfg.SuperadminBootstrapEmail, cfg.SuperadminBootstrapPassword); err != nil {
+		// Non-fatal: an admin account already existing (or bootstrap vars
+		// left unset after the first admin is created) is the normal
+		// steady state, so a bootstrap error shouldn't take the server
+		// down — it just means superadmin login won't work until fixed.
+		slog.Error("superadmin bootstrap failed", "error", err)
+	}
+
 	secureCookies := !strings.Contains(cfg.Domain, "localhost")
 	auth := middleware.NewAuth(cfg.SupabaseJWTSecret, supa, secureCookies)
-	superadmin := middleware.NewSuperadmin(cfg.SuperadminPassword, cfg.CookieSigningKey, secureCookies)
+	superadmin := middleware.NewSuperadmin(cfg.CookieSigningKey, secureCookies)
 
 	h, err := web.New(web.Deps{
 		Cfg: cfg, Store: store,
 		Accounts: accounts, Sites: sites, Billing: billing, Leads: leads, Analytics: analytics, Cron: cron, Domains: domains, Uploads: uploads, Members: members, AI: aiClient,
-		Auth: auth, Superadmin: superadmin,
+		Auth: auth, Superadmin: superadmin, SuperadminSvc: superadminSvc,
 	})
 	if err != nil {
 		slog.Error("handler init failed", "error", err)
