@@ -1,11 +1,81 @@
 package middleware
 
 import (
+	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 )
+
+// cloudflareRanges are Cloudflare's published edge IP ranges (see
+// https://www.cloudflare.com/ips-v4 and https://www.cloudflare.com/ips-v6).
+// They're hard-coded rather than fetched at runtime to avoid making an
+// external HTTP call a dependency of every request; Cloudflare updates these
+// infrequently, but the list should be refreshed periodically against the
+// URLs above.
+var cloudflareRanges = mustParseCIDRs([]string{
+	// IPv4
+	"173.245.48.0/20",
+	"103.21.244.0/22",
+	"103.22.200.0/22",
+	"103.31.4.0/22",
+	"141.101.64.0/18",
+	"108.162.192.0/18",
+	"190.93.240.0/20",
+	"188.114.96.0/20",
+	"197.234.240.0/22",
+	"198.41.128.0/17",
+	"162.158.0.0/15",
+	"104.16.0.0/13",
+	"104.24.0.0/14",
+	"172.64.0.0/13",
+	"131.0.72.0/22",
+	// IPv6
+	"2400:cb00::/32",
+	"2606:4700::/32",
+	"2803:f800::/32",
+	"2405:b500::/32",
+	"2405:8100::/32",
+	"2a06:98c0::/29",
+	"2c0f:f248::/32",
+})
+
+func mustParseCIDRs(cidrs []string) []*net.IPNet {
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, c := range cidrs {
+		_, n, err := net.ParseCIDR(c)
+		if err != nil {
+			panic("middleware: invalid Cloudflare CIDR " + c + ": " + err.Error())
+		}
+		nets = append(nets, n)
+	}
+	return nets
+}
+
+// isCloudflareIP reports whether ip falls within one of Cloudflare's
+// published edge IP ranges.
+func isCloudflareIP(ip net.IP) bool {
+	if ip == nil {
+		return false
+	}
+	for _, n := range cloudflareRanges {
+		if n.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// remoteAddrIP returns the IP portion of r.RemoteAddr, stripping the port
+// and any IPv6 brackets. Falls back to the raw value if it has no port.
+func remoteAddrIP(remoteAddr string) string {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return remoteAddr
+	}
+	return host
+}
 
 // RateLimiter is a fixed-window, in-memory rate limiter keyed by an
 // arbitrary string. Stale windows are cleaned up periodically so memory
@@ -67,19 +137,27 @@ func (rl *RateLimiter) cleanup() {
 	}
 }
 
-// ClientIP extracts the real client IP from the request, respecting Cloudflare headers.
+// ClientIP extracts the real client IP from the request. CF-Connecting-IP
+// and X-Forwarded-For are client-controllable headers, so they're only
+// trusted when the request's immediate peer (r.RemoteAddr) is a known
+// Cloudflare edge IP — otherwise anyone reaching the origin directly (or a
+// hop before Cloudflare) could forge them to get a fresh rate-limit bucket
+// on every request. When the peer isn't Cloudflare, RemoteAddr alone is
+// used as the client IP.
 func ClientIP(r *http.Request) string {
-	if ip := r.Header.Get("CF-Connecting-IP"); ip != "" {
-		return ip
-	}
-	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
-		if i := strings.Index(ip, ","); i != -1 {
-			return strings.TrimSpace(ip[:i])
+	peer := remoteAddrIP(r.RemoteAddr)
+
+	if isCloudflareIP(net.ParseIP(peer)) {
+		if ip := r.Header.Get("CF-Connecting-IP"); ip != "" {
+			return strings.TrimSpace(ip)
 		}
-		return strings.TrimSpace(ip)
+		if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
+			if i := strings.Index(ip, ","); i != -1 {
+				return strings.TrimSpace(ip[:i])
+			}
+			return strings.TrimSpace(ip)
+		}
 	}
-	if i := strings.LastIndex(r.RemoteAddr, ":"); i != -1 {
-		return r.RemoteAddr[:i]
-	}
-	return r.RemoteAddr
+
+	return peer
 }
