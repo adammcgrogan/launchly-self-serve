@@ -104,6 +104,14 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	)
 	needsDomainRefresh := site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending
 
+	// siteView is a private copy of the aggregate for this request to render
+	// from. site itself may be the same *domain.SiteAggregate pointer Sites'
+	// 15s aggregate cache is concurrently handing to other requests (another
+	// dashboard tab, or the public site renderer) — mutating fields on it
+	// in place below (custom-domain status) would race with those readers.
+	// See #247.
+	siteView := *site
+
 	g, gctx := errgroup.WithContext(r.Context())
 	g.Go(func() (err error) {
 		leads, leadTotal, err = h.leads.ListBySiteFiltered(gctx, site.ID, leadStatus, leadSearch, leadPage)
@@ -130,9 +138,9 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 			if hostname, err := h.domains.RefreshCustomDomainStatus(gctx, site.ID); err == nil {
 				domainHostname = hostname
 				if hostname.Active() {
-					site.CustomDomainStatus = domain.CustomDomainActive
+					siteView.CustomDomainStatus = domain.CustomDomainActive
 				} else if hostname.Failed() {
-					site.CustomDomainStatus = domain.CustomDomainFailed
+					siteView.CustomDomainStatus = domain.CustomDomainFailed
 				}
 			}
 			return nil
@@ -145,28 +153,28 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 
 	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
 
-	tmpl, _ := findTemplate(site.TemplateID)
-	checklist, checklistPercent := siteChecklist(site)
+	tmpl, _ := findTemplate(siteView.TemplateID)
+	checklist, checklistPercent := siteChecklist(&siteView)
 
 	domainData := map[string]any{
 		"FallbackOrigin": h.domains.FallbackOrigin(),
-		"IsPro":          site.Billing.IsPro(),
+		"IsPro":          siteView.Billing.IsPro(),
 	}
 	if domainHostname != nil {
 		domainData["Hostname"] = domainHostname
 	}
 
 	var trialDaysLeft int
-	showTrialBanner := site.Billing.PaymentStatus == domain.PaymentStatusTrialing && site.Billing.TrialEndsAt != nil
+	showTrialBanner := siteView.Billing.PaymentStatus == domain.PaymentStatusTrialing && siteView.Billing.TrialEndsAt != nil
 	if showTrialBanner {
-		trialDaysLeft = int(math.Ceil(time.Until(*site.Billing.TrialEndsAt).Hours() / 24))
+		trialDaysLeft = int(math.Ceil(time.Until(*siteView.Billing.TrialEndsAt).Hours() / 24))
 		if trialDaysLeft < 0 {
 			trialDaysLeft = 0
 		}
 	}
 
 	h.render.Render(w, "dashboard:site", map[string]any{
-		"Site":            site,
+		"Site":            &siteView,
 		"Leads":           leads,
 		"LeadCount":       leadCounts.Total,
 		"NewLeadCount":    leadCounts.New,
@@ -182,7 +190,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"ChartPoints":     chartPoints,
 		"Period":          period.Key,
 		"Periods":         analyticsPeriods,
-		"SiteURL":         h.siteURL(site.Slug),
+		"SiteURL":         h.siteURL(siteView.Slug),
 		"Flash":           middleware.GetFlash(w, r),
 		"CSRFToken":       h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
 		"Upgraded":        r.URL.Query().Get("upgraded") == "1",
@@ -196,17 +204,17 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Design":           tmpl,
 		"Templates":        siteTemplates,
 		"Palettes":         tmpl.Palettes,
-		"Socials":          socialLinksMap(site.SocialLinks),
-		"ServiceRows":      serviceRowsForDisplay(site.Services),
-		"CertRows":         certificationRowsForDisplay(site.Certifications),
-		"AreaRows":         serviceAreaRowsForDisplay(site.ServiceAreas),
-		"Reviews":          site.Reviews,
-		"TestimonialRows":  testimonialRowsForDisplay(site.Testimonials),
-		"GalleryRows":      galleryRowsForDisplay(site.GalleryImages),
-		"FAQRows":          faqRowsForDisplay(site.FAQItems),
-		"StaffRows":        staffRowsForDisplay(site.StaffMembers),
-		"HoursByDay":       businessHoursByDay(site.BusinessHours),
-		"SpecialHoursRows": specialHoursRowsForDisplay(site.SpecialHours),
+		"Socials":          socialLinksMap(siteView.SocialLinks),
+		"ServiceRows":      serviceRowsForDisplay(siteView.Services),
+		"CertRows":         certificationRowsForDisplay(siteView.Certifications),
+		"AreaRows":         serviceAreaRowsForDisplay(siteView.ServiceAreas),
+		"Reviews":          siteView.Reviews,
+		"TestimonialRows":  testimonialRowsForDisplay(siteView.Testimonials),
+		"GalleryRows":      galleryRowsForDisplay(siteView.GalleryImages),
+		"FAQRows":          faqRowsForDisplay(siteView.FAQItems),
+		"StaffRows":        staffRowsForDisplay(siteView.StaffMembers),
+		"HoursByDay":       businessHoursByDay(siteView.BusinessHours),
+		"SpecialHoursRows": specialHoursRowsForDisplay(siteView.SpecialHours),
 		"Weekdays":         weekdays,
 		"Timezones":        timezones,
 		"Domain":           h.cfg.Domain,
