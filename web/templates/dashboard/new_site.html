@@ -333,6 +333,119 @@
 
     var TEMPLATE_DEFAULT_FONT = { meridian: 'serif' };
 
+    var DRAFT_KEY = 'launchly:new-site-draft';
+
+    function serializeDraft() {
+      var fields = {};
+      form.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
+        if (el.name === 'csrf_token') return;
+        if (el.closest('[data-service-row]') || el.closest('[data-testimonial-row]')) return;
+        if (el.type === 'radio' || el.type === 'checkbox') {
+          if (el.checked) fields[el.name] = el.value;
+        } else {
+          fields[el.name] = el.value;
+        }
+      });
+
+      var services = [];
+      form.querySelectorAll('[data-service-row]').forEach(function (row) {
+        services.push({
+          label: row.querySelector('[name="service_label"]').value,
+          price: row.querySelector('[name="service_price"]').value,
+          description: row.querySelector('[name="service_description"]').value,
+        });
+      });
+
+      var testimonials = [];
+      form.querySelectorAll('[data-testimonial-row]').forEach(function (row) {
+        testimonials.push({
+          name: row.querySelector('[name="testimonial_name"]').value,
+          role: row.querySelector('[name="testimonial_role"]').value,
+          quote: row.querySelector('[name="testimonial_quote"]').value,
+        });
+      });
+
+      return { step: current, fields: fields, services: services, testimonials: testimonials };
+    }
+
+    function saveDraft() {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(serializeDraft()));
+      } catch (e) { /* localStorage unavailable — ignore */ }
+    }
+
+    function clearDraft() {
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+    }
+
+    function growRows(list, rowSelector, count) {
+      var rows = list.querySelectorAll(rowSelector);
+      while (rows.length < count) {
+        var clone = rows[rows.length - 1].cloneNode(true);
+        clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+        list.appendChild(clone);
+        rows = list.querySelectorAll(rowSelector);
+      }
+      return list.querySelectorAll(rowSelector);
+    }
+
+    function restoreDraft() {
+      var raw;
+      try { raw = localStorage.getItem(DRAFT_KEY); } catch (e) { return 0; }
+      if (!raw) return 0;
+      var draft;
+      try { draft = JSON.parse(raw); } catch (e) { return 0; }
+      if (!draft || !draft.fields) return 0;
+
+      Object.keys(draft.fields).forEach(function (name) {
+        var value = draft.fields[name];
+        form.querySelectorAll('[name="' + name + '"]').forEach(function (el) {
+          if (el.closest('[data-service-row]') || el.closest('[data-testimonial-row]')) return;
+          if (el.type === 'radio') {
+            el.checked = (el.value === value);
+          } else if (el.type === 'checkbox') {
+            el.checked = true;
+          } else {
+            el.value = value;
+          }
+        });
+      });
+
+      if (draft.services && draft.services.length) {
+        var sList = form.querySelector('[data-service-list]');
+        var sRows = growRows(sList, '[data-service-row]', draft.services.length);
+        sRows.forEach(function (row, i) {
+          var s = draft.services[i];
+          if (!s) return;
+          row.querySelector('[name="service_label"]').value = s.label || '';
+          row.querySelector('[name="service_price"]').value = s.price || '';
+          row.querySelector('[name="service_description"]').value = s.description || '';
+        });
+      }
+
+      if (draft.testimonials && draft.testimonials.length) {
+        var tList = form.querySelector('[data-testimonial-list]');
+        var tRows = growRows(tList, '[data-testimonial-row]', draft.testimonials.length);
+        tRows.forEach(function (row, i) {
+          var t = draft.testimonials[i];
+          if (!t) return;
+          row.querySelector('[name="testimonial_name"]').value = t.name || '';
+          row.querySelector('[name="testimonial_role"]').value = t.role || '';
+          row.querySelector('[name="testimonial_quote"]').value = t.quote || '';
+        });
+      }
+
+      return Number(draft.step) || 0;
+    }
+
+    var saveDraftTimer = null;
+    function scheduleSaveDraft() {
+      if (saveDraftTimer) clearTimeout(saveDraftTimer);
+      saveDraftTimer = setTimeout(saveDraft, 250);
+    }
+    form.addEventListener('input', scheduleSaveDraft);
+    form.addEventListener('change', scheduleSaveDraft);
+
     function slugify(s) {
       return s.toLowerCase().replace(/['\x60]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'yourbusiness';
     }
@@ -364,6 +477,7 @@
         }
       });
       current = n;
+      saveDraft();
       var rect = form.getBoundingClientRect();
       window.scrollTo({ top: rect.top + window.scrollY - 24, behavior: 'smooth' });
     }
@@ -499,6 +613,7 @@
         btn.classList.add('border-brand', 'ring-2', 'ring-brand/20', 'text-brand');
         document.getElementById('field-heading_font').value = btn.getAttribute('data-heading-font');
         updatePreviewFont();
+        saveDraft();
       });
     });
 
@@ -506,6 +621,7 @@
       var tmplID = activeTemplateID();
       var checkedPalette = tmplID && form.querySelector('[data-palette-radio][data-template="' + tmplID + '"]:checked');
       document.getElementById('field-palette').value = checkedPalette ? checkedPalette.value : '';
+      clearDraft();
     });
 
     var testimonialList = document.querySelector('[data-testimonial-list]');
@@ -552,12 +668,33 @@
     });
     updateServiceRemoveButtons();
 
+    var restoredStep = restoreDraft();
+    if (restoredStep) templateTouched = true;
+    updateServiceRemoveButtons();
+    updateTestimonialRemoveButtons();
+
+    var restoredTmpl = activeTemplateID();
+    if (restoredTmpl) {
+      document.querySelectorAll('[data-palette-group]').forEach(function (g) {
+        g.classList.toggle('hidden', g.getAttribute('data-palette-group') !== restoredTmpl);
+      });
+    }
+    document.querySelectorAll('[data-heading-font]').forEach(function (btn) {
+      var isActive = btn.getAttribute('data-heading-font') === document.getElementById('field-heading_font').value;
+      btn.classList.toggle('border-brand', isActive);
+      btn.classList.toggle('ring-2', isActive);
+      btn.classList.toggle('ring-brand/20', isActive);
+      btn.classList.toggle('text-brand', isActive);
+      btn.classList.toggle('border-slate-200', !isActive);
+      btn.classList.toggle('text-slate-700', !isActive);
+    });
+
     updateSlugAndHeading();
     updatePalettePreview();
     updatePreviewFont();
     refreshTemplateVisibility();
-    var errorStep = Number(form.getAttribute('data-error-step')) || 1;
-    showStep(errorStep);
+    var serverErrorStep = Number(form.getAttribute('data-error-step')) || 0;
+    showStep(serverErrorStep || restoredStep || 1);
 
     form.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-generate]');
@@ -613,6 +750,7 @@
       }).then(function (data) {
         target.value = data.text || '';
         if (field === 'tagline') updateSlugAndHeading();
+        saveDraft();
         btn.textContent = originalLabel;
       }).catch(function () {
         flash("Couldn't generate, try again");
@@ -652,6 +790,7 @@
         } else {
           target.value = url;
         }
+        target.dispatchEvent(new Event('input', { bubbles: true }));
       }
       function next(i) {
         if (i >= files.length) {
