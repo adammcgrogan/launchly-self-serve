@@ -1084,6 +1084,16 @@ const (
 	ActorSuperadmin = "superadmin"
 )
 
+// guardPublishTransition rejects a Publish/Unpublish attempt on a paused
+// site — pulled out of both call sites so the transition rule itself is
+// unit-testable without a database.
+func guardPublishTransition(status domain.SiteStatus) error {
+	if status == domain.SiteStatusPaused {
+		return ErrSitePaused
+	}
+	return nil
+}
+
 // Publish and Unpublish let an owner take their own site up/down at will —
 // there is no admin approval gate on either direction. A paused site is the
 // exception: it can only come back via checkout (see ErrSitePaused).
@@ -1095,8 +1105,8 @@ func (s *Sites) Publish(ctx context.Context, siteID int) error {
 	if site == nil {
 		return fmt.Errorf("site %d not found", siteID)
 	}
-	if site.Status == domain.SiteStatusPaused {
-		return ErrSitePaused
+	if err := guardPublishTransition(site.Status); err != nil {
+		return err
 	}
 	err = postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusLive)
 	if err == nil {
@@ -1116,8 +1126,8 @@ func (s *Sites) Unpublish(ctx context.Context, siteID int, actor string) error {
 	if site == nil {
 		return fmt.Errorf("site %d not found", siteID)
 	}
-	if site.Status == domain.SiteStatusPaused {
-		return ErrSitePaused
+	if err := guardPublishTransition(site.Status); err != nil {
+		return err
 	}
 	err = postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusDraft)
 	if err == nil {
