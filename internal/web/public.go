@@ -14,7 +14,8 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Pricing(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "pricing", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "pricing", map[string]any{"LoggedIn": loggedIn})
 }
 
 func (h *Handler) TemplatesPage(w http.ResponseWriter, r *http.Request) {
@@ -24,35 +25,43 @@ func (h *Handler) TemplatesPage(w http.ResponseWriter, r *http.Request) {
 			demoURLs[templateID] = h.siteURL(slug)
 		}
 	}
-	h.render.Render(w, "templates", map[string]any{"Templates": siteTemplates, "DemoURLs": demoURLs})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "templates", map[string]any{"Templates": siteTemplates, "DemoURLs": demoURLs, "LoggedIn": loggedIn})
 }
 
 func (h *Handler) Privacy(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "privacy", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "privacy", map[string]any{"LoggedIn": loggedIn})
 }
 
 func (h *Handler) Terms(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "terms", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "terms", map[string]any{"LoggedIn": loggedIn})
 }
 
 func (h *Handler) Help(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "help", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "help", map[string]any{"LoggedIn": loggedIn})
 }
 
 func (h *Handler) HelpCustomDomain(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "help_custom_domain", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "help_custom_domain", map[string]any{"LoggedIn": loggedIn})
 }
 
 func (h *Handler) HelpAddress(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "help_address", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "help_address", map[string]any{"LoggedIn": loggedIn})
 }
 
 func (h *Handler) HelpSwitchTemplate(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "help_switch_template", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "help_switch_template", map[string]any{"LoggedIn": loggedIn})
 }
 
 func (h *Handler) HelpAppearance(w http.ResponseWriter, r *http.Request) {
-	h.render.Render(w, "help_appearance", map[string]any{})
+	_, loggedIn := h.auth.CheckUser(w, r)
+	h.render.Render(w, "help_appearance", map[string]any{"LoggedIn": loggedIn})
 }
 
 // Robots serves /robots.txt, keeping crawlers out of the gated app/auth
