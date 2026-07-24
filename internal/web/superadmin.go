@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
@@ -31,11 +32,19 @@ func (h *Handler) SuperadminLoginSubmit(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	h.superadmin.SetSession(w)
-	next := r.FormValue("next")
-	if next == "" {
-		next = "/superadmin"
+	http.Redirect(w, r, safeSuperadminNext(r.FormValue("next")), http.StatusSeeOther)
+}
+
+// safeSuperadminNext validates a post-login redirect target, only honoring
+// it when it's a same-app path under /superadmin — mirroring the
+// /dashboard prefix guard in auth.go — so a crafted next= query param can't
+// bounce an authenticated superadmin off to an attacker-controlled host
+// (open redirect / phishing vector; see #246).
+func safeSuperadminNext(next string) string {
+	if next == "" || !strings.HasPrefix(next, "/superadmin") {
+		return "/superadmin"
 	}
-	http.Redirect(w, r, next, http.StatusSeeOther)
+	return next
 }
 
 func (h *Handler) SuperadminLogout(w http.ResponseWriter, r *http.Request) {
