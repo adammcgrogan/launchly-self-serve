@@ -96,7 +96,8 @@ func billingRows(siteID int, plan domain.Plan) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
 		"site_id", "plan", "payment_status", "stripe_customer_id", "stripe_session_id", "stripe_subscription_id",
 		"paid_at", "trial_ends_at", "trial_reminder_sent_at", "trial_final_reminder_sent_at",
-	}).AddRow(siteID, string(plan), "pending", "", "sess1", "", nil, nil, nil, nil)
+		"payment_failed_at", "dunning_reminder_1_sent_at", "dunning_reminder_2_sent_at", "dunning_final_warning_sent_at",
+	}).AddRow(siteID, string(plan), "pending", "", "sess1", "", nil, nil, nil, nil, nil, nil, nil, nil)
 }
 
 func TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSiteAndNotifies(t *testing.T) {
@@ -239,6 +240,9 @@ func TestHandleWebhookEvent_PaymentFailed_NotifiesOwnerAndAdmin(t *testing.T) {
 	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
 		WithArgs("sub1").
 		WillReturnRows(billingRows(42, domain.PlanPro))
+	mock.ExpectExec("UPDATE site_billing SET payment_status = 'past_due'").
+		WithArgs("sub1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery("FROM sites WHERE id").
 		WithArgs(42).
 		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusLive))
