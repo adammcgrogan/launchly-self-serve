@@ -363,9 +363,9 @@ var weekdays = []weekdayField{
 // timezone select, covering Launchly's UK/Ireland target market plus the
 // other zones a small business is most likely to actually need.
 var timezones = []string{
-	"Europe/London", "Europe/Dublin", "Europe/Paris", "Europe/Madrid", "Europe/Berlin",
-	"America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
-	"Australia/Sydney",
+	"Europe/London", "Europe/Dublin", "Europe/Paris", "Europe/Madrid", "Europe/Berlin", "Europe/Rome",
+	"America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Toronto",
+	"Australia/Sydney", "Australia/Melbourne", "Pacific/Auckland",
 }
 
 // parseBusinessHours reads the 7-day opening-hours grid off the request —
