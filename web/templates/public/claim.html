@@ -3,81 +3,11 @@
 <section class="relative overflow-hidden">
   <div class="absolute inset-0 -z-10 bg-gradient-to-b from-indigo-100 via-violet-50 to-white pointer-events-none"></div>
   <div class="absolute -top-24 left-1/2 -translate-x-1/2 -z-10 w-[820px] h-[440px] bg-[radial-gradient(closest-side,rgba(129,140,248,0.45),transparent)] pointer-events-none"></div>
-  <div class="absolute top-10 right-0 -z-10 w-[480px] h-[360px] bg-[radial-gradient(closest-side,rgba(251,191,36,0.28),transparent)] pointer-events-none"></div>
 
-  <div class="relative max-w-3xl mx-auto px-6 pt-24 pb-14 md:pt-32 text-center">
-    <p class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-emerald-700">Address available</p>
-    <h1 class="mt-6 font-display text-4xl sm:text-5xl font-bold leading-[1.05] text-slate-900">
-      <span class="text-brand">{{.Slug}}</span>.launchly.ltd is yours for the taking.
-    </h1>
-    <p class="mt-6 text-lg text-slate-600 max-w-xl mx-auto">
-      Sign up, pick a design, add your details, and it's live on the internet in minutes. No one reviews it. No one approves it. It's yours.
-    </p>
-    <div class="mt-10 flex flex-wrap justify-center gap-4">
-      <a href="{{.SignupURL}}" class="inline-flex items-center rounded-full bg-brand px-8 py-4 text-base font-semibold text-white hover:bg-brand-dark transition">Claim this address</a>
-    </div>
-    <p class="mt-6 text-sm text-slate-500">7-day free trial &middot; from £9/mo &middot; cancel any time</p>
-  </div>
-
-  <div class="relative max-w-2xl mx-auto px-6 pb-24">
-    <div class="rounded-2xl border border-slate-200 shadow-2xl shadow-slate-300/50 overflow-hidden bg-white">
-      <div class="flex items-center gap-1.5 px-4 py-3 bg-slate-50 border-b border-slate-200">
-        <span class="w-3 h-3 rounded-full bg-red-300"></span>
-        <span class="w-3 h-3 rounded-full bg-amber-300"></span>
-        <span class="w-3 h-3 rounded-full bg-emerald-300"></span>
-        <span class="ml-4 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
-          <svg class="w-3 h-3 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          {{.Slug}}.launchly.ltd
-        </span>
-      </div>
-      <div class="bg-slate-950 text-white px-6 sm:px-10 py-14 text-center">
-        <p class="text-amber-400 text-xs font-semibold uppercase tracking-widest">This could be you</p>
-        <p class="mt-3 font-display text-2xl sm:text-3xl font-bold leading-tight">Your business, live at this address.</p>
-        <p class="mt-3 text-slate-400 text-sm">A real website, not a placeholder page, built in the time it takes to fill out a form.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="border-t border-indigo-100 bg-gradient-to-b from-indigo-50 to-white">
-  <div class="max-w-5xl mx-auto px-6 py-24">
-    <div class="text-center max-w-2xl mx-auto">
-      <h2 class="font-display text-3xl sm:text-4xl font-bold text-slate-900">What happens next</h2>
-      <p class="mt-3 text-slate-500">No sales call, no proposal, no waiting on a designer to get back to you.</p>
-    </div>
-    <div class="mt-16 grid md:grid-cols-3 gap-8">
-      <div class="rounded-2xl bg-white border border-indigo-100 shadow-sm shadow-indigo-100/50 p-8">
-        <div class="flex items-baseline gap-3">
-          <span class="font-display text-2xl font-bold text-brand">01</span>
-          <span class="h-px flex-1 bg-indigo-100"></span>
-        </div>
-        <h3 class="mt-5 font-semibold text-lg text-slate-900">Create your account</h3>
-        <p class="mt-2 text-slate-600">Sign up with your email. Ten seconds, no card needed, 7 days free.</p>
-      </div>
-      <div class="rounded-2xl bg-white border border-indigo-100 shadow-sm shadow-indigo-100/50 p-8">
-        <div class="flex items-baseline gap-3">
-          <span class="font-display text-2xl font-bold text-brand">02</span>
-          <span class="h-px flex-1 bg-indigo-100"></span>
-        </div>
-        <h3 class="mt-5 font-semibold text-lg text-slate-900">Add your details</h3>
-        <p class="mt-2 text-slate-600">Pick a design and fill in your services, hours, and photos. Stuck for words? Let Launchly draft your copy.</p>
-      </div>
-      <div class="rounded-2xl bg-white border border-indigo-100 shadow-sm shadow-indigo-100/50 p-8">
-        <div class="flex items-baseline gap-3">
-          <span class="font-display text-2xl font-bold text-brand">03</span>
-          <span class="h-px flex-1 bg-indigo-100"></span>
-        </div>
-        <h3 class="mt-5 font-semibold text-lg text-slate-900">You're live</h3>
-        <p class="mt-2 text-slate-600"><span class="font-semibold text-slate-900">{{.Slug}}.launchly.ltd</span> goes live the moment you finish. Edit anything, any time, from your dashboard.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="border-t border-slate-100">
-  <div class="max-w-3xl mx-auto px-6 py-24 text-center">
-    <h2 class="font-display text-3xl font-bold text-slate-900">Someone else might type this address next.</h2>
-    <p class="mt-4 text-lg text-slate-600">Claim <span class="font-semibold text-slate-900">{{.Slug}}.launchly.ltd</span> before it's gone.</p>
+  <div class="relative max-w-lg mx-auto px-6 pt-32 pb-32 text-center">
+    <p class="font-display text-2xl font-bold text-brand">{{.Slug}}.launchly.ltd</p>
+    <h1 class="mt-4 font-display text-3xl sm:text-4xl font-bold text-slate-900">This address is available</h1>
+    <p class="mt-3 text-slate-600">Put your business here in minutes. No approval, no waiting — sign up and go live instantly.</p>
     <a href="{{.SignupURL}}" class="mt-8 inline-flex items-center rounded-full bg-brand px-8 py-4 text-base font-semibold text-white hover:bg-brand-dark transition">Claim this address</a>
     <p class="mt-6 text-sm text-slate-500">7-day free trial &middot; from £9/mo &middot; cancel any time</p>
   </div>
