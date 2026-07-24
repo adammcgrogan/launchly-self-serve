@@ -305,6 +305,18 @@ func analyticsPeriodFromKey(key string) analyticsPeriodOpt {
 	return analyticsPeriods[0]
 }
 
+// siteAnalyticsLocation loads the site's IANA timezone, falling back to UTC
+// for an unset/invalid zone — this must match GetSiteStats' own fallback
+// (internal/repository/postgres/analytics.go) so the day buckets the SQL
+// computes and the day keys derived from them on the Go side agree.
+func siteAnalyticsLocation(timezone string) *time.Location {
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}
+
 func (p analyticsPeriodOpt) since(siteCreatedAt time.Time) time.Time {
 	if p.Days == 0 {
 		cutoff := time.Now().UTC().Add(-maxAnalyticsPeriodDays * 24 * time.Hour)
@@ -325,7 +337,7 @@ func (h *Handler) analyticsCardStats(ctx context.Context, site *domain.Site, per
 	stats, _ := h.analytics.GetSiteStats(ctx, site.ID, period.since(site.CreatedAt), site.Timezone)
 	var chartPoints []dailyViewPoint
 	if stats != nil && period.Days > 0 {
-		chartPoints = lastNDayPoints(stats.ViewsByDay, period.Days)
+		chartPoints = lastNDayPoints(stats.ViewsByDay, period.Days, siteAnalyticsLocation(site.Timezone))
 	}
 	return stats, chartPoints, period
 }
@@ -351,17 +363,28 @@ func (h *Handler) SiteAnalyticsCard(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// dayKey formats t as its calendar-date key ("2006-01-02") in loc. GetSiteStats
+// buckets days by the site's own timezone (each domain.DayCount.Day is the
+// instant of local midnight), so callers must key/look up with the same loc
+// the stats query used — keying in UTC instead would shift the date by a day
+// for any site whose timezone isn't UTC.
+func dayKey(t time.Time, loc *time.Location) string {
+	return t.In(loc).Format("2006-01-02")
+}
+
 // lastNDayPoints turns ViewsByDay — which only has rows for days that had at
 // least one view — into a dense n-day series ending today, so the chart
 // always renders n bars in the right position instead of shifting to fill
-// gaps. Bar heights are scaled against the period's own peak day.
-func lastNDayPoints(viewsByDay []domain.DayCount, n int) []dailyViewPoint {
+// gaps. Bar heights are scaled against the period's own peak day. loc must be
+// the same location GetSiteStats bucketed ViewsByDay with (the site's own
+// timezone), or the day keys won't line up.
+func lastNDayPoints(viewsByDay []domain.DayCount, n int, loc *time.Location) []dailyViewPoint {
 	counts := make(map[string]int, len(viewsByDay))
 	for _, dc := range viewsByDay {
-		counts[dc.Day.UTC().Format("2006-01-02")] = dc.Count
+		counts[dayKey(dc.Day, loc)] = dc.Count
 	}
 
-	now := time.Now().UTC()
+	now := time.Now().In(loc)
 	points := make([]dailyViewPoint, n)
 	max := 0
 	for i := range points {
@@ -534,8 +557,9 @@ func (h *Handler) ExportAnalytics(w http.ResponseWriter, r *http.Request) {
 	cw.Write([]string{"Leads", strconv.Itoa(stats.Leads)})
 	cw.Write([]string{})
 	cw.Write([]string{"Day", "Views"})
+	loc := siteAnalyticsLocation(site.Timezone)
 	for _, d := range stats.ViewsByDay {
-		cw.Write([]string{d.Day.Format("2006-01-02"), strconv.Itoa(d.Count)})
+		cw.Write([]string{dayKey(d.Day, loc), strconv.Itoa(d.Count)})
 	}
 	cw.Write([]string{})
 	cw.Write([]string{"Referrer", "Views"})
