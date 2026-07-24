@@ -12,6 +12,20 @@
   <style>body{font-family:'Inter',sans-serif;}</style>
 </head>
 <body class="bg-white text-slate-900 antialiased">
+  <script>
+  (function () {
+    // Supabase's recovery email always lands here with the token in the URL
+    // fragment (Site URL overrides our requested redirect_to), instead of on
+    // /reset-password where the token is actually handled. If we detect a
+    // recovery hash, bounce there client-side before anything else loads.
+    var hash = window.location.hash;
+    if (!hash) return;
+    var params = new URLSearchParams(hash.replace(/^#/, ''));
+    if (params.get('type') === 'recovery' && params.get('access_token')) {
+      window.location.replace('/reset-password' + hash);
+    }
+  })();
+  </script>
   <header class="border-b border-slate-100 sticky top-0 z-40 bg-white/90 backdrop-blur">
     <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
       <a href="/" class="font-display text-xl font-bold text-slate-900">Launchly</a>
