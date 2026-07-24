@@ -13,7 +13,11 @@
 <div class="flex flex-wrap items-start justify-between gap-4 mb-8">
   <div>
     <h1 class="font-display text-2xl font-bold text-slate-900">{{.Site.BusinessName}}</h1>
+    {{if eq (print .Site.Status) "live"}}
     <a href="{{.SiteURL}}" target="_blank" class="text-brand text-sm font-medium">{{.SiteURL}} ↗</a>
+    {{else}}
+    <a href="/dashboard/sites/{{.Site.Slug}}/preview" target="_blank" class="text-brand text-sm font-medium">Preview site ↗</a>
+    {{end}}
   </div>
   <span class="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Site.Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">{{.Site.Status}}</span>
 </div>

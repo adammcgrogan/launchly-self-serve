@@ -45,6 +45,12 @@
 </head>
 <body class="antialiased">
   <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg" style="background:var(--accent,#4338CA);color:var(--accent-ink,#ffffff);">Skip to main content</a>
+  {{if .Preview}}
+  <div class="flex items-center justify-center gap-3 text-center text-sm font-medium px-4 py-2.5" style="background:#0f172a;color:#ffffff;">
+    <span>Preview mode — this site is {{.Site.Status}} and isn't visible to the public.</span>
+    <a href="/dashboard/sites/{{.Site.Slug}}" class="underline font-semibold whitespace-nowrap">Back to dashboard</a>
+  </div>
+  {{end}}
   {{if .Site.Announcement.Active}}
   <div
     id="announcement-banner"
