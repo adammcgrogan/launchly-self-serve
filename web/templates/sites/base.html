@@ -33,7 +33,7 @@
     fbq('init', '{{.Site.Analytics.MetaPixelID}}');
     fbq('track', 'PageView');
   </script>
-  <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{.Site.Analytics.MetaPixelID}}&ev=PageView&noscript=1"/></noscript>
+  <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{.Site.Analytics.MetaPixelID}}&ev=PageView&noscript=1" alt=""/></noscript>
   {{end}}
   <link rel="stylesheet" href="/static/css/app.css">
   {{template "theme" .}}
@@ -44,6 +44,7 @@
   {{end}}
 </head>
 <body class="antialiased">
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg" style="background:var(--accent,#4338CA);color:var(--accent-ink,#ffffff);">Skip to main content</a>
   {{if .Site.Announcement.Active}}
   <div
     id="announcement-banner"
@@ -74,6 +75,7 @@
   })();
   </script>
   {{end}}
+  <main id="main-content">
   {{template "site-content" .}}
 
   {{if .Site.VideoEmbedURL}}
@@ -138,6 +140,7 @@
     </div>
   </section>
   {{end}}
+  </main>
 
   {{if or .Site.Contact.Phone (index .Socials "whatsapp") .Site.Contact.MapURL}}
   <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t shadow-lg" style="border-color:var(--line);background:var(--surface);">

@@ -5,7 +5,7 @@
   :root{
     --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif;
     {{if eq .Site.Palette "emerald"}}
-      --ink:#0B1D17; --surface:#FFFFFF; --paper:#F4FBF8; --accent:#059669; --accent-ink:#ffffff; --muted:#4B5B55; --line:#D8E8E1;
+      --ink:#0B1D17; --surface:#FFFFFF; --paper:#F4FBF8; --accent:#047857; --accent-ink:#ffffff; --muted:#4B5B55; --line:#D8E8E1;
       --grad:linear-gradient(120deg,#047857,#22D3EE 55%,#A7F3D0);
     {{else if eq .Site.Palette "sunset"}}
       --ink:#241016; --surface:#FFFFFF; --paper:#FFF7F2; --accent:#E11D48; --accent-ink:#ffffff; --muted:#6B4A50; --line:#F3DCD6;
@@ -171,16 +171,21 @@
       </div>
       <form data-lead-form method="POST" action="{{.FormAction}}" class="rounded-2xl p-8 border space-y-4{{if .LeadSent}} hidden{{end}}" style="background:var(--surface);border-color:var(--line);">
         <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
-        <input type="text" name="name" placeholder="Your name" required class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
-        <input type="email" name="email" placeholder="Email" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
-        <input type="tel" name="phone" placeholder="Phone" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <label for="lead-name" class="sr-only">Your name</label>
+        <input type="text" id="lead-name" name="name" placeholder="Your name" required class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <label for="lead-email" class="sr-only">Email</label>
+        <input type="email" id="lead-email" name="email" placeholder="Email" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <label for="lead-phone" class="sr-only">Phone</label>
+        <input type="tel" id="lead-phone" name="phone" placeholder="Phone" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
         {{if or (eq (print .Site.FormType) "booking") .Site.Services}}
-        <select name="service_label" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <label for="lead-service" class="sr-only">What do you need?</label>
+        <select id="lead-service" name="service_label" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
           <option value="">What do you need?</option>
           {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
           <option value="Something else">Something else</option>
         </select>
-        <select name="preferred_time" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <label for="lead-time" class="sr-only">Preferred time</label>
+        <select id="lead-time" name="preferred_time" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
           <option value="">Preferred time</option>
           <option value="Morning">Morning</option>
           <option value="Afternoon">Afternoon</option>
@@ -190,7 +195,8 @@
         {{end}}
         {{if eq (print .Site.FormType) "appointment"}}
         {{if .Site.Services}}
-        <select name="service_label" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <label for="lead-service" class="sr-only">What do you need?</label>
+        <select id="lead-service" name="service_label" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
           <option value="">What do you need?</option>
           {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
           <option value="Something else">Something else</option>
@@ -199,9 +205,11 @@
         <label class="block text-sm" style="color:var(--muted);">Preferred date
           <input type="date" name="preferred_time" class="w-full rounded-lg px-4 py-3 border mt-1" style="border-color:var(--line);">
         </label>
-        <input type="text" name="party_size" placeholder="Party size (optional)" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
+        <label for="lead-party-size" class="sr-only">Party size (optional)</label>
+        <input type="text" id="lead-party-size" name="party_size" placeholder="Party size (optional)" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);">
         {{end}}
-        <textarea name="message" placeholder="Message" rows="4" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);"></textarea>
+        <label for="lead-message" class="sr-only">Message</label>
+        <textarea id="lead-message" name="message" placeholder="Message" rows="4" class="w-full rounded-lg px-4 py-3 border" style="border-color:var(--line);"></textarea>
         <p data-lead-error class="hidden text-sm" style="color:#dc2626;"></p>
         <button type="submit" class="w-full rounded-lg px-6 py-3 font-semibold" style="background:var(--accent);color:var(--accent-ink);">Send message</button>
       </form>

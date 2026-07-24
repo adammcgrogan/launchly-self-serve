@@ -5,7 +5,7 @@
   :root{
     --font-display:'Bebas Neue',sans-serif; --font-body:'Work Sans',sans-serif;
     {{if eq .Site.Palette "citrus"}}
-      --ink:#171410; --surface:#FFFFFF; --paper:#FFFDF7; --accent:#F59E0B; --accent-ink:#171410; --muted:#6B6355; --line:#EDE8D8;
+      --ink:#171410; --surface:#FFFFFF; --paper:#FFFDF7; --accent:#B45309; --accent-ink:#FFFFFF; --muted:#6B6355; --line:#EDE8D8;
     {{else}}
       --ink:#111111; --surface:#FFFFFF; --paper:#FAFAF9; --accent:#E11D2E; --accent-ink:#FFFFFF; --muted:#6B6B6B; --line:#E5E5E0;
     {{end}}
@@ -162,16 +162,21 @@
       </div>
       <form data-lead-form method="POST" action="{{.FormAction}}" class="market-card p-8 space-y-4{{if .LeadSent}} hidden{{end}}">
         <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
-        <input type="text" name="name" placeholder="Your name" required class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
-        <input type="email" name="email" placeholder="Email" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
-        <input type="tel" name="phone" placeholder="Phone" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <label for="lead-name" class="sr-only">Your name</label>
+        <input type="text" id="lead-name" name="name" placeholder="Your name" required class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <label for="lead-email" class="sr-only">Email</label>
+        <input type="email" id="lead-email" name="email" placeholder="Email" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <label for="lead-phone" class="sr-only">Phone</label>
+        <input type="tel" id="lead-phone" name="phone" placeholder="Phone" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
         {{if or (eq (print .Site.FormType) "booking") .Site.Services}}
-        <select name="service_label" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <label for="lead-service" class="sr-only">What are you after?</label>
+        <select id="lead-service" name="service_label" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
           <option value="">What are you after?</option>
           {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
           <option value="Something else">Something else</option>
         </select>
-        <select name="preferred_time" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <label for="lead-time" class="sr-only">Preferred time</label>
+        <select id="lead-time" name="preferred_time" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
           <option value="">Preferred time</option>
           <option value="Morning">Morning</option>
           <option value="Afternoon">Afternoon</option>
@@ -181,7 +186,8 @@
         {{end}}
         {{if eq (print .Site.FormType) "appointment"}}
         {{if .Site.Services}}
-        <select name="service_label" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <label for="lead-service" class="sr-only">What are you after?</label>
+        <select id="lead-service" name="service_label" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
           <option value="">What are you after?</option>
           {{range .Site.Services}}<option value="{{.Label}}">{{.Label}}</option>{{end}}
           <option value="Something else">Something else</option>
@@ -190,9 +196,11 @@
         <label class="block text-sm" style="color:var(--muted);">Preferred date
           <input type="date" name="preferred_time" class="w-full px-4 py-3 border-2 bg-transparent mt-1" style="border-color:var(--line);">
         </label>
-        <input type="text" name="party_size" placeholder="Party size (optional)" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
+        <label for="lead-party-size" class="sr-only">Party size (optional)</label>
+        <input type="text" id="lead-party-size" name="party_size" placeholder="Party size (optional)" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);">
         {{end}}
-        <textarea name="message" placeholder="Message" rows="4" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);"></textarea>
+        <label for="lead-message" class="sr-only">Message</label>
+        <textarea id="lead-message" name="message" placeholder="Message" rows="4" class="w-full px-4 py-3 border-2 bg-transparent" style="border-color:var(--line);"></textarea>
         <p data-lead-error class="hidden text-sm" style="color:#dc2626;"></p>
         <button type="submit" class="w-full px-6 py-3.5 font-bold uppercase" style="background:var(--ink);color:var(--paper);">Send message</button>
       </form>
