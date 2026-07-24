@@ -7,6 +7,7 @@ import (
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
@@ -337,6 +338,16 @@ func SetSiteStatus(ctx context.Context, q querier, id int, status domain.SiteSta
 		_, err := q.ExecContext(ctx, `UPDATE sites SET status = 'draft', updated_at = now() WHERE id = $1`, id)
 		return err
 	}
+}
+
+// SetSitesPaused pauses every given site ID in one round trip, for the
+// trial-pause cron sweep — see GetSitesDueForTrialPause (#218).
+func SetSitesPaused(ctx context.Context, q querier, ids []int) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := q.ExecContext(ctx, `UPDATE sites SET status = 'paused', updated_at = now() WHERE id = ANY($1)`, pq.Array(ids))
+	return err
 }
 
 func DeleteSite(ctx context.Context, q querier, id int) error {

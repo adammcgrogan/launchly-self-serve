@@ -51,24 +51,46 @@ func UpdateAnalyticsLastSent(ctx context.Context, q querier, siteID int) error {
 	return err
 }
 
-// GetSiteIDsDueForAnalytics returns sites whose monthly analytics digest is due.
-func GetSiteIDsDueForAnalytics(ctx context.Context, q querier) ([]int, error) {
+// DueAnalyticsDigest is a site whose monthly analytics digest is due, with
+// the site/owner fields the cron sweep needs already joined in — see
+// GetSitesDueForAnalytics.
+type DueAnalyticsDigest struct {
+	SiteID       int
+	Slug         string
+	BusinessName string
+	Timezone     string
+	NotifyEmail  string
+}
+
+// GetSitesDueForAnalytics returns sites whose monthly analytics digest is
+// due, along with each site's resolved notification email (the account
+// owner's login email, falling back to the site's public contact email —
+// mirroring notifyEmail), joined in here so the cron sweep doesn't need a
+// GetSiteByID/GetSiteContact/GetProfile per ID before building the digest
+// (#218). The per-site stats computation and email send still happen one
+// site at a time — those aren't lookups that can be batched away.
+func GetSitesDueForAnalytics(ctx context.Context, q querier) ([]DueAnalyticsDigest, error) {
 	rows, err := q.QueryContext(ctx, `
-		SELECT site_id FROM site_analytics_settings
-		WHERE analytics_frequency = 'monthly'
-		  AND (analytics_last_sent_at IS NULL OR analytics_last_sent_at < now() - INTERVAL '30 days')
+		SELECT s.id, s.slug, s.business_name, s.timezone,
+		       COALESCE(NULLIF(p.email, ''), c.email, '') AS notify_email
+		FROM site_analytics_settings a
+		JOIN sites s ON s.id = a.site_id
+		LEFT JOIN profiles p ON p.id = s.owner_user_id
+		LEFT JOIN site_contact c ON c.site_id = s.id
+		WHERE a.analytics_frequency = 'monthly'
+		  AND (a.analytics_last_sent_at IS NULL OR a.analytics_last_sent_at < now() - INTERVAL '30 days')
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var ids []int
+	var due []DueAnalyticsDigest
 	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
+		var d DueAnalyticsDigest
+		if err := rows.Scan(&d.SiteID, &d.Slug, &d.BusinessName, &d.Timezone, &d.NotifyEmail); err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		due = append(due, d)
 	}
-	return ids, rows.Err()
+	return due, rows.Err()
 }
