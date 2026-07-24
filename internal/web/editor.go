@@ -336,7 +336,7 @@ func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := detachedContext(r)
 	defer cancel()
-	if err := h.sites.Unpublish(ctx, site.ID); err != nil {
+	if err := h.sites.Unpublish(ctx, site.ID, service.ActorOwner); err != nil {
 		if err == service.ErrSitePaused {
 			middleware.SetFlash(w, err.Error())
 			redirectToSite(w, r, site.Slug)
@@ -354,7 +354,7 @@ func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
 		return
 	}
-	if err := h.sites.Delete(r.Context(), site.ID); err != nil {
+	if err := h.sites.Delete(r.Context(), site.ID, service.ActorOwner); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}

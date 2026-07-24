@@ -153,7 +153,7 @@ func (h *Handler) SuperadminUnpublish(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, "superadmin", "") {
 		return
 	}
-	if err := h.sites.Unpublish(r.Context(), id); err != nil {
+	if err := h.sites.Unpublish(r.Context(), id, service.ActorSuperadmin); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
@@ -170,7 +170,7 @@ func (h *Handler) SuperadminDelete(w http.ResponseWriter, r *http.Request) {
 	if !h.checkCSRF(w, r, "superadmin", "") {
 		return
 	}
-	if err := h.sites.Delete(r.Context(), id); err != nil {
+	if err := h.sites.Delete(r.Context(), id, service.ActorSuperadmin); err != nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}

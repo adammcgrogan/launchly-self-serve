@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"math"
 	"net/url"
 	"strconv"
@@ -263,6 +264,52 @@ type SiteBilling struct {
 	TrialEndsAt              *time.Time
 	TrialReminderSentAt      *time.Time
 	TrialFinalReminderSentAt *time.Time
+}
+
+// BillingRisk is a short human-readable badge describing billing/trial risk
+// for a site, for the superadmin dashboard's at-a-glance list. An empty
+// Label means there's nothing to flag.
+type BillingRisk struct {
+	Label    string
+	Severity string // "danger", "warning", or "" (no risk)
+}
+
+// Risk reports whether this site's billing state needs a superadmin's
+// attention — a trial ending soon or already past due, or a payment that
+// failed/was cancelled — so at-risk sites are visible from the dashboard's
+// site list without opening each one individually.
+func (b SiteBilling) Risk() BillingRisk {
+	switch b.PaymentStatus {
+	case PaymentStatusCancelled:
+		return BillingRisk{Label: "Payment cancelled", Severity: "danger"}
+	case PaymentStatusPending:
+		return BillingRisk{Label: "Payment pending", Severity: "warning"}
+	case PaymentStatusTrialing:
+		if b.TrialEndsAt == nil {
+			return BillingRisk{}
+		}
+		days := int(time.Until(*b.TrialEndsAt).Hours() / 24)
+		switch {
+		case days < 0:
+			return BillingRisk{Label: "Trial expired", Severity: "danger"}
+		case days <= 2:
+			return BillingRisk{Label: fmt.Sprintf("Trial ends in %dd", days), Severity: "danger"}
+		case days <= 5:
+			return BillingRisk{Label: fmt.Sprintf("Trial ends in %dd", days), Severity: "warning"}
+		default:
+			return BillingRisk{}
+		}
+	default:
+		return BillingRisk{}
+	}
+}
+
+// SiteWithBilling pairs a Site with its billing snapshot, for list views
+// (like the superadmin dashboard) that need trial/payment risk signals
+// without loading the full SiteAggregate.
+type SiteWithBilling struct {
+	Site
+	Billing SiteBilling
 }
 
 // IsPro reports whether a site currently has active, paid-for Pro access.

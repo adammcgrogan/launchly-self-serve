@@ -668,7 +668,7 @@ func (s *Sites) ListSitesByOwner(ctx context.Context, ownerID uuid.UUID) ([]doma
 // ListAllSitesFiltered returns page (1-indexed) of all sites, newest first,
 // along with the total count of sites (for pagination). Used by the
 // superadmin cross-account view.
-func (s *Sites) ListAllSitesFiltered(ctx context.Context, page int) ([]domain.Site, int, error) {
+func (s *Sites) ListAllSitesFiltered(ctx context.Context, page int) ([]domain.SiteWithBilling, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -1037,6 +1037,14 @@ func (s *Sites) UpdateTrackingSettings(ctx context.Context, siteID int, gaMeasur
 	return err
 }
 
+// Actor values identify who triggered an audited action (Unpublish,
+// Delete) — logged alongside it so it's possible to tell from logs whether
+// an action was owner self-service or superadmin intervention.
+const (
+	ActorOwner      = "owner"
+	ActorSuperadmin = "superadmin"
+)
+
 // Publish and Unpublish let an owner take their own site up/down at will —
 // there is no admin approval gate on either direction. A paused site is the
 // exception: it can only come back via checkout (see ErrSitePaused).
@@ -1058,7 +1066,10 @@ func (s *Sites) Publish(ctx context.Context, siteID int) error {
 	return err
 }
 
-func (s *Sites) Unpublish(ctx context.Context, siteID int) error {
+// Unpublish takes actor identifying who triggered it (ActorOwner or
+// ActorSuperadmin) so the log line can distinguish an owner's self-service
+// unpublish from a superadmin's abuse-handling intervention.
+func (s *Sites) Unpublish(ctx context.Context, siteID int, actor string) error {
 	site, err := postgres.GetSiteByID(ctx, s.store.DB(), siteID)
 	if err != nil {
 		return err
@@ -1072,6 +1083,7 @@ func (s *Sites) Unpublish(ctx context.Context, siteID int) error {
 	err = postgres.SetSiteStatus(ctx, s.store.DB(), siteID, domain.SiteStatusDraft)
 	if err == nil {
 		s.invalidateAggregate(siteID)
+		slog.Info("site unpublished", "site_id", siteID, "actor", actor)
 	}
 	return err
 }
@@ -1079,8 +1091,10 @@ func (s *Sites) Unpublish(ctx context.Context, siteID int) error {
 // Delete removes a site and, if it had an active paid subscription,
 // cancels it in Stripe first — otherwise the customer keeps being billed
 // for a site that no longer exists, with no dashboard page left to cancel
-// it from themselves.
-func (s *Sites) Delete(ctx context.Context, siteID int) error {
+// it from themselves. actor identifies who triggered it (ActorOwner or
+// ActorSuperadmin) so the log line can distinguish an owner's self-service
+// deletion from a superadmin's abuse-handling intervention.
+func (s *Sites) Delete(ctx context.Context, siteID int, actor string) error {
 	if err := s.billing.CancelSubscriptionIfActive(ctx, siteID); err != nil {
 		return fmt.Errorf("cancel subscription: %w", err)
 	}
@@ -1097,6 +1111,6 @@ func (s *Sites) Delete(ctx context.Context, siteID int) error {
 		return err
 	}
 	s.invalidateAggregate(siteID)
-	slog.Info("site deleted", "site_id", siteID)
+	slog.Info("site deleted", "site_id", siteID, "actor", actor)
 	return nil
 }
