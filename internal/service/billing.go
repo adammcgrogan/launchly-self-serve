@@ -93,18 +93,26 @@ func (b *Billing) ParseWebhook(payload []byte, sigHeader string) (*payment.Webho
 }
 
 // HandleWebhookEvent processes a verified Stripe webhook event, idempotently.
-// The event is only marked processed *after* it's handled successfully — if
-// we marked it first and the handler then failed on a transient error,
-// Stripe's retry would see the event as already processed and skip it,
-// permanently losing that payment/cancellation update.
+// The event ID is claimed *before* processing (an atomic INSERT ... ON
+// CONFLICT DO NOTHING): only one of two concurrent duplicate deliveries can
+// win the insert, so the second is skipped without ever running the handler.
+// That closes the race the old check-then-mark-after-success sequence had —
+// two close-together retries of the same event could both pass the "is it
+// processed" check before either recorded it, each running
+// handleSubscriptionDeleted/handlePaymentFailed and re-sending the
+// cancellation/payment-failed emails.
+//
+// If processing then fails, the claim is released (the stripe_events row is
+// deleted) so Stripe's automatic retry isn't permanently skipped — a
+// transient error mid-handler doesn't lose the payment/cancellation update.
 func (b *Billing) HandleWebhookEvent(ctx context.Context, event *payment.WebhookEvent) error {
 	if event.ID != "" {
-		processed, err := postgres.IsStripeEventProcessed(ctx, b.store.DB(), event.ID)
+		claimed, err := postgres.MarkStripeEventProcessed(ctx, b.store.DB(), event.ID)
 		if err != nil {
-			return fmt.Errorf("check event idempotency: %w", err)
+			return fmt.Errorf("claim event idempotency: %w", err)
 		}
-		if processed {
-			slog.Info("stripe event already processed, skipping", "event_id", event.ID)
+		if !claimed {
+			slog.Info("stripe event already processed or in flight, skipping", "event_id", event.ID)
 			return nil
 		}
 	}
@@ -119,13 +127,12 @@ func (b *Billing) HandleWebhookEvent(ctx context.Context, event *payment.Webhook
 		err = b.handlePaymentFailed(ctx, event)
 	}
 	if err != nil {
-		return err
-	}
-
-	if event.ID != "" {
-		if _, err := postgres.MarkStripeEventProcessed(ctx, b.store.DB(), event.ID); err != nil {
-			slog.Error("mark stripe event processed", "event_id", event.ID, "error", err)
+		if event.ID != "" {
+			if unmarkErr := postgres.UnmarkStripeEventProcessed(ctx, b.store.DB(), event.ID); unmarkErr != nil {
+				slog.Error("release stripe event claim after failed processing", "event_id", event.ID, "error", unmarkErr)
+			}
 		}
+		return err
 	}
 	return nil
 }
