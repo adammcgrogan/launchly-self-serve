@@ -10,15 +10,15 @@ import (
 
 func CreateLead(ctx context.Context, q querier, lead *domain.Lead) error {
 	return q.QueryRowContext(ctx, `
-		INSERT INTO leads (site_id, name, email, phone, message, service_label, preferred_time)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO leads (site_id, name, email, phone, message, service_label, preferred_time, party_size)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at
-	`, lead.SiteID, lead.Name, lead.Email, lead.Phone, lead.Message, lead.ServiceLabel, lead.PreferredTime).Scan(&lead.ID, &lead.CreatedAt)
+	`, lead.SiteID, lead.Name, lead.Email, lead.Phone, lead.Message, lead.ServiceLabel, lead.PreferredTime, lead.PartySize).Scan(&lead.ID, &lead.CreatedAt)
 }
 
 func ListLeadsBySite(ctx context.Context, q querier, siteID int) ([]domain.Lead, error) {
 	rows, err := q.QueryContext(ctx,
-		`SELECT id, site_id, name, email, phone, message, service_label, preferred_time, status, created_at FROM leads WHERE site_id = $1 ORDER BY created_at DESC`, siteID)
+		`SELECT id, site_id, name, email, phone, message, service_label, preferred_time, party_size, status, created_at FROM leads WHERE site_id = $1 ORDER BY created_at DESC`, siteID)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func ListLeadsBySite(ctx context.Context, q querier, siteID int) ([]domain.Lead,
 	var out []domain.Lead
 	for rows.Next() {
 		var l domain.Lead
-		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.Status, &l.CreatedAt); err != nil {
+		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.PartySize, &l.Status, &l.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, l)
@@ -66,7 +66,7 @@ func ListLeadsBySiteFiltered(ctx context.Context, q querier, siteID int, filter 
 	offsetPos := len(args)
 
 	rows, err := q.QueryContext(ctx, fmt.Sprintf(`
-		SELECT id, site_id, name, email, phone, message, service_label, preferred_time, status, created_at, COUNT(*) OVER() AS total_count
+		SELECT id, site_id, name, email, phone, message, service_label, preferred_time, party_size, status, created_at, COUNT(*) OVER() AS total_count
 		FROM leads %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d
@@ -80,7 +80,7 @@ func ListLeadsBySiteFiltered(ctx context.Context, q querier, siteID int, filter 
 	total := 0
 	for rows.Next() {
 		var l domain.Lead
-		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.Status, &l.CreatedAt, &total); err != nil {
+		if err := rows.Scan(&l.ID, &l.SiteID, &l.Name, &l.Email, &l.Phone, &l.Message, &l.ServiceLabel, &l.PreferredTime, &l.PartySize, &l.Status, &l.CreatedAt, &total); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, l)

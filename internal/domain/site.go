@@ -46,9 +46,20 @@ const (
 type FormType string
 
 const (
-	FormTypeContact FormType = "contact"
-	FormTypeBooking FormType = "booking"
+	FormTypeContact     FormType = "contact"
+	FormTypeBooking     FormType = "booking"
+	FormTypeAppointment FormType = "appointment"
 )
+
+// Valid reports whether f is one of the recognized form types.
+func (f FormType) Valid() bool {
+	switch f {
+	case FormTypeContact, FormTypeBooking, FormTypeAppointment:
+		return true
+	default:
+		return false
+	}
+}
 
 type SocialPlatform string
 

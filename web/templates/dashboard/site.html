@@ -110,7 +110,7 @@
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="font-medium text-slate-900">{{.Name}}{{if .Email}} · {{.Email}}{{end}}{{if .Phone}} · {{.Phone}}{{end}}</p>
-            {{if .ServiceLabel}}<p class="text-sm text-slate-500 mt-1">{{.ServiceLabel}}{{if .PreferredTime}} · {{.PreferredTime}}{{end}}</p>{{end}}
+            {{if .ServiceLabel}}<p class="text-sm text-slate-500 mt-1">{{.ServiceLabel}}{{if .PreferredTime}} · {{.PreferredTime}}{{end}}{{if .PartySize}} · {{.PartySize}}{{end}}</p>{{end}}
             {{if .Message}}<p class="text-sm text-slate-500 mt-1">{{.Message}}</p>{{end}}
             <p class="text-xs text-slate-400 mt-1">{{.CreatedAt.Format "2 Jan 2006, 15:04"}}</p>
           </div>
@@ -608,6 +608,13 @@
         <span>
           <span class="block font-semibold text-slate-900">Booking form</span>
           <span class="block text-sm text-slate-500 mt-1">Adds a service picker and preferred time, so requests arrive pre-qualified.</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 rounded-2xl border border-slate-200 p-5 cursor-pointer has-[:checked]:border-brand has-[:checked]:ring-2 has-[:checked]:ring-brand/20">
+        <input type="radio" name="form_type" value="appointment" {{if eq .Site.FormType "appointment"}}checked{{end}} class="mt-1">
+        <span>
+          <span class="block font-semibold text-slate-900">Appointment request</span>
+          <span class="block text-sm text-slate-500 mt-1">Adds a service picker, a specific preferred date and party size, for businesses booking a particular slot.</span>
         </span>
       </label>
       <button type="submit" class="w-full rounded-full bg-brand px-6 py-4 font-semibold text-white hover:bg-brand-dark transition">Save</button>

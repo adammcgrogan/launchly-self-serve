@@ -39,6 +39,7 @@ type Lead struct {
 	Message       string
 	ServiceLabel  string
 	PreferredTime string
+	PartySize     string
 	Status        LeadStatus
 	CreatedAt     time.Time
 	Notes         []LeadNote

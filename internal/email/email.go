@@ -232,10 +232,10 @@ func (c *Client) SendWelcomeEmail(to, dashboardURL string) error {
 
 // SendLeadNotification forwards a contact-form submission to the business
 // owner, with the visitor's email set as reply-to so they can respond directly.
-func (c *Client) SendLeadNotification(to, businessName, visitorName, visitorEmail, phone, message, serviceLabel, preferredTime string) error {
+func (c *Client) SendLeadNotification(to, businessName, visitorName, visitorEmail, phone, message, serviceLabel, preferredTime, partySize string) error {
 	rows := ""
 	first := true
-	for _, f := range [][2]string{{"Name", visitorName}, {"Email", visitorEmail}, {"Phone", phone}, {"Service", serviceLabel}, {"Preferred time", preferredTime}} {
+	for _, f := range [][2]string{{"Name", visitorName}, {"Email", visitorEmail}, {"Phone", phone}, {"Service", serviceLabel}, {"Preferred time", preferredTime}, {"Party size", partySize}} {
 		if strings.TrimSpace(f[1]) == "" {
 			continue
 		}

@@ -78,11 +78,11 @@ func (rl *autoReplyLimiter) allow(key string) bool {
 // the visitor supplied their own email, it also sends them an instant
 // auto-reply confirming receipt. It also best-effort texts the owner if
 // they've opted into SMS lead alerts.
-func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, phone, message, serviceLabel, preferredTime, siteURL string) error {
-	if err := validateLeadInput(name, emailAddr, phone, message, serviceLabel, preferredTime); err != nil {
+func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, phone, message, serviceLabel, preferredTime, partySize, siteURL string) error {
+	if err := validateLeadInput(name, emailAddr, phone, message, serviceLabel, preferredTime, partySize); err != nil {
 		return err
 	}
-	lead := &domain.Lead{SiteID: siteID, Name: name, Email: emailAddr, Phone: phone, Message: message, ServiceLabel: serviceLabel, PreferredTime: preferredTime}
+	lead := &domain.Lead{SiteID: siteID, Name: name, Email: emailAddr, Phone: phone, Message: message, ServiceLabel: serviceLabel, PreferredTime: preferredTime, PartySize: partySize}
 	if err := postgres.CreateLead(ctx, l.store.DB(), lead); err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 	}
 	to := notifyEmail(ctx, l.store, site.OwnerUserID, contactEmail)
 	if to != "" {
-		if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message, serviceLabel, preferredTime); err != nil {
+		if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message, serviceLabel, preferredTime, partySize); err != nil {
 			slog.Error("send lead notification", "error", err)
 		}
 	}
@@ -133,7 +133,7 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 // untrusted system-boundary input (see CLAUDE.md), and an unbounded field
 // would otherwise persist and propagate into the dashboard, notification
 // email, and CSV export.
-func validateLeadInput(name, emailAddr, phone, message, serviceLabel, preferredTime string) error {
+func validateLeadInput(name, emailAddr, phone, message, serviceLabel, preferredTime, partySize string) error {
 	for _, err := range []error{
 		checkLen("name", name, maxShortField),
 		checkEmail("email", emailAddr),
@@ -142,6 +142,7 @@ func validateLeadInput(name, emailAddr, phone, message, serviceLabel, preferredT
 		checkLen("phone", phone, maxShortField),
 		checkLen("service", serviceLabel, maxShortField),
 		checkLen("preferred time", preferredTime, maxShortField),
+		checkLen("party size", partySize, maxShortField),
 		checkLen("message", message, maxLongField),
 	} {
 		if err != nil {

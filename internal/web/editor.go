@@ -227,7 +227,7 @@ func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	formType := domain.FormType(r.FormValue("form_type"))
-	if formType != domain.FormTypeContact && formType != domain.FormTypeBooking {
+	if !formType.Valid() {
 		http.Error(w, "invalid form type", http.StatusBadRequest)
 		return
 	}
