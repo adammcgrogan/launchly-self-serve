@@ -48,13 +48,44 @@ func redirectToSite(w http.ResponseWriter, r *http.Request, slug string) {
 	http.Redirect(w, r, target, http.StatusSeeOther)
 }
 
-func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
+// sitePreamble runs the shared first steps of a mutating dashboard handler:
+// load the current site from context, verify the request's CSRF token, and
+// parse the submitted form. On failure it has already written the response
+// (403 or 400) and returns ok=false — callers should return immediately.
+func (h *Handler) sitePreamble(w http.ResponseWriter, r *http.Request) (site *domain.Site, ok bool) {
+	site = middleware.LightSiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
+		return nil, false
 	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
+		return nil, false
+	}
+	return site, true
+}
+
+// handleServiceError responds to a mutating handler's service-layer error: a
+// *service.ValidationError becomes a flash message and a redirect back to
+// the site (the user-facing case, e.g. bad input); anything else is a 500.
+// Returns true if err was handled (the caller should return immediately),
+// false if err was nil.
+func (h *Handler) handleServiceError(w http.ResponseWriter, r *http.Request, slug string, err error) bool {
+	if err == nil {
+		return false
+	}
+	var verr *service.ValidationError
+	if errors.As(err, &verr) {
+		middleware.SetFlash(w, verr.Message)
+		redirectToSite(w, r, slug)
+		return true
+	}
+	h.render.RenderError(w, http.StatusInternalServerError)
+	return true
+}
+
+func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	slug := strings.TrimSpace(r.FormValue("slug"))
@@ -119,12 +150,8 @@ func buildUpdateContentInput(r *http.Request, siteID int) service.UpdateContentI
 }
 
 func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 
@@ -132,14 +159,7 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := detachedContext(r)
 	defer cancel()
-	if err := h.sites.UpdateContent(ctx, in); err != nil {
-		var verr *service.ValidationError
-		if errors.As(err, &verr) {
-			middleware.SetFlash(w, verr.Message)
-			redirectToSite(w, r, site.Slug)
-			return
-		}
-		h.render.RenderError(w, http.StatusInternalServerError)
+	if h.handleServiceError(w, r, site.Slug, h.sites.UpdateContent(ctx, in)) {
 		return
 	}
 
@@ -148,12 +168,8 @@ func (h *Handler) EditSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	palette := r.FormValue("palette")
@@ -194,12 +210,8 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	templateID := r.FormValue("template_id")
@@ -218,12 +230,8 @@ func (h *Handler) SwitchTemplateSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	formType := domain.FormType(r.FormValue("form_type"))
@@ -242,17 +250,13 @@ func (h *Handler) FormTypeSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	leadID, err := strconv.Atoi(r.PathValue("leadID"))
 	if err != nil {
 		http.NotFound(w, r)
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 	status := domain.LeadStatus(r.FormValue("status"))
@@ -273,17 +277,13 @@ func (h *Handler) LeadStatusSubmit(w http.ResponseWriter, r *http.Request) {
 // the lead notes panel, not a form submit, so it returns the created note as
 // JSON for the browser to append instead of redirecting back to the page.
 func (h *Handler) AddLeadNote(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	leadID, err := strconv.Atoi(r.PathValue("leadID"))
 	if err != nil {
 		http.NotFound(w, r)
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 	note, err := h.leads.AddNote(r.Context(), site.ID, leadID, r.FormValue("body"))
@@ -363,12 +363,8 @@ func (h *Handler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	text := strings.TrimSpace(r.FormValue("announcement_text"))
@@ -415,12 +411,8 @@ func (h *Handler) UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	freq := r.FormValue("analytics_frequency")
@@ -436,12 +428,8 @@ func (h *Handler) UpdateAnalyticsFrequency(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	mobile := strings.TrimSpace(r.FormValue("mobile_number"))
@@ -466,12 +454,8 @@ func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateTrackingSettings(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 	if err := h.sites.UpdateTrackingSettings(r.Context(), site.ID,

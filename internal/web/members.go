@@ -12,12 +12,8 @@ import (
 // InviteMember sends a teammate invite for the current site. Owner-only —
 // wired through middleware.Ownership.RequireOwnerRole in the router.
 func (h *Handler) InviteMember(w http.ResponseWriter, r *http.Request) {
-	site := middleware.LightSiteFromContext(r)
-	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
-		return
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+	site, ok := h.sitePreamble(w, r)
+	if !ok {
 		return
 	}
 
