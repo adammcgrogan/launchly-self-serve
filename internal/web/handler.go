@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/ai"
@@ -153,22 +152,7 @@ func (h *Handler) CSRFTokenRefresh(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"csrf_token": token})
 }
 
-// baseURL returns the scheme+host for the current request.
-func (h *Handler) baseURL(reqHost string) string {
-	scheme := "https"
-	if strings.Contains(reqHost, ":") {
-		scheme = "http"
-	}
-	return scheme + "://" + reqHost
-}
-
 // siteURL builds the public subdomain URL for a site.
 func (h *Handler) siteURL(slug string) string {
 	return "https://" + slug + "." + h.cfg.Domain
-}
-
-// secureCookies reports whether cookies should carry the Secure flag —
-// false only for local dev over plain HTTP.
-func (h *Handler) secureCookies() bool {
-	return !strings.Contains(h.cfg.Domain, "localhost")
 }
