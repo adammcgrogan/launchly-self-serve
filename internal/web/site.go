@@ -396,14 +396,14 @@ var siteEventKinds = map[string]domain.EventKind{
 func (h *Handler) RecordSiteEvent(w http.ResponseWriter, r *http.Request) {
 	slug := extractSlug(r, h.cfg.Domain)
 	if slug == "" {
-		site, err := h.sites.GetSiteAggregateByCustomDomain(r.Context(), effectiveHost(r))
+		site, err := h.sites.GetSiteByCustomDomain(r.Context(), effectiveHost(r))
 		if err == nil && site != nil {
 			h.recordSiteEvent(r, site)
 		}
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), slug)
+	site, err := h.sites.GetSiteBySlug(r.Context(), slug)
 	if err == nil && site != nil {
 		h.recordSiteEvent(r, site)
 	}
@@ -412,7 +412,7 @@ func (h *Handler) RecordSiteEvent(w http.ResponseWriter, r *http.Request) {
 
 // RecordSiteEventPath handles the beacon on path-routed sites.
 func (h *Handler) RecordSiteEventPath(w http.ResponseWriter, r *http.Request) {
-	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), r.PathValue("slug"))
+	site, err := h.sites.GetSiteBySlug(r.Context(), r.PathValue("slug"))
 	if err == nil && site != nil {
 		h.recordSiteEvent(r, site)
 	}
@@ -424,7 +424,7 @@ func (h *Handler) RecordSiteEventPath(w http.ResponseWriter, r *http.Request) {
 // sendBeacon ignores the response, and there's nothing useful to tell a
 // caller that isn't already filtered out server-side (bot, rate-limited,
 // unknown kind).
-func (h *Handler) recordSiteEvent(r *http.Request, site *domain.SiteAggregate) {
+func (h *Handler) recordSiteEvent(r *http.Request, site *domain.Site) {
 	if site.Status != domain.SiteStatusLive {
 		return
 	}

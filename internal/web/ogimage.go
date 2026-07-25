@@ -14,13 +14,13 @@ import (
 func (h *Handler) OGImage(w http.ResponseWriter, r *http.Request) {
 	slug := extractSlug(r, h.cfg.Domain)
 	var (
-		site *domain.SiteAggregate
+		site *domain.Site
 		err  error
 	)
 	if slug == "" {
-		site, err = h.sites.GetSiteAggregateByCustomDomain(r.Context(), effectiveHost(r))
+		site, err = h.sites.GetSiteByCustomDomain(r.Context(), effectiveHost(r))
 	} else {
-		site, err = h.sites.GetSiteAggregateBySlug(r.Context(), slug)
+		site, err = h.sites.GetSiteBySlug(r.Context(), slug)
 	}
 	if err != nil || site == nil {
 		h.render.RenderError(w, http.StatusNotFound)
@@ -32,7 +32,7 @@ func (h *Handler) OGImage(w http.ResponseWriter, r *http.Request) {
 // OGImagePath serves the card at /sites/{slug}/og.png for path-based routing
 // (local dev, and anywhere wildcard subdomains aren't set up).
 func (h *Handler) OGImagePath(w http.ResponseWriter, r *http.Request) {
-	site, err := h.sites.GetSiteAggregateBySlug(r.Context(), r.PathValue("slug"))
+	site, err := h.sites.GetSiteBySlug(r.Context(), r.PathValue("slug"))
 	if err != nil || site == nil {
 		h.render.RenderError(w, http.StatusNotFound)
 		return
@@ -40,11 +40,21 @@ func (h *Handler) OGImagePath(w http.ResponseWriter, r *http.Request) {
 	h.writeOGImage(w, r, site)
 }
 
-func (h *Handler) writeOGImage(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate) {
+func (h *Handler) writeOGImage(w http.ResponseWriter, r *http.Request, site *domain.Site) {
 	// Only live sites have a public page for the card to front.
 	if site.Status != domain.SiteStatusLive {
 		h.render.RenderError(w, http.StatusNotFound)
 		return
+	}
+
+	contact, err := h.sites.GetSiteContact(r.Context(), site.ID)
+	if err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	var location string
+	if contact != nil {
+		location = contact.Location
 	}
 
 	accent := h.siteAccentHex(site)
@@ -52,7 +62,7 @@ func (h *Handler) writeOGImage(w http.ResponseWriter, r *http.Request, site *dom
 
 	// ETag over everything that affects the pixels, so scrapers revalidate
 	// cheaply and pick up edits when the site changes.
-	etag := fmt.Sprintf(`"og-%d"`, hashOG(site.BusinessName, site.Tagline, site.Contact.Location, accent, site.UpdatedAt.String()))
+	etag := fmt.Sprintf(`"og-%d"`, hashOG(site.BusinessName, site.Tagline, location, accent, site.UpdatedAt.String()))
 	w.Header().Set("ETag", etag)
 	// Short max-age + must-revalidate so caches consult the content-based ETag
 	// soon after an edit instead of serving a stale card for up to a day.
@@ -65,7 +75,7 @@ func (h *Handler) writeOGImage(w http.ResponseWriter, r *http.Request, site *dom
 	png, err := ogcard.Render(ogcard.Card{
 		BusinessName: site.BusinessName,
 		Tagline:      site.Tagline,
-		Location:     site.Contact.Location,
+		Location:     location,
 		Footer:       footer,
 		AccentHex:    accent,
 	})
@@ -80,7 +90,7 @@ func (h *Handler) writeOGImage(w http.ResponseWriter, r *http.Request, site *dom
 // siteAccentHex resolves the card's accent colour: an owner's exact brand
 // colour if set, else the chosen palette's representative swatch, else the
 // default indigo.
-func (h *Handler) siteAccentHex(site *domain.SiteAggregate) string {
+func (h *Handler) siteAccentHex(site *domain.Site) string {
 	if bc := site.BrandColor; bc != "" {
 		return bc
 	}
