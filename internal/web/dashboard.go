@@ -470,23 +470,37 @@ func (h *Handler) ExportAccountData(w http.ResponseWriter, r *http.Request) {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
 	}
+	// Each site's aggregate (~17 queries) + leads list is independent of
+	// every other site's, so they run concurrently rather than stacking
+	// latencies sequentially for accounts with several sites.
+	exportSites := make([]accountExportSite, len(sites))
+	g, gctx := errgroup.WithContext(r.Context())
+	for i, site := range sites {
+		i, site := i, site
+		g.Go(func() error {
+			agg, err := h.sites.GetSiteAggregate(gctx, site.ID)
+			if err != nil || agg == nil {
+				if err == nil {
+					err = fmt.Errorf("site %d: aggregate not found", site.ID)
+				}
+				return err
+			}
+			leads, err := h.leads.ListBySite(gctx, site.ID)
+			if err != nil {
+				return err
+			}
+			exportSites[i] = accountExportSite{SiteAggregate: agg, Leads: leads}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
 	export := struct {
 		Profile *domain.Profile     `json:"profile"`
 		Sites   []accountExportSite `json:"sites"`
-	}{Profile: profile, Sites: []accountExportSite{}}
-	for _, site := range sites {
-		agg, err := h.sites.GetSiteAggregate(r.Context(), site.ID)
-		if err != nil || agg == nil {
-			h.render.RenderError(w, http.StatusInternalServerError)
-			return
-		}
-		leads, err := h.leads.ListBySite(r.Context(), site.ID)
-		if err != nil {
-			h.render.RenderError(w, http.StatusInternalServerError)
-			return
-		}
-		export.Sites = append(export.Sites, accountExportSite{SiteAggregate: agg, Leads: leads})
-	}
+	}{Profile: profile, Sites: exportSites}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", `attachment; filename="launchly-account-data.json"`)
