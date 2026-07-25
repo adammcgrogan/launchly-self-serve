@@ -163,6 +163,7 @@ func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, 
 	var customDomain, customDomainCFID sql.NullString
 	var plan, paymentStatus, stripeCustomerID, stripeSessionID, stripeSubscriptionID sql.NullString
 	var paidAt, trialEndsAt, trialReminderSentAt, trialFinalReminderSentAt sql.NullTime
+	var paymentFailedAt, dunningReminder1SentAt, dunningReminder2SentAt, dunningFinalWarningSentAt sql.NullTime
 	var total int
 	err := rows.Scan(
 		&sb.ID, &sb.OwnerUserID, &sb.Slug, &sb.BusinessName, &sb.Tagline, &sb.About, &sb.LogoURL, &sb.CTAText,
@@ -171,6 +172,7 @@ func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, 
 		&sb.MetaTitle, &sb.MetaDescription, &sb.OgImageURL, &sb.VideoURL, &sb.IsDemo, &sb.ThankYouMessage, &sb.RedirectURL,
 		&plan, &paymentStatus, &stripeCustomerID, &stripeSessionID, &stripeSubscriptionID,
 		&paidAt, &trialEndsAt, &trialReminderSentAt, &trialFinalReminderSentAt,
+		&paymentFailedAt, &dunningReminder1SentAt, &dunningReminder2SentAt, &dunningFinalWarningSentAt,
 		&total,
 	)
 	if err != nil {
@@ -197,6 +199,18 @@ func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, 
 	}
 	if trialFinalReminderSentAt.Valid {
 		sb.Billing.TrialFinalReminderSentAt = &trialFinalReminderSentAt.Time
+	}
+	if paymentFailedAt.Valid {
+		sb.Billing.PaymentFailedAt = &paymentFailedAt.Time
+	}
+	if dunningReminder1SentAt.Valid {
+		sb.Billing.DunningReminder1SentAt = &dunningReminder1SentAt.Time
+	}
+	if dunningReminder2SentAt.Valid {
+		sb.Billing.DunningReminder2SentAt = &dunningReminder2SentAt.Time
+	}
+	if dunningFinalWarningSentAt.Valid {
+		sb.Billing.DunningFinalWarningSentAt = &dunningFinalWarningSentAt.Time
 	}
 	return &sb, total, nil
 }
