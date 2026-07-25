@@ -53,10 +53,13 @@ func OwnerHasProSite(ctx context.Context, q querier, ownerID uuid.UUID) (bool, e
 	return exists, err
 }
 
-func scanSiteBilling(row *sql.Row, siteID int) (*domain.SiteBilling, error) {
-	b := &domain.SiteBilling{SiteID: siteID}
+// scanSiteBilling scans a site_id, siteBillingColumns row — every caller
+// selects site_id first (even GetSiteBilling, which already knows it from
+// its own siteID argument) so this one scan body covers every lookup.
+func scanSiteBilling(row scanner) (*domain.SiteBilling, error) {
+	b := &domain.SiteBilling{}
 	err := row.Scan(
-		&b.Plan, &b.PaymentStatus, &b.StripeCustomerID, &b.StripeSessionID, &b.StripeSubscriptionID,
+		&b.SiteID, &b.Plan, &b.PaymentStatus, &b.StripeCustomerID, &b.StripeSessionID, &b.StripeSubscriptionID,
 		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt,
 		&b.PaymentFailedAt, &b.DunningReminder1SentAt, &b.DunningReminder2SentAt, &b.DunningFinalWarningSentAt,
 	)
@@ -75,43 +78,17 @@ const siteBillingColumns = `plan, payment_status, stripe_customer_id, stripe_ses
 
 func GetSiteBilling(ctx context.Context, q querier, siteID int) (*domain.SiteBilling, error) {
 	return scanSiteBilling(q.QueryRowContext(ctx,
-		`SELECT `+siteBillingColumns+` FROM site_billing WHERE site_id = $1`, siteID), siteID)
+		`SELECT site_id, `+siteBillingColumns+` FROM site_billing WHERE site_id = $1`, siteID))
 }
 
 func GetSiteBillingBySessionID(ctx context.Context, q querier, sessionID string) (*domain.SiteBilling, error) {
-	var siteID int
-	b := &domain.SiteBilling{}
-	err := q.QueryRowContext(ctx,
-		`SELECT site_id, `+siteBillingColumns+` FROM site_billing WHERE stripe_session_id = $1`, sessionID,
-	).Scan(&siteID, &b.Plan, &b.PaymentStatus, &b.StripeCustomerID, &b.StripeSessionID, &b.StripeSubscriptionID,
-		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt,
-		&b.PaymentFailedAt, &b.DunningReminder1SentAt, &b.DunningReminder2SentAt, &b.DunningFinalWarningSentAt)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	b.SiteID = siteID
-	return b, nil
+	return scanSiteBilling(q.QueryRowContext(ctx,
+		`SELECT site_id, `+siteBillingColumns+` FROM site_billing WHERE stripe_session_id = $1`, sessionID))
 }
 
 func GetSiteBillingBySubscriptionID(ctx context.Context, q querier, subscriptionID string) (*domain.SiteBilling, error) {
-	var siteID int
-	b := &domain.SiteBilling{}
-	err := q.QueryRowContext(ctx,
-		`SELECT site_id, `+siteBillingColumns+` FROM site_billing WHERE stripe_subscription_id = $1`, subscriptionID,
-	).Scan(&siteID, &b.Plan, &b.PaymentStatus, &b.StripeCustomerID, &b.StripeSessionID, &b.StripeSubscriptionID,
-		&b.PaidAt, &b.TrialEndsAt, &b.TrialReminderSentAt, &b.TrialFinalReminderSentAt,
-		&b.PaymentFailedAt, &b.DunningReminder1SentAt, &b.DunningReminder2SentAt, &b.DunningFinalWarningSentAt)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	b.SiteID = siteID
-	return b, nil
+	return scanSiteBilling(q.QueryRowContext(ctx,
+		`SELECT site_id, `+siteBillingColumns+` FROM site_billing WHERE stripe_subscription_id = $1`, subscriptionID))
 }
 
 // SetSitePending records that a Stripe Checkout session was created for a

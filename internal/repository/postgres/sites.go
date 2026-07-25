@@ -15,7 +15,7 @@ const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, log
 	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at, timezone,
 	meta_title, meta_description, og_image_url, video_url, is_demo, thank_you_message, redirect_url`
 
-func scanSite(row *sql.Row) (*domain.Site, error) {
+func scanSite(row scanner) (*domain.Site, error) {
 	var s domain.Site
 	var customDomain, customDomainCFID sql.NullString
 	err := row.Scan(
@@ -35,21 +35,7 @@ func scanSite(row *sql.Row) (*domain.Site, error) {
 	return &s, nil
 }
 
-func scanSiteRows(rows *sql.Rows) (*domain.Site, error) {
-	var s domain.Site
-	var customDomain, customDomainCFID sql.NullString
-	err := rows.Scan(
-		&s.ID, &s.OwnerUserID, &s.Slug, &s.BusinessName, &s.Tagline, &s.About, &s.LogoURL, &s.CTAText,
-		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
-		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
-		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo, &s.ThankYouMessage, &s.RedirectURL,
-	)
-	s.CustomDomain = customDomain.String
-	s.CustomDomainCFID = customDomainCFID.String
-	return &s, err
-}
-
-// scanSiteRowsWithCount is scanSiteRows plus a trailing COUNT(*) OVER()
+// scanSiteRowsWithCount is scanSite plus a trailing COUNT(*) OVER()
 // column, for paginated queries that report a total alongside the page.
 func scanSiteRowsWithCount(rows *sql.Rows) (*domain.Site, int, error) {
 	var s domain.Site
@@ -93,7 +79,7 @@ func ListDemoSites(ctx context.Context, q querier) ([]domain.Site, error) {
 	defer rows.Close()
 	var sites []domain.Site
 	for rows.Next() {
-		s, err := scanSiteRows(rows)
+		s, err := scanSite(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +126,7 @@ func ListSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) ([]doma
 	defer rows.Close()
 	var sites []domain.Site
 	for rows.Next() {
-		s, err := scanSiteRows(rows)
+		s, err := scanSite(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -285,7 +271,7 @@ func ListLiveSites(ctx context.Context, q querier) ([]domain.Site, error) {
 	defer rows.Close()
 	var sites []domain.Site
 	for rows.Next() {
-		s, err := scanSiteRows(rows)
+		s, err := scanSite(rows)
 		if err != nil {
 			return nil, err
 		}

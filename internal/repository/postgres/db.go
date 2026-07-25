@@ -34,6 +34,13 @@ type querier interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
+// scanner is satisfied by both *sql.Row and *sql.Rows, letting a single scan
+// function serve a QueryRowContext single-row lookup and a QueryContext
+// multi-row loop instead of maintaining two near-identical scan bodies.
+type scanner interface {
+	Scan(dest ...any) error
+}
+
 // Store wraps the database connection pool.
 type Store struct {
 	db *sql.DB

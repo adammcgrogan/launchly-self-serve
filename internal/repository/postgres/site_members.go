@@ -10,26 +10,13 @@ import (
 
 const siteMemberColumns = `id, site_id, user_id, email, role, status, invite_token, invited_at, expires_at, accepted_at`
 
-func scanSiteMember(row *sql.Row) (*domain.SiteMember, error) {
+func scanSiteMember(row scanner) (*domain.SiteMember, error) {
 	var m domain.SiteMember
 	var userID uuid.NullUUID
 	err := row.Scan(&m.ID, &m.SiteID, &userID, &m.Email, &m.Role, &m.Status, &m.InviteToken, &m.InvitedAt, &m.ExpiresAt, &m.AcceptedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	if userID.Valid {
-		m.UserID = &userID.UUID
-	}
-	return &m, nil
-}
-
-func scanSiteMemberRows(rows *sql.Rows) (*domain.SiteMember, error) {
-	var m domain.SiteMember
-	var userID uuid.NullUUID
-	err := rows.Scan(&m.ID, &m.SiteID, &userID, &m.Email, &m.Role, &m.Status, &m.InviteToken, &m.InvitedAt, &m.ExpiresAt, &m.AcceptedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +65,7 @@ func ListSiteMembersBySite(ctx context.Context, q querier, siteID int) ([]domain
 	defer rows.Close()
 	var members []domain.SiteMember
 	for rows.Next() {
-		m, err := scanSiteMemberRows(rows)
+		m, err := scanSiteMember(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +104,7 @@ func ListSitesByMember(ctx context.Context, q querier, userID uuid.UUID) ([]doma
 	defer rows.Close()
 	var sites []domain.Site
 	for rows.Next() {
-		s, err := scanSiteRows(rows)
+		s, err := scanSite(rows)
 		if err != nil {
 			return nil, err
 		}
