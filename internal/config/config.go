@@ -141,20 +141,6 @@ func (c *Config) SMSAlertsAvailable() bool {
 	return c.TwilioAccountSID != "" && c.TwilioAuthToken != "" && c.TwilioFromNumber != ""
 }
 
-// AIContentAvailable reports whether AI-drafted site copy is available —
-// the feature flag for the "Generate for me" button in the builder wizard.
-func (c *Config) AIContentAvailable() bool {
-	return c.GeminiAPIKey != ""
-}
-
-// ImageUploadsAvailable reports whether direct logo/gallery image uploads are
-// available — the feature flag for the file-picker next to the logo and
-// gallery fields. Requires a service-role key (to write to Storage) and a
-// public bucket name; unset either and the URL-only fields still work.
-func (c *Config) ImageUploadsAvailable() bool {
-	return c.SupabaseURL != "" && c.SupabaseServiceRoleKey != "" && c.SupabaseStorageBucket != ""
-}
-
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
