@@ -8,6 +8,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 )
@@ -38,12 +39,24 @@ const analyticsRetention = 180 * 24 * time.Hour
 // webhook retries — kept well past Stripe's few-day retry window.
 const stripeEventRetention = 30 * 24 * time.Hour
 
+// cronMailer is the subset of email.Client's methods the cron sweeps call.
+// Depending on this narrow interface (rather than *email.Client directly)
+// lets tests substitute a fake mailer that records calls instead of hitting
+// Resend over the network — mirrors billingMailer in billing.go.
+type cronMailer interface {
+	SendTrialWarning(to, businessName, dashboardURL string, daysLeft int) error
+	SendSitePaused(to, businessName, dashboardURL string) error
+	SendAnalyticsDigest(to, businessName string, stats *domain.SiteStats, siteURL string) error
+	SendDunningReminder(to, businessName, dashboardURL string, daysPastDue int) error
+	SendFinalPaymentWarning(to, businessName, dashboardURL string) error
+}
+
 // Cron runs background reminders: trial-ending emails and scheduled
 // analytics digests. Trial reminders link straight to the dashboard upgrade
 // button — there is no admin-sent payment link to wait on.
 type Cron struct {
 	store     *postgres.Store
-	mailer    *email.Client
+	mailer    cronMailer
 	analytics *Analytics
 	billing   *Billing
 	baseURL   string
