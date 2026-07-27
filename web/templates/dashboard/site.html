@@ -250,20 +250,20 @@
           <h2 class="font-semibold text-slate-900">Business details</h2>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
-            <input type="text" name="business_name" value="{{.Site.BusinessName}}" required class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="text" name="business_name" value="{{.Site.BusinessName}}" required maxlength="200" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
-            <input type="text" name="tagline" value="{{.Site.Tagline}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="text" name="tagline" value="{{.Site.Tagline}}" maxlength="500" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
-            <textarea name="about" rows="4" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.About}}</textarea>
+            <textarea name="about" rows="4" maxlength="5000" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.About}}</textarea>
           </div>
           <div class="grid sm:grid-cols-2 gap-4">
             <div data-upload-widget>
               <label class="block text-sm font-medium text-slate-700 mb-1">Logo</label>
-              <input type="url" name="logo_url" value="{{.Site.LogoURL}}" placeholder="Paste an image URL, or upload below" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              <input type="url" name="logo_url" value="{{.Site.LogoURL}}" maxlength="500" placeholder="Paste an image URL, or upload below" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
               {{if .UploadsAvailable}}
               <div class="mt-2 flex items-center gap-3">
                 <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload an image<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-image-upload data-upload-for="logo_url" data-upload-mode="replace"></label>
@@ -273,22 +273,22 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
-              <input type="text" name="cta_text" value="{{.Site.CTAText}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              <input type="text" name="cta_text" value="{{.Site.CTAText}}" maxlength="200" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Promo video (YouTube or Vimeo link, optional)</label>
-            <input type="url" name="video_url" value="{{.Site.VideoURL}}" placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="video_url" value="{{.Site.VideoURL}}" maxlength="500" placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             <p class="mt-1 text-xs text-slate-400">Shown as a click-to-play video on your site — nothing loads from YouTube/Vimeo until a visitor clicks it.</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Thank-you message (optional)</label>
-            <textarea name="thank_you_message" rows="2" placeholder="Replaces the default 'thanks, we'll be in touch' confirmation." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.ThankYouMessage}}</textarea>
+            <textarea name="thank_you_message" rows="2" maxlength="500" placeholder="Replaces the default 'thanks, we'll be in touch' confirmation." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.ThankYouMessage}}</textarea>
             <p class="mt-1 text-xs text-slate-400">Shown after a visitor submits your contact form. Leave blank to use the default.</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Redirect after submit (optional)</label>
-            <input type="url" name="redirect_url" value="{{.Site.RedirectURL}}" placeholder="https://your-booking-page.com" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="redirect_url" value="{{.Site.RedirectURL}}" maxlength="500" placeholder="https://your-booking-page.com" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             <p class="mt-1 text-xs text-slate-400">If set, visitors go here instead of seeing a thank-you message — e.g. a booking page or WhatsApp link.</p>
           </div>
         </section>
@@ -306,16 +306,16 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
-              <input type="text" name="address" value="{{.Site.Contact.Address}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              <input type="text" name="address" value="{{.Site.Contact.Address}}" maxlength="500" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Location badge</label>
-              <input type="text" name="location" value="{{.Site.Contact.Location}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              <input type="text" name="location" value="{{.Site.Contact.Location}}" maxlength="200" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
             </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL (optional)</label>
-            <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" maxlength="500" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           </div>
         </section>
       </div>
@@ -328,10 +328,10 @@
             <div class="service-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-service-row>
               <button type="button" data-remove-service class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove service">✕</button>
               <div class="grid sm:grid-cols-[1fr_auto] gap-3 pr-6">
-                <input type="text" name="service_label" value="{{$s.Label}}" placeholder="e.g. Boiler repair" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                <input type="text" name="service_price" value="{{$s.PriceText}}" placeholder="Price (optional)" class="w-full sm:w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="service_label" value="{{$s.Label}}" maxlength="200" placeholder="e.g. Boiler repair" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="service_price" value="{{$s.PriceText}}" maxlength="200" placeholder="Price (optional)" class="w-full sm:w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm">
               </div>
-              <input type="text" name="service_description" value="{{$s.Description}}" placeholder="Short description (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="text" name="service_description" value="{{$s.Description}}" maxlength="500" placeholder="Short description (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
             </div>
             {{end}}
           </div>
@@ -343,7 +343,7 @@
           <div data-cert-list class="space-y-2">
             {{range $i, $c := .CertRows}}
             <div class="cert-row relative flex items-center gap-2" data-cert-row>
-              <input type="text" name="certification_label" value="{{$c.Label}}" placeholder="e.g. Gas Safe registered" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="text" name="certification_label" value="{{$c.Label}}" maxlength="200" placeholder="e.g. Gas Safe registered" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
               <button type="button" data-remove-cert class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove certification">✕</button>
             </div>
             {{end}}
@@ -357,7 +357,7 @@
           <div data-area-list class="space-y-2">
             {{range $i, $a := .AreaRows}}
             <div class="area-row relative flex items-center gap-2" data-area-row>
-              <input type="text" name="service_area" value="{{$a.Area}}" placeholder="e.g. Belfast" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="text" name="service_area" value="{{$a.Area}}" maxlength="200" placeholder="e.g. Belfast" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
               <button type="button" data-remove-area class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove area">✕</button>
             </div>
             {{end}}
@@ -380,7 +380,7 @@
             </div>
           </div>
           <label class="block text-xs text-slate-500 mb-1 mt-3">"Leave us a review" link (e.g. your Google review page)</label>
-          <input type="url" name="review_url" value="{{.Reviews.ReviewURL}}" placeholder="https://g.page/r/..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <input type="url" name="review_url" value="{{.Reviews.ReviewURL}}" maxlength="500" placeholder="https://g.page/r/..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
           <p class="mt-1 text-xs text-slate-400">Shows a star badge and a one-tap review button on your site. Leave the rating blank to hide the badge.</p>
         </section>
 
@@ -391,10 +391,10 @@
             <div class="testimonial-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-testimonial-row>
               <button type="button" data-remove-testimonial class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove testimonial">✕</button>
               <div class="grid sm:grid-cols-2 gap-3 pr-6">
-                <input type="text" name="testimonial_name" value="{{$t.AuthorName}}" placeholder="Customer name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                <input type="text" name="testimonial_role" value="{{$t.AuthorRole}}" placeholder="Role, e.g. Homeowner (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="testimonial_name" value="{{$t.AuthorName}}" maxlength="200" placeholder="Customer name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="testimonial_role" value="{{$t.AuthorRole}}" maxlength="200" placeholder="Role, e.g. Homeowner (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
               </div>
-              <textarea name="testimonial_quote" rows="2" placeholder="What did they say?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$t.Quote}}</textarea>
+              <textarea name="testimonial_quote" rows="2" maxlength="5000" placeholder="What did they say?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$t.Quote}}</textarea>
             </div>
             {{end}}
           </div>
@@ -409,7 +409,7 @@
             {{range $i, $g := .GalleryRows}}
             <div class="gallery-row relative rounded-xl border border-slate-200 p-3 flex items-center gap-3" data-gallery-row>
               {{if $g.URL}}<img src="{{$g.URL}}" alt="" class="h-12 w-12 shrink-0 rounded-lg object-cover border border-slate-200" data-gallery-thumb>{{else}}<div class="h-12 w-12 shrink-0 rounded-lg bg-slate-100" data-gallery-thumb></div>{{end}}
-              <input type="url" name="gallery_url" value="{{$g.URL}}" placeholder="Image URL" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="url" name="gallery_url" value="{{$g.URL}}" maxlength="500" placeholder="Image URL" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
               <button type="button" data-remove-gallery class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove image">✕</button>
             </div>
             {{end}}
@@ -431,8 +431,8 @@
             {{range $i, $f := .FAQRows}}
             <div class="faq-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-faq-row>
               <button type="button" data-remove-faq class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove FAQ">✕</button>
-              <input type="text" name="faq_question" value="{{$f.Question}}" placeholder="e.g. Do you offer parking?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm pr-6">
-              <textarea name="faq_answer" rows="2" placeholder="Answer" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$f.Answer}}</textarea>
+              <input type="text" name="faq_question" value="{{$f.Question}}" maxlength="500" placeholder="e.g. Do you offer parking?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm pr-6">
+              <textarea name="faq_answer" rows="2" maxlength="5000" placeholder="Answer" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$f.Answer}}</textarea>
             </div>
             {{end}}
           </div>
@@ -446,11 +446,11 @@
             <div class="staff-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-staff-row>
               <button type="button" data-remove-staff class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove staff member">✕</button>
               <div class="grid sm:grid-cols-2 gap-3 pr-6">
-                <input type="text" name="staff_name" value="{{$m.Name}}" placeholder="Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                <input type="text" name="staff_role" value="{{$m.Role}}" placeholder="Role (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="staff_name" value="{{$m.Name}}" maxlength="200" placeholder="Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <input type="text" name="staff_role" value="{{$m.Role}}" maxlength="200" placeholder="Role (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
               </div>
-              <input type="url" name="staff_photo_url" value="{{$m.PhotoURL}}" placeholder="Photo URL (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <textarea name="staff_bio" rows="2" placeholder="Short bio (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$m.Bio}}</textarea>
+              <input type="url" name="staff_photo_url" value="{{$m.PhotoURL}}" maxlength="500" placeholder="Photo URL (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <textarea name="staff_bio" rows="2" maxlength="5000" placeholder="Short bio (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$m.Bio}}</textarea>
             </div>
             {{end}}
           </div>
@@ -520,13 +520,13 @@
         <section class="space-y-4">
           <h2 class="font-semibold text-slate-900">Social links</h2>
           <div class="grid sm:grid-cols-2 gap-4">
-            <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            <input type="url" name="whatsapp_url" value="{{index .Socials "whatsapp"}}" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            <input type="url" name="twitter_url" value="{{index .Socials "twitter"}}" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            <input type="url" name="tiktok_url" value="{{index .Socials "tiktok"}}" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            <input type="url" name="linkedin_url" value="{{index .Socials "linkedin"}}" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
-            <input type="url" name="youtube_url" value="{{index .Socials "youtube"}}" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" maxlength="500" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" maxlength="500" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="whatsapp_url" value="{{index .Socials "whatsapp"}}" maxlength="500" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="twitter_url" value="{{index .Socials "twitter"}}" maxlength="500" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="tiktok_url" value="{{index .Socials "tiktok"}}" maxlength="500" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="linkedin_url" value="{{index .Socials "linkedin"}}" maxlength="500" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="youtube_url" value="{{index .Socials "youtube"}}" maxlength="500" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           </div>
         </section>
 
@@ -535,15 +535,15 @@
           <p class="text-sm text-slate-500 -mt-2">Optional. Control how your site appears in Google results and when shared on Facebook/WhatsApp. Leave blank to use your business name, tagline, and logo.</p>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Page title</label>
-            <input type="text" name="meta_title" value="{{.Site.MetaTitle}}" placeholder="{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="text" name="meta_title" value="{{.Site.MetaTitle}}" maxlength="500" placeholder="{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Meta description</label>
-            <textarea name="meta_description" rows="2" placeholder="A short summary shown under your title in Google results." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.MetaDescription}}</textarea>
+            <textarea name="meta_description" rows="2" maxlength="500" placeholder="A short summary shown under your title in Google results." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.MetaDescription}}</textarea>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Social share image URL</label>
-            <input type="url" name="og_image_url" value="{{.Site.OgImageURL}}" placeholder="https://... (1200×630 works best)" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+            <input type="url" name="og_image_url" value="{{.Site.OgImageURL}}" maxlength="500" placeholder="https://... (1200×630 works best)" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
           </div>
         </section>
       </div>
@@ -1505,6 +1505,39 @@
         // back to a real form submit, same as before this handler existed.
         form.submit();
       });
+    });
+  })();
+</script>
+<script>
+  // Live character counters: any input/textarea with a maxlength attribute
+  // gets a small "n / max" counter that updates as the visitor types,
+  // turning red past the limit. Excludes brand_color, whose maxlength=7 is
+  // an unrelated hex-format constraint, not a content length cap. Delegated
+  // on document so it also covers rows cloned later for repeatable fields
+  // (services, testimonials, etc.) and fields re-rendered after an ajax
+  // save — cloneNode(true) and the server-rendered markup both keep the
+  // maxlength attribute.
+  (function () {
+    var SELECTOR = '[maxlength]:not([name="brand_color"])';
+    function counterFor(el) {
+      var next = el.nextElementSibling;
+      if (next && next.classList && next.classList.contains('char-counter')) return next;
+      var counter = document.createElement('p');
+      counter.className = 'char-counter mt-1 text-xs text-slate-400 text-right';
+      el.insertAdjacentElement('afterend', counter);
+      return counter;
+    }
+    function update(el) {
+      var max = el.getAttribute('maxlength');
+      if (!max) return;
+      var counter = counterFor(el);
+      var len = el.value.length;
+      counter.textContent = len + ' / ' + max;
+      counter.classList.toggle('text-red-500', len > Number(max));
+    }
+    document.querySelectorAll(SELECTOR).forEach(update);
+    document.addEventListener('input', function (e) {
+      if (e.target && e.target.matches && e.target.matches(SELECTOR)) update(e.target);
     });
   })();
 </script>
