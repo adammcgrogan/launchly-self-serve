@@ -264,6 +264,7 @@
             <div data-upload-widget>
               <label class="block text-sm font-medium text-slate-700 mb-1">Logo</label>
               <input type="url" name="logo_url" value="{{.Site.LogoURL}}" maxlength="500" placeholder="Paste an image URL, or upload below" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+              <p class="mt-1 text-xs text-slate-400">Square images work best for logos.</p>
               {{if .UploadsAvailable}}
               <div class="mt-2 flex items-center gap-3">
                 <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload an image<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-image-upload data-upload-for="logo_url" data-upload-mode="replace"></label>
@@ -405,6 +406,7 @@
       <div data-tab-panel="gallery" class="space-y-10 hidden">
         <section class="space-y-4" data-upload-widget>
           <h2 class="font-semibold text-slate-900">Gallery images</h2>
+          <p class="-mt-2 text-xs text-slate-400">Landscape photos work best in the gallery.</p>
           <div data-gallery-list class="space-y-3">
             {{range $i, $g := .GalleryRows}}
             <div class="gallery-row relative rounded-xl border border-slate-200 p-3 flex items-center gap-3" data-gallery-row>
