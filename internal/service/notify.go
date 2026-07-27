@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/google/uuid"
 )
@@ -18,4 +19,25 @@ func notifyEmail(ctx context.Context, store *postgres.Store, ownerUserID uuid.UU
 		return profile.Email
 	}
 	return contactEmail
+}
+
+// resolveNotifyTarget loads a site and resolves where its owner-facing
+// notifications should go, centralizing the "look up the site, look up its
+// (possibly absent) public contact, then resolve notifyEmail" dance that used
+// to be copy-pasted at every call site (#231). Returns a nil site (and empty
+// email) without error if the site itself no longer exists.
+func resolveNotifyTarget(ctx context.Context, store *postgres.Store, siteID int) (site *domain.Site, notifyTo string, err error) {
+	site, err = postgres.GetSiteByID(ctx, store.DB(), siteID)
+	if err != nil || site == nil {
+		return site, "", err
+	}
+	contact, err := postgres.GetSiteContact(ctx, store.DB(), siteID)
+	if err != nil {
+		return site, "", err
+	}
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	return site, notifyEmail(ctx, store, site.OwnerUserID, contactEmail), nil
 }

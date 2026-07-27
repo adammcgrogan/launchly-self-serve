@@ -231,19 +231,10 @@ func (c *Cron) sendDueAnalyticsDigests() {
 // one site at a time, so it looks up the site/contact/owner email itself
 // rather than going through the cron sweep's batched query.
 func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
-	site, err := postgres.GetSiteByID(ctx, c.store.DB(), siteID)
+	site, to, err := resolveNotifyTarget(ctx, c.store, siteID)
 	if err != nil || site == nil {
 		return err
 	}
-	contact, err := postgres.GetSiteContact(ctx, c.store.DB(), siteID)
-	if err != nil {
-		return err
-	}
-	contactEmail := ""
-	if contact != nil {
-		contactEmail = contact.Email
-	}
-	to := notifyEmail(ctx, c.store, site.OwnerUserID, contactEmail)
 	if to == "" {
 		return fmt.Errorf("no notification email on file for site %d", siteID)
 	}

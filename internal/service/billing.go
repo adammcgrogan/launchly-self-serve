@@ -167,7 +167,7 @@ func (b *Billing) handleCheckoutCompleted(ctx context.Context, event *payment.We
 	if err != nil || billing == nil {
 		return err
 	}
-	site, err := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
+	site, to, err := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if err != nil || site == nil {
 		return err
 	}
@@ -176,15 +176,6 @@ func (b *Billing) handleCheckoutCompleted(ctx context.Context, event *payment.We
 			slog.Error("reactivate paused site", "site_id", site.ID, "error", err)
 		}
 	}
-	contact, err := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
-	if err != nil {
-		return err
-	}
-	contactEmail := ""
-	if contact != nil {
-		contactEmail = contact.Email
-	}
-	to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail)
 	if to == "" {
 		return nil
 	}
@@ -214,8 +205,7 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 	if billing == nil {
 		return nil
 	}
-	site, _ := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
-	contact, _ := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
+	site, to, _ := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if site == nil {
 		return nil
 	}
@@ -224,11 +214,7 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 			slog.Error("pause site on subscription cancellation", "site_id", site.ID, "error", err)
 		}
 	}
-	contactEmail := ""
-	if contact != nil {
-		contactEmail = contact.Email
-	}
-	if to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail); to != "" {
+	if to != "" {
 		if err := b.mailer.SendCancellationConfirmation(to, site.BusinessName); err != nil {
 			slog.Error("send cancellation confirmation email", "error", err)
 		}
@@ -273,16 +259,10 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 		slog.Info("payment failed, already in dunning sequence", "subscription_id", event.SubscriptionID)
 		return nil
 	}
-	site, _ := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
-	contact, _ := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
+	site, to, _ := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if site == nil {
 		return nil
 	}
-	contactEmail := ""
-	if contact != nil {
-		contactEmail = contact.Email
-	}
-	to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail)
 	if to != "" {
 		if err := b.mailer.SendPaymentFailed(to, site.BusinessName); err != nil {
 			slog.Error("send payment failed email", "error", err)
@@ -318,19 +298,10 @@ func (b *Billing) handlePaymentRecovered(ctx context.Context, event *payment.Web
 	if err != nil || billing == nil {
 		return err
 	}
-	site, err := postgres.GetSiteByID(ctx, b.store.DB(), billing.SiteID)
+	site, to, err := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if err != nil || site == nil {
 		return err
 	}
-	contact, err := postgres.GetSiteContact(ctx, b.store.DB(), billing.SiteID)
-	if err != nil {
-		return err
-	}
-	contactEmail := ""
-	if contact != nil {
-		contactEmail = contact.Email
-	}
-	to := notifyEmail(ctx, b.store, site.OwnerUserID, contactEmail)
 	if to != "" {
 		if err := b.mailer.SendPaymentConfirmation(to, site.BusinessName, billing.Plan); err != nil {
 			slog.Error("send payment recovered email", "error", err)

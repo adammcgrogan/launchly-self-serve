@@ -90,7 +90,7 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 		slog.Error("record lead conversion event", "site_id", siteID, "error", err)
 	}
 
-	site, err := postgres.GetSiteByID(ctx, l.store.DB(), siteID)
+	site, to, err := resolveNotifyTarget(ctx, l.store, siteID)
 	if err != nil || site == nil {
 		return err
 	}
@@ -98,12 +98,10 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 	if err != nil {
 		return err
 	}
-	contactEmail, contactPhone := "", ""
+	contactPhone := ""
 	if contact != nil {
-		contactEmail = contact.Email
 		contactPhone = contact.Phone
 	}
-	to := notifyEmail(ctx, l.store, site.OwnerUserID, contactEmail)
 	if to != "" {
 		if err := l.mailer.SendLeadNotification(to, site.BusinessName, name, emailAddr, phone, message, serviceLabel, preferredTime, partySize); err != nil {
 			slog.Error("send lead notification", "error", err)

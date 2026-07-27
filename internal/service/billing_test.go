@@ -116,15 +116,15 @@ func TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSiteAndNotifies(t
 	mock.ExpectQuery("FROM sites WHERE id").
 		WithArgs(42).
 		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusPaused))
-	mock.ExpectExec("UPDATE sites SET status = 'live'").
-		WithArgs(42).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery("FROM site_contact WHERE site_id").
 		WithArgs(42).
 		WillReturnRows(contactRows("owner@acme.test"))
 	mock.ExpectQuery("FROM profiles").
 		WithArgs(ownerID).
 		WillReturnError(sql.ErrNoRows)
+	mock.ExpectExec("UPDATE sites SET status = 'live'").
+		WithArgs(42).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	event := &payment.WebhookEvent{ID: "evt1", Type: "checkout.session.completed", SessionID: "sess1", SubscriptionID: "sub1"}
 	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
@@ -207,12 +207,12 @@ func TestHandleWebhookEvent_SubscriptionDeleted_PausesLiveSiteAndNotifies(t *tes
 	mock.ExpectQuery("FROM site_contact WHERE site_id").
 		WithArgs(42).
 		WillReturnRows(contactRows("owner@acme.test"))
-	mock.ExpectExec("UPDATE sites SET status = 'paused'").
-		WithArgs(42).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery("FROM profiles").
 		WithArgs(ownerID).
 		WillReturnError(sql.ErrNoRows)
+	mock.ExpectExec("UPDATE sites SET status = 'paused'").
+		WithArgs(42).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	event := &payment.WebhookEvent{ID: "evt2", Type: "customer.subscription.deleted", SubscriptionID: "sub1"}
 	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
