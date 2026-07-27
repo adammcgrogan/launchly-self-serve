@@ -59,6 +59,7 @@
             {{end}}
           </select>
           <p class="mt-1.5 text-sm text-slate-400">Just helps us suggest a design on the next step — you can pick any of them.</p>
+          <p class="mt-1.5 text-sm text-brand hidden" data-design-swap-hint aria-live="polite"></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Where are you based?</label>
@@ -682,6 +683,15 @@
     form.querySelectorAll('[data-palette-radio]').forEach(function (radio) {
       radio.addEventListener('change', updatePalettePreview);
     });
+    var designSwapHint = form.querySelector('[data-design-swap-hint]');
+    var designSwapHintTimer;
+    function showDesignSwapHint(templateName, businessTypeLabel) {
+      if (!designSwapHint) return;
+      clearTimeout(designSwapHintTimer);
+      designSwapHint.textContent = 'We picked ' + templateName + ' because you said ' + businessTypeLabel + ' — you can change this on the next step.';
+      designSwapHint.classList.remove('hidden');
+      designSwapHintTimer = setTimeout(function () { designSwapHint.classList.add('hidden'); }, 6000);
+    }
     form.querySelector('[data-business-type]').addEventListener('change', function () {
       refreshTemplateVisibility();
       if (templateTouched) return;
@@ -696,6 +706,10 @@
         updatePreviewFont();
         templateTouched = false;
         refreshTemplateVisibility();
+        var templateLabel = radio.closest('[data-template-label]');
+        var templateName = templateLabel && templateLabel.querySelector('.font-semibold');
+        var businessTypeLabel = this.selectedOptions[0].textContent;
+        if (templateName) showDesignSwapHint(templateName.textContent.trim(), businessTypeLabel.trim());
       }
     });
 
