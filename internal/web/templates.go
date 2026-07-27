@@ -102,11 +102,18 @@ var businessTypes = []businessType{
 	{ID: "salon", Label: "Salon, studio & wellness", DefaultTemplate: "bloom"},
 }
 
+// templateBusinessFits maps a template ID to the labels of every business
+// type that defaults to it, letting the public design gallery surface the
+// same industry-fit signal the logged-in wizard already uses internally
+// (see issue #165) without duplicating the businessTypes catalog.
+var templateBusinessFits = map[string][]string{}
+
 func init() {
 	for i := range businessTypes {
 		if t, ok := findTemplate(businessTypes[i].DefaultTemplate); ok {
 			businessTypes[i].TemplateCategory = t.Category
 		}
+		templateBusinessFits[businessTypes[i].DefaultTemplate] = append(templateBusinessFits[businessTypes[i].DefaultTemplate], businessTypes[i].Label)
 	}
 }
 

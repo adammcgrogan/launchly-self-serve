@@ -26,7 +26,7 @@ func (h *Handler) TemplatesPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_, loggedIn := h.auth.CheckUser(w, r)
-	h.render.Render(w, "templates", map[string]any{"Templates": siteTemplates, "DemoURLs": demoURLs, "LoggedIn": loggedIn})
+	h.render.Render(w, "templates", map[string]any{"Templates": siteTemplates, "DemoURLs": demoURLs, "BusinessFits": templateBusinessFits, "LoggedIn": loggedIn})
 }
 
 func (h *Handler) Privacy(w http.ResponseWriter, r *http.Request) {

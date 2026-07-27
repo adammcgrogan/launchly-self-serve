@@ -24,6 +24,10 @@
           <span class="w-5 h-5 rounded-full border border-slate-200" style="background-color:{{paletteColor .ID}}" title="{{.Name}}"></span>
           {{end}}
         </div>
+        {{$fits := index $.BusinessFits .ID}}
+        {{if $fits}}
+        <p class="mt-4 text-sm text-slate-500">Great fit for: <span class="font-medium text-slate-700">{{range $i, $label := $fits}}{{if $i}}, {{end}}{{$label}}{{end}}</span></p>
+        {{end}}
         {{if $demoURL}}
         <a href="{{$demoURL}}" target="_blank" rel="noopener" class="mt-5 inline-flex items-center text-sm font-semibold text-brand hover:text-brand-dark">View live example &rarr;</a>
         {{end}}
