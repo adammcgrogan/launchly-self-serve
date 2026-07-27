@@ -22,8 +22,15 @@ func TestSuperadminTemplatesRender(t *testing.T) {
 	}
 
 	dashData := map[string]any{
-		"Sites": []domain.Site{{ID: 1, Slug: "acme", BusinessName: "Acme", Status: domain.SiteStatusLive}},
-		"Stats": domain.PlatformStats{TotalSites: 5, LiveSites: 2, DraftSites: 2, PausedSites: 1, StarterPlan: 3, ProPlan: 1, TrialingSites: 1, SignupsThisWeek: 2, SignupsThisMonth: 5},
+		"Sites":      []domain.SiteWithBilling{{Site: domain.Site{ID: 1, Slug: "acme", BusinessName: "Acme", Status: domain.SiteStatusLive}}},
+		"SiteTotal":  1,
+		"Stats":      domain.PlatformStats{TotalSites: 5, LiveSites: 2, DraftSites: 2, PausedSites: 1, StarterPlan: 3, ProPlan: 1, TrialingSites: 1, SignupsThisWeek: 2, SignupsThisMonth: 5},
+		"Page":       1,
+		"TotalPages": 1,
+		"HasPrev":    false,
+		"HasNext":    false,
+		"PrevPage":   0,
+		"NextPage":   2,
 	}
 	dashW := httptest.NewRecorder()
 	r.Render(dashW, "superadmin:dashboard", dashData)

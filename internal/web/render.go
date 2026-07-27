@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"log/slog"
@@ -115,7 +116,10 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 	return nil
 }
 
-// Render executes a pre-parsed template by key, writing the result to w.
+// Render executes a pre-parsed template by key. It renders into a buffer
+// first so a mid-execution template error (nil deref, bad field, etc.)
+// never leaves a truncated page flushed to the client with a 200 — on error
+// it falls back to the branded error page with a 500 instead.
 func (rd *Renderer) Render(w http.ResponseWriter, key string, data any) {
 	t, ok := rd.tmpl[key]
 	if !ok {
@@ -123,14 +127,20 @@ func (rd *Renderer) Render(w http.ResponseWriter, key string, data any) {
 		http.Error(w, "template error", http.StatusInternalServerError)
 		return
 	}
-	if err := t.ExecuteTemplate(w, "base", data); err != nil {
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, "base", data); err != nil {
 		slog.Error("template render failed", "key", key, "error", err)
+		rd.RenderError(w, http.StatusInternalServerError)
+		return
 	}
+	w.Write(buf.Bytes())
 }
 
 // RenderPartial executes a named sub-template from a pre-parsed set without
 // the "base" page wrapper — used for fetch-driven partial updates like the
-// analytics card, which return a fragment rather than a full page.
+// analytics card, which return a fragment rather than a full page. It
+// renders into a buffer first, same as Render, so a mid-execution error
+// falls back to a clean 500 instead of a truncated fragment.
 func (rd *Renderer) RenderPartial(w http.ResponseWriter, key, name string, data any) {
 	t, ok := rd.tmpl[key]
 	if !ok {
@@ -138,20 +148,31 @@ func (rd *Renderer) RenderPartial(w http.ResponseWriter, key, name string, data 
 		http.Error(w, "template error", http.StatusInternalServerError)
 		return
 	}
-	if err := t.ExecuteTemplate(w, name, data); err != nil {
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, name, data); err != nil {
 		slog.Error("partial render failed", "key", key, "name", name, "error", err)
+		rd.RenderError(w, http.StatusInternalServerError)
+		return
 	}
+	w.Write(buf.Bytes())
 }
 
-// RenderError renders the branded error page with the given HTTP status code.
+// RenderError renders the branded error page with the given HTTP status
+// code. It renders into a buffer first so that if the error template itself
+// fails to execute, the status hasn't been written yet and we can still
+// fall back to a plain-text error response.
 func (rd *Renderer) RenderError(w http.ResponseWriter, status int) {
-	w.WriteHeader(status)
 	t, ok := rd.tmpl["error"]
 	if !ok {
 		http.Error(w, "something went wrong", status)
 		return
 	}
-	if err := t.ExecuteTemplate(w, "base", map[string]any{"Status": status}); err != nil {
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, "base", map[string]any{"Status": status}); err != nil {
 		slog.Error("error template render failed", "error", err)
+		http.Error(w, "something went wrong", status)
+		return
 	}
+	w.WriteHeader(status)
+	w.Write(buf.Bytes())
 }
