@@ -269,6 +269,91 @@ func TestHandleWebhookEvent_PaymentFailed_NotifiesOwnerAndAdmin(t *testing.T) {
 	}
 }
 
+func TestHandleWebhookEvent_PaymentSucceeded_RecoversPastDueSiteAndNotifies(t *testing.T) {
+	b, mock, mailer := newTestBilling(t)
+	ownerID := uuid.New()
+
+	mock.ExpectExec("INSERT INTO stripe_events").
+		WithArgs("evt5").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
+		WithArgs("sub1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
+		WithArgs("sub1").
+		WillReturnRows(billingRows(42, domain.PlanPro))
+	mock.ExpectQuery("FROM sites WHERE id").
+		WithArgs(42).
+		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusLive))
+	mock.ExpectQuery("FROM site_contact WHERE site_id").
+		WithArgs(42).
+		WillReturnRows(contactRows("owner@acme.test"))
+	mock.ExpectQuery("FROM profiles").
+		WithArgs(ownerID).
+		WillReturnError(sql.ErrNoRows)
+
+	event := &payment.WebhookEvent{ID: "evt5", Type: "invoice.payment_succeeded", SubscriptionID: "sub1"}
+	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
+		t.Fatalf("HandleWebhookEvent: %v", err)
+	}
+
+	if len(mailer.paymentConfirmations) != 1 || mailer.paymentConfirmations[0] != "owner@acme.test|Acme Co|pro" {
+		t.Errorf("payment confirmations = %v", mailer.paymentConfirmations)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
+func TestHandleWebhookEvent_PaymentSucceeded_NotPastDue_NoopNoNotify(t *testing.T) {
+	b, mock, mailer := newTestBilling(t)
+
+	mock.ExpectExec("INSERT INTO stripe_events").
+		WithArgs("evt6").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	// SetSitePaymentRecovered affects 0 rows: the site wasn't 'past_due', so
+	// this is a routine renewal invoice, not a recovery.
+	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
+		WithArgs("sub1").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	event := &payment.WebhookEvent{ID: "evt6", Type: "invoice.payment_succeeded", SubscriptionID: "sub1"}
+	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
+		t.Fatalf("HandleWebhookEvent: %v", err)
+	}
+
+	if len(mailer.paymentConfirmations) != 0 {
+		t.Errorf("expected no notification for a non-recovery renewal, got %v", mailer.paymentConfirmations)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
+func TestHandleWebhookEvent_UnknownEventType_ClaimsButDoesNothing(t *testing.T) {
+	b, mock, mailer := newTestBilling(t)
+
+	// Unhandled event types still get claimed for idempotency (so a later
+	// Stripe retry of the same event ID is a no-op too), but the switch in
+	// HandleWebhookEvent has no matching case, so no handler runs and no DB
+	// writes or notifications happen beyond the claim.
+	mock.ExpectExec("INSERT INTO stripe_events").
+		WithArgs("evt-unknown").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	event := &payment.WebhookEvent{ID: "evt-unknown", Type: "customer.updated"}
+	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
+		t.Fatalf("HandleWebhookEvent: %v", err)
+	}
+
+	if len(mailer.paymentConfirmations)+len(mailer.cancellations)+len(mailer.paymentFailed)+len(mailer.adminAlerts) != 0 {
+		t.Errorf("expected no notifications for an unhandled event type, got mailer=%+v", mailer)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
 func TestHandleWebhookEvent_ProcessingFailure_ReleasesClaimForRetry(t *testing.T) {
 	b, mock, _ := newTestBilling(t)
 
