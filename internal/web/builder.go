@@ -62,6 +62,8 @@ func (h *Handler) renderNewSite(w http.ResponseWriter, r *http.Request, errMsg s
 		"Timezones":        timezones,
 		"TestimonialRows":  testimonialRowsForForm(values),
 		"ServiceRows":      serviceRowsForForm(values),
+		"CertRows":         certificationRowsForForm(values),
+		"GalleryRows":      galleryRowsForForm(values),
 		"CSRFToken":        h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
 		"EmailVerified":    h.emailVerified(r),
 		"AIAvailable":      h.ai.Configured(),
@@ -134,9 +136,9 @@ func (h *Handler) NewSiteSubmit(w http.ResponseWriter, r *http.Request) {
 		},
 		SocialLinks:    parseSocialLinks(r),
 		Services:       parseServiceRows(r),
-		Certifications: parseCertifications(r.FormValue("certifications")),
+		Certifications: parseCertificationRows(r),
 		Testimonials:   parseTestimonialRows(r),
-		GalleryImages:  parseGallery(r.FormValue("gallery")),
+		GalleryImages:  parseGalleryRows(r),
 		BusinessHours:  parseBusinessHours(r),
 	}
 

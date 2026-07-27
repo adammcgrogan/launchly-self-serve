@@ -10,25 +10,6 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
 
-// The builder wizard's certifications/gallery fields still use simple
-// newline-separated textareas parsed into normalized rows (see
-// parseCertifications, parseGallery below) — everything else (services,
-// FAQs, staff, testimonials, and the editor's certifications/areas/gallery)
-// uses real repeated fields instead (see parseServiceRows,
-// parseTestimonialRows, parseCertificationRows, parseServiceAreaRows,
-// parseGalleryRows) rather than asking for a delimited line.
-
-func splitLines(s string) []string {
-	var out []string
-	for _, line := range strings.Split(s, "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			out = append(out, line)
-		}
-	}
-	return out
-}
-
 // formRowValues gathers the i-th value of each named field from a repeated
 // form-row group, defaulting to "" for a field whose submitted slice is
 // shorter than others. When trim is true (parsing for storage) each value is
@@ -171,14 +152,6 @@ func staffRowsForDisplay(members []domain.StaffMember) []domain.StaffMember {
 	return rowsForDisplay(members)
 }
 
-func parseCertifications(s string) []domain.Certification {
-	var out []domain.Certification
-	for i, label := range splitLines(s) {
-		out = append(out, domain.Certification{Label: label, SortOrder: i})
-	}
-	return out
-}
-
 // parseCertificationRows reads the repeatable certification/trust-badge
 // cards — certification_label is submitted once per row. Rows with no label
 // are dropped.
@@ -189,6 +162,16 @@ func parseCertificationRows(r *http.Request) []domain.Certification {
 			return domain.Certification{}, false
 		}
 		return domain.Certification{Label: v[0], SortOrder: sortOrder}, true
+	})
+}
+
+// certificationRowsForForm rebuilds the repeatable certification cards from
+// a failed submit's form values, so nothing typed is lost on reload. Always
+// returns at least one (possibly empty) row so the form has one to render.
+func certificationRowsForForm(values url.Values) []domain.Certification {
+	fields := []string{"certification_label"}
+	return repeatedRowsForForm(values, fields, func(v []string) domain.Certification {
+		return domain.Certification{Label: v[0]}
 	})
 }
 
@@ -228,14 +211,6 @@ func serviceAreaRowsForDisplay(a []domain.ServiceArea) []domain.ServiceArea {
 	return rowsForDisplay(a)
 }
 
-func parseGallery(s string) []domain.GalleryImage {
-	var out []domain.GalleryImage
-	for i, url := range splitLines(s) {
-		out = append(out, domain.GalleryImage{URL: url, SortOrder: i})
-	}
-	return out
-}
-
 // parseGalleryRows reads the repeatable gallery-image cards — gallery_url is
 // submitted once per row. Rows with no URL are dropped.
 func parseGalleryRows(r *http.Request) []domain.GalleryImage {
@@ -245,6 +220,16 @@ func parseGalleryRows(r *http.Request) []domain.GalleryImage {
 			return domain.GalleryImage{}, false
 		}
 		return domain.GalleryImage{URL: v[0], SortOrder: sortOrder}, true
+	})
+}
+
+// galleryRowsForForm rebuilds the repeatable gallery-image cards from a
+// failed submit's form values, so nothing typed is lost on reload. Always
+// returns at least one (possibly empty) row so the form has one to render.
+func galleryRowsForForm(values url.Values) []domain.GalleryImage {
+	fields := []string{"gallery_url"}
+	return repeatedRowsForForm(values, fields, func(v []string) domain.GalleryImage {
+		return domain.GalleryImage{URL: v[0]}
 	})
 }
 
