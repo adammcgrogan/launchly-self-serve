@@ -429,3 +429,25 @@ func socialLinksMap(links []domain.SocialLink) map[string]string {
 	}
 	return m
 }
+
+// siteContentDisplayData returns the template-data block shared by the
+// owner-facing site editor (SiteOverview) and the superadmin site view
+// (SuperadminSiteView) — every adapted view of a site's editable content.
+// Callers merge this into their own page-specific data map.
+func siteContentDisplayData(site *domain.SiteAggregate) map[string]any {
+	return map[string]any{
+		"Socials":          socialLinksMap(site.SocialLinks),
+		"ServiceRows":      serviceRowsForDisplay(site.Services),
+		"CertRows":         certificationRowsForDisplay(site.Certifications),
+		"AreaRows":         serviceAreaRowsForDisplay(site.ServiceAreas),
+		"Reviews":          site.Reviews,
+		"TestimonialRows":  testimonialRowsForDisplay(site.Testimonials),
+		"GalleryRows":      galleryRowsForDisplay(site.GalleryImages),
+		"FAQRows":          faqRowsForDisplay(site.FAQItems),
+		"StaffRows":        staffRowsForDisplay(site.StaffMembers),
+		"HoursByDay":       businessHoursByDay(site.BusinessHours),
+		"SpecialHoursRows": specialHoursRowsForDisplay(site.SpecialHours),
+		"Weekdays":         weekdays,
+		"Timezones":        timezones,
+	}
+}

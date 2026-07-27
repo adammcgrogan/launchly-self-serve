@@ -99,26 +99,17 @@ func (h *Handler) SuperadminSiteView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	leads, _ := h.leads.ListBySite(r.Context(), id)
-	h.render.Render(w, "superadmin:site", map[string]any{
-		"Site":             site,
-		"Leads":            leads,
-		"SiteURL":          h.siteURL(site.Slug),
-		"CSRFToken":        h.csrf.Token("superadmin", ""),
-		"Flash":            middleware.GetFlash(w, r),
-		"Socials":          socialLinksMap(site.SocialLinks),
-		"ServiceRows":      serviceRowsForDisplay(site.Services),
-		"CertRows":         certificationRowsForDisplay(site.Certifications),
-		"AreaRows":         serviceAreaRowsForDisplay(site.ServiceAreas),
-		"Reviews":          site.Reviews,
-		"TestimonialRows":  testimonialRowsForDisplay(site.Testimonials),
-		"GalleryRows":      galleryRowsForDisplay(site.GalleryImages),
-		"FAQRows":          faqRowsForDisplay(site.FAQItems),
-		"StaffRows":        staffRowsForDisplay(site.StaffMembers),
-		"HoursByDay":       businessHoursByDay(site.BusinessHours),
-		"SpecialHoursRows": specialHoursRowsForDisplay(site.SpecialHours),
-		"Weekdays":         weekdays,
-		"Timezones":        timezones,
-	})
+	data := map[string]any{
+		"Site":      site,
+		"Leads":     leads,
+		"SiteURL":   h.siteURL(site.Slug),
+		"CSRFToken": h.csrf.Token("superadmin", ""),
+		"Flash":     middleware.GetFlash(w, r),
+	}
+	for k, v := range siteContentDisplayData(site) {
+		data[k] = v
+	}
+	h.render.Render(w, "superadmin:site", data)
 }
 
 // SuperadminEditSubmit lets an admin edit any site's content — the same

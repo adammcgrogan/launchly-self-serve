@@ -174,7 +174,7 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	showPastDueBanner := siteView.Billing.PaymentStatus == domain.PaymentStatusPastDue
 
-	h.render.Render(w, "dashboard:site", map[string]any{
+	data := map[string]any{
 		"Site":              &siteView,
 		"Leads":             leads,
 		"LeadCount":         leadCounts.Total,
@@ -206,26 +206,17 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 		"Design":           tmpl,
 		"Templates":        siteTemplates,
 		"Palettes":         tmpl.Palettes,
-		"Socials":          socialLinksMap(siteView.SocialLinks),
-		"ServiceRows":      serviceRowsForDisplay(siteView.Services),
-		"CertRows":         certificationRowsForDisplay(siteView.Certifications),
-		"AreaRows":         serviceAreaRowsForDisplay(siteView.ServiceAreas),
-		"Reviews":          siteView.Reviews,
-		"TestimonialRows":  testimonialRowsForDisplay(siteView.Testimonials),
-		"GalleryRows":      galleryRowsForDisplay(siteView.GalleryImages),
-		"FAQRows":          faqRowsForDisplay(siteView.FAQItems),
-		"StaffRows":        staffRowsForDisplay(siteView.StaffMembers),
-		"HoursByDay":       businessHoursByDay(siteView.BusinessHours),
-		"SpecialHoursRows": specialHoursRowsForDisplay(siteView.SpecialHours),
-		"Weekdays":         weekdays,
-		"Timezones":        timezones,
 		"Domain":           h.cfg.Domain,
 		"DomainData":       domainData,
 		"UploadsAvailable": h.uploads.Available(),
 
 		"IsOwner": isOwner,
 		"Members": members,
-	})
+	}
+	for k, v := range siteContentDisplayData(&siteView) {
+		data[k] = v
+	}
+	h.render.Render(w, "dashboard:site", data)
 }
 
 // checklistItem is one row of the site-completeness checklist shown on the
