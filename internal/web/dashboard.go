@@ -569,6 +569,7 @@ func (h *Handler) ExportAnalytics(w http.ResponseWriter, r *http.Request) {
 	cw.Write([]string{"Call taps", strconv.Itoa(stats.CallTaps)})
 	cw.Write([]string{"WhatsApp taps", strconv.Itoa(stats.WhatsAppTaps)})
 	cw.Write([]string{"Directions clicks", strconv.Itoa(stats.DirectionsClicks)})
+	cw.Write([]string{"Document downloads", strconv.Itoa(stats.DocumentDownloads)})
 	cw.Write([]string{"Leads", strconv.Itoa(stats.Leads)})
 	cw.Write([]string{})
 	cw.Write([]string{"Day", "Views"})

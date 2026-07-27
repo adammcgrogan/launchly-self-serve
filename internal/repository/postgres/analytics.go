@@ -102,6 +102,8 @@ func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time, t
 			stats.WhatsAppTaps = ec.Count
 		case domain.EventKindDirections:
 			stats.DirectionsClicks = ec.Count
+		case domain.EventKindDownload:
+			stats.DocumentDownloads = ec.Count
 		case domain.EventKindLead:
 			stats.Leads = ec.Count
 		}

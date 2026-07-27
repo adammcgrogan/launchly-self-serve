@@ -14,6 +14,11 @@ import (
 // buffered in the server's memory while it's proxied to Storage.
 const MaxUploadBytes = 5 << 20 // 5 MiB
 
+// MaxDocumentUploadBytes caps a downloadable document (menu/brochure PDF) —
+// larger than an image since a multi-page brochure legitimately needs more
+// room, but still bounded so the file can be safely buffered in memory.
+const MaxDocumentUploadBytes = 15 << 20 // 15 MiB
+
 // ErrUploadsUnavailable is returned when image uploads aren't configured (no
 // Storage bucket) — callers should fall back to the URL-only fields.
 var ErrUploadsUnavailable = errors.New("image uploads are not available")
@@ -27,8 +32,15 @@ var allowedImageTypes = map[string]string{
 	"image/gif":  "gif",
 }
 
-// Uploads handles customer image uploads (logos, gallery photos), storing them
-// in Supabase Storage and returning the public URL to save alongside the site.
+// allowedDocumentTypes maps an accepted document MIME type to its stored
+// file extension. PDF only for now — the one format a menu/brochure needs.
+var allowedDocumentTypes = map[string]string{
+	"application/pdf": "pdf",
+}
+
+// Uploads handles customer file uploads (logos, gallery photos, downloadable
+// documents), storing them in Supabase Storage and returning the public URL
+// to save alongside the site.
 type Uploads struct {
 	storage *storage.Client
 }
@@ -65,10 +77,33 @@ func (u *Uploads) UploadImage(ctx context.Context, ownerID uuid.UUID, contentTyp
 	return u.storage.Upload(ctx, objectPath, contentType, data)
 }
 
-// DeleteImage removes a previously-uploaded image from Storage, identified
-// by the public URL UploadImage returned for it. URLs that aren't one of
-// ours (an externally-hosted image a site owner pasted in directly) are
-// left untouched. A no-op if uploads aren't configured.
+// UploadDocument validates and stores a downloadable document (e.g. a menu
+// or brochure PDF) for the given owner, returning its public URL. Shares the
+// same Storage bucket and owner-namespaced object naming as UploadImage.
+func (u *Uploads) UploadDocument(ctx context.Context, ownerID uuid.UUID, contentType string, data []byte) (string, error) {
+	if !u.Available() {
+		return "", ErrUploadsUnavailable
+	}
+	if len(data) == 0 {
+		return "", &ValidationError{Message: "The file is empty."}
+	}
+	if len(data) > MaxDocumentUploadBytes {
+		return "", &ValidationError{Message: "That file is too large — please use one under 15 MB."}
+	}
+	ext, ok := allowedDocumentTypes[contentType]
+	if !ok {
+		return "", &ValidationError{Message: "That file type isn't supported — please upload a PDF."}
+	}
+
+	objectPath := fmt.Sprintf("%s/%s.%s", ownerID.String(), uuid.NewString(), ext)
+	return u.storage.Upload(ctx, objectPath, contentType, data)
+}
+
+// DeleteImage removes a previously-uploaded file (image or document) from
+// Storage, identified by the public URL UploadImage/UploadDocument returned
+// for it. URLs that aren't one of ours (an externally-hosted file a site
+// owner pasted in directly) are left untouched. A no-op if uploads aren't
+// configured.
 func (u *Uploads) DeleteImage(ctx context.Context, publicURL string) error {
 	if !u.Available() {
 		return nil

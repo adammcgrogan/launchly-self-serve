@@ -72,6 +72,63 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"url": url})
 }
 
+// UploadDocument receives a single PDF file (multipart field "file") from
+// the editor's document field, validates and stores it in Supabase Storage,
+// and returns the resulting public URL as JSON — mirrors UploadImage, just
+// against the document (larger size cap, PDF-only) validation path.
+func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
+	if !h.uploads.Available() {
+		writeUploadError(w, http.StatusServiceUnavailable, "File uploads aren't available right now.")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, service.MaxDocumentUploadBytes+1<<20)
+	if err := r.ParseMultipartForm(service.MaxDocumentUploadBytes + 1<<20); err != nil {
+		writeUploadError(w, http.StatusRequestEntityTooLarge, "That file is too large — please use one under 15 MB.")
+		return
+	}
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
+		return
+	}
+	if !h.uploadLimiter.Allow(middleware.UserID(r).String()) {
+		writeUploadError(w, http.StatusTooManyRequests, "Too many uploads — please wait a moment and try again.")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeUploadError(w, http.StatusBadRequest, "No file was uploaded.")
+		return
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(io.LimitReader(file, service.MaxDocumentUploadBytes+1))
+	if err != nil {
+		writeUploadError(w, http.StatusBadRequest, "Couldn't read the uploaded file.")
+		return
+	}
+
+	contentType := http.DetectContentType(data)
+
+	url, err := h.uploads.UploadDocument(r.Context(), middleware.UserID(r), contentType, data)
+	if err != nil {
+		var verr *service.ValidationError
+		if errors.As(err, &verr) {
+			writeUploadError(w, http.StatusBadRequest, verr.Message)
+			return
+		}
+		if errors.Is(err, service.ErrUploadsUnavailable) {
+			writeUploadError(w, http.StatusServiceUnavailable, "File uploads aren't available right now.")
+			return
+		}
+		h.render.RenderError(w, http.StatusInternalServerError)
+		return
+	}
+	_ = header // filename is intentionally ignored — stored objects are named by UUID
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"url": url})
+}
+
 func writeUploadError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

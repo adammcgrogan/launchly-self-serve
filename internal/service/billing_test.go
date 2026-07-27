@@ -63,7 +63,7 @@ func newTestBilling(t *testing.T) (*Billing, sqlmock.Sqlmock, *fakeMailer) {
 	return b, mock, mailer
 }
 
-const siteColumnCount = 30
+const siteColumnCount = 32
 
 // siteRows returns a single-row sqlmock result set matching the exact
 // column order sites.go's scanSite expects (see siteColumns in
@@ -74,6 +74,7 @@ func siteRows(id int, ownerID uuid.UUID, businessName string, status domain.Site
 		"template_id", "form_type", "palette", "heading_font", "brand_color", "status", "created_at", "published_at", "updated_at", "slug_changed_at",
 		"custom_domain", "custom_domain_status", "custom_domain_cf_id", "custom_domain_added_at", "timezone",
 		"meta_title", "meta_description", "og_image_url", "video_url", "is_demo", "thank_you_message", "redirect_url",
+		"document_title", "document_url",
 	}
 	if len(cols) != siteColumnCount {
 		panic("siteRows column count mismatch")
@@ -84,6 +85,7 @@ func siteRows(id int, ownerID uuid.UUID, businessName string, status domain.Site
 		"template-a", domain.FormType("standard"), "classic", "sans", "#4F46E5", string(status), now, nil, now, nil,
 		nil, "none", nil, nil, "Europe/London",
 		"", "", "", "", false, "", "",
+		"", "",
 	)
 }
 

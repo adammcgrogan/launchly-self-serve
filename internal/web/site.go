@@ -388,6 +388,7 @@ var siteEventKinds = map[string]domain.EventKind{
 	"call":       domain.EventKindCall,
 	"whatsapp":   domain.EventKindWhatsApp,
 	"directions": domain.EventKindDirections,
+	"download":   domain.EventKindDownload,
 }
 
 // RecordSiteEvent handles the navigator.sendBeacon conversion ping fired

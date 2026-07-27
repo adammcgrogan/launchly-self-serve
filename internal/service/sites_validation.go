@@ -188,6 +188,25 @@ func validateVideoURL(videoURL string) error {
 	return nil
 }
 
+// validateDocument checks an optional downloadable document (menu/brochure
+// PDF link) — both fields are independently optional, but a title is
+// meaningless without a URL to attach it to.
+func validateDocument(title, documentURL string) error {
+	if err := checkLen("document title", title, maxShortField); err != nil {
+		return err
+	}
+	if err := checkLen("document URL", documentURL, maxMediumField); err != nil {
+		return err
+	}
+	if err := checkURL("document URL", documentURL); err != nil {
+		return err
+	}
+	if documentURL == "" && title != "" {
+		return &ValidationError{Message: "add a document file before setting a title.", Field: "document title"}
+	}
+	return nil
+}
+
 // validateReviews checks the owner-entered review rating badge: the rating
 // must be a number between 0 and 5, the count non-negative, and the review
 // link a valid https URL. All fields are optional (empty rating = no badge).

@@ -141,6 +141,13 @@ type Site struct {
 	MetaDescription string
 	OgImageURL      string
 
+	// DocumentTitle/DocumentURL are an optional downloadable file (e.g. a
+	// menu or brochure PDF) shown as a "Download our menu/brochure" button
+	// on the public site. DocumentURL is stored the same way LogoURL is —
+	// either a pasted external link or an uploaded-file URL from Storage.
+	DocumentTitle string
+	DocumentURL   string
+
 	// IsDemo marks a Launchly-owned showcase site (seeded one per template
 	// so the /templates gallery always has a live example), as opposed to a
 	// real customer's site. Excluded from platform stats.

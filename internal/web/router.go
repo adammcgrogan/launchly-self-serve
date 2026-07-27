@@ -74,6 +74,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/new", h.auth.RequireUser(h.NewSiteSubmit))
 	mux.HandleFunc("POST /dashboard/sites/new/generate-copy", h.auth.RequireUser(h.GenerateCopy))
 	mux.HandleFunc("POST /dashboard/uploads", h.auth.RequireUser(h.UploadImage))
+	mux.HandleFunc("POST /dashboard/uploads/document", h.auth.RequireUser(h.UploadDocument))
 	mux.HandleFunc("GET /dashboard/sites/{slug}", ownedFull(h.SiteOverview))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/preview", ownedFull(h.PreviewSite))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/edit", owned(h.EditSubmit))

@@ -27,6 +27,8 @@ type UpdateContentInput struct {
 	MetaTitle       string
 	MetaDescription string
 	OgImageURL      string
+	DocumentTitle   string
+	DocumentURL     string
 	Contact         domain.SiteContact
 	SocialLinks     []domain.SocialLink
 	Services        []domain.Service
@@ -67,6 +69,9 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 	if err := checkURL("redirect URL", in.RedirectURL); err != nil {
 		return err
 	}
+	if err := validateDocument(in.DocumentTitle, in.DocumentURL); err != nil {
+		return err
+	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -85,7 +90,8 @@ func (s *Sites) UpdateContent(ctx context.Context, in UpdateContentInput) error 
 
 	site := &domain.Site{ID: in.SiteID, BusinessName: in.BusinessName, Tagline: in.Tagline, About: in.About, LogoURL: in.LogoURL, CTAText: in.CTAText, VideoURL: in.VideoURL, Timezone: in.Timezone,
 		MetaTitle: in.MetaTitle, MetaDescription: in.MetaDescription, OgImageURL: in.OgImageURL,
-		ThankYouMessage: in.ThankYouMessage, RedirectURL: in.RedirectURL}
+		ThankYouMessage: in.ThankYouMessage, RedirectURL: in.RedirectURL,
+		DocumentTitle: in.DocumentTitle, DocumentURL: in.DocumentURL}
 	if err := postgres.UpdateSiteContent(ctx, tx, site); err != nil {
 		return fmt.Errorf("update site: %w", err)
 	}
@@ -149,6 +155,11 @@ func (s *Sites) deleteStaleImages(ctx context.Context, prevSite *domain.Site, pr
 	if prevSite != nil && prevSite.LogoURL != "" && prevSite.LogoURL != in.LogoURL {
 		if err := s.uploads.DeleteImage(ctx, prevSite.LogoURL); err != nil {
 			slog.Error("delete stale logo image", "site_id", in.SiteID, "error", err)
+		}
+	}
+	if prevSite != nil && prevSite.DocumentURL != "" && prevSite.DocumentURL != in.DocumentURL {
+		if err := s.uploads.DeleteImage(ctx, prevSite.DocumentURL); err != nil {
+			slog.Error("delete stale document", "site_id", in.SiteID, "error", err)
 		}
 	}
 	kept := make(map[string]bool, len(in.GalleryImages))

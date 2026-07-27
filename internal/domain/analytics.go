@@ -20,6 +20,7 @@ const (
 	EventKindWhatsApp   EventKind = "whatsapp"
 	EventKindDirections EventKind = "directions"
 	EventKindLead       EventKind = "lead"
+	EventKindDownload   EventKind = "download"
 )
 
 // SiteEvent is a single recorded conversion — a tel:/WhatsApp/directions
@@ -53,14 +54,15 @@ type SiteStats struct {
 	ViewsByDay     []DayCount
 	PeriodDays     int
 
-	CallTaps         int
-	WhatsAppTaps     int
-	DirectionsClicks int
-	Leads            int
+	CallTaps          int
+	WhatsAppTaps      int
+	DirectionsClicks  int
+	Leads             int
+	DocumentDownloads int
 }
 
 // TotalConversions sums every conversion kind — the number that proves the
 // site pays for itself, as opposed to raw page views.
 func (s SiteStats) TotalConversions() int {
-	return s.CallTaps + s.WhatsAppTaps + s.DirectionsClicks + s.Leads
+	return s.CallTaps + s.WhatsAppTaps + s.DirectionsClicks + s.Leads + s.DocumentDownloads
 }

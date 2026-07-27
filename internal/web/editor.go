@@ -122,6 +122,8 @@ func buildUpdateContentInput(r *http.Request, siteID int) service.UpdateContentI
 		MetaTitle:       strings.TrimSpace(r.FormValue("meta_title")),
 		MetaDescription: strings.TrimSpace(r.FormValue("meta_description")),
 		OgImageURL:      strings.TrimSpace(r.FormValue("og_image_url")),
+		DocumentTitle:   strings.TrimSpace(r.FormValue("document_title")),
+		DocumentURL:     strings.TrimSpace(r.FormValue("document_url")),
 		Contact: domain.SiteContact{
 			SiteID:      siteID,
 			Phone:       strings.TrimSpace(r.FormValue("phone")),

@@ -13,7 +13,8 @@ import (
 const siteColumns = `id, owner_user_id, slug, business_name, tagline, about, logo_url, cta_text,
 	template_id, form_type, palette, heading_font, brand_color, status, created_at, published_at, updated_at, slug_changed_at,
 	custom_domain, custom_domain_status, custom_domain_cf_id, custom_domain_added_at, timezone,
-	meta_title, meta_description, og_image_url, video_url, is_demo, thank_you_message, redirect_url`
+	meta_title, meta_description, og_image_url, video_url, is_demo, thank_you_message, redirect_url,
+	document_title, document_url`
 
 func scanSite(row scanner) (*domain.Site, error) {
 	var s domain.Site
@@ -23,6 +24,7 @@ func scanSite(row scanner) (*domain.Site, error) {
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
 		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo, &s.ThankYouMessage, &s.RedirectURL,
+		&s.DocumentTitle, &s.DocumentURL,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -46,6 +48,7 @@ func scanSiteRowsWithCount(rows *sql.Rows) (*domain.Site, int, error) {
 		&s.TemplateID, &s.FormType, &s.Palette, &s.HeadingFont, &s.BrandColor, &s.Status, &s.CreatedAt, &s.PublishedAt, &s.UpdatedAt, &s.SlugChangedAt,
 		&customDomain, &s.CustomDomainStatus, &customDomainCFID, &s.CustomDomainAddedAt, &s.Timezone,
 		&s.MetaTitle, &s.MetaDescription, &s.OgImageURL, &s.VideoURL, &s.IsDemo, &s.ThankYouMessage, &s.RedirectURL,
+		&s.DocumentTitle, &s.DocumentURL,
 		&total,
 	)
 	s.CustomDomain = customDomain.String
@@ -156,6 +159,7 @@ func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, 
 		&sb.TemplateID, &sb.FormType, &sb.Palette, &sb.HeadingFont, &sb.BrandColor, &sb.Status, &sb.CreatedAt, &sb.PublishedAt, &sb.UpdatedAt, &sb.SlugChangedAt,
 		&customDomain, &sb.CustomDomainStatus, &customDomainCFID, &sb.CustomDomainAddedAt, &sb.Timezone,
 		&sb.MetaTitle, &sb.MetaDescription, &sb.OgImageURL, &sb.VideoURL, &sb.IsDemo, &sb.ThankYouMessage, &sb.RedirectURL,
+		&sb.DocumentTitle, &sb.DocumentURL,
 		&plan, &paymentStatus, &stripeCustomerID, &stripeSessionID, &stripeSubscriptionID,
 		&paidAt, &trialEndsAt, &trialReminderSentAt, &trialFinalReminderSentAt,
 		&paymentFailedAt, &dunningReminder1SentAt, &dunningReminder2SentAt, &dunningFinalWarningSentAt,
@@ -285,11 +289,11 @@ func UpdateSiteContent(ctx context.Context, q querier, site *domain.Site) error 
 	_, err := q.ExecContext(ctx, `
 		UPDATE sites SET business_name = $1, tagline = $2, about = $3, logo_url = $4, cta_text = $5, timezone = $6,
 			meta_title = $7, meta_description = $8, og_image_url = $9, video_url = $10,
-			thank_you_message = $11, redirect_url = $12, updated_at = now()
-		WHERE id = $13
+			thank_you_message = $11, redirect_url = $12, document_title = $13, document_url = $14, updated_at = now()
+		WHERE id = $15
 	`, site.BusinessName, site.Tagline, site.About, site.LogoURL, site.CTAText, site.Timezone,
 		site.MetaTitle, site.MetaDescription, site.OgImageURL, site.VideoURL,
-		site.ThankYouMessage, site.RedirectURL, site.ID)
+		site.ThankYouMessage, site.RedirectURL, site.DocumentTitle, site.DocumentURL, site.ID)
 	return err
 }
 
