@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
@@ -265,47 +264,6 @@ func (s *Sites) UpdateNotifySettings(ctx context.Context, siteID int, mobileNumb
 	err := postgres.UpsertSiteNotifySettings(ctx, s.store.DB(), &domain.SiteNotifySettings{
 		SiteID: siteID, MobileNumber: mobileNumber, SMSAlertsEnabled: enabled,
 	})
-	if err == nil {
-		s.invalidateAggregate(siteID)
-	}
-	return err
-}
-
-// Errors returned by UpdateTrackingSettings — shown directly to the owner.
-var (
-	ErrTrackingNotPro  = errors.New("your own analytics tracking is a Pro feature.")
-	ErrTrackingInvalid = errors.New("check your GA4 measurement ID (G-XXXXXXXXXX) and Meta Pixel ID (numeric).")
-)
-
-var (
-	ga4IDRe   = regexp.MustCompile(`^G-[A-Z0-9]{4,20}$`)
-	pixelIDRe = regexp.MustCompile(`^[0-9]{5,20}$`)
-)
-
-// UpdateTrackingSettings saves a Pro site's own GA4 measurement ID and Meta
-// Pixel ID, validating each ID's format. Both are optional; clearing them
-// (empty strings) always succeeds regardless of plan so a downgraded owner
-// can still remove their tags.
-func (s *Sites) UpdateTrackingSettings(ctx context.Context, siteID int, gaMeasurementID, metaPixelID string) error {
-	gaMeasurementID = strings.ToUpper(strings.TrimSpace(gaMeasurementID))
-	metaPixelID = strings.TrimSpace(metaPixelID)
-
-	if gaMeasurementID != "" || metaPixelID != "" {
-		billing, err := postgres.GetSiteBilling(ctx, s.store.DB(), siteID)
-		if err != nil {
-			return err
-		}
-		if billing == nil || !billing.IsPro() {
-			return ErrTrackingNotPro
-		}
-		if gaMeasurementID != "" && !ga4IDRe.MatchString(gaMeasurementID) {
-			return ErrTrackingInvalid
-		}
-		if metaPixelID != "" && !pixelIDRe.MatchString(metaPixelID) {
-			return ErrTrackingInvalid
-		}
-	}
-	err := postgres.UpsertSiteTrackingIDs(ctx, s.store.DB(), siteID, gaMeasurementID, metaPixelID)
 	if err == nil {
 		s.invalidateAggregate(siteID)
 	}

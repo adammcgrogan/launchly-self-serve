@@ -453,25 +453,6 @@ func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 	redirectToSite(w, r, site.Slug)
 }
 
-func (h *Handler) UpdateTrackingSettings(w http.ResponseWriter, r *http.Request) {
-	site, ok := h.sitePreamble(w, r)
-	if !ok {
-		return
-	}
-	if err := h.sites.UpdateTrackingSettings(r.Context(), site.ID,
-		r.FormValue("ga_measurement_id"), r.FormValue("meta_pixel_id")); err != nil {
-		if err == service.ErrTrackingNotPro || err == service.ErrTrackingInvalid {
-			middleware.SetFlash(w, err.Error())
-			redirectToSite(w, r, site.Slug)
-			return
-		}
-		h.render.RenderError(w, http.StatusInternalServerError)
-		return
-	}
-	middleware.SetFlash(w, "Tracking settings saved.")
-	redirectToSite(w, r, site.Slug)
-}
-
 func (h *Handler) SendAnalyticsNow(w http.ResponseWriter, r *http.Request) {
 	site := middleware.LightSiteFromContext(r)
 	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
