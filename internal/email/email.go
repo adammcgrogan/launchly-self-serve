@@ -407,6 +407,31 @@ func (c *Client) SendSitePaused(to, businessName, dashboardURL string) error {
 	return c.Send(to, fmt.Sprintf("Your site is paused - %s", businessName), wrap("Site paused", content))
 }
 
+// SendDomainVerified tells the owner their custom domain finished
+// verifying and is now serving their site.
+func (c *Client) SendDomainVerified(to, businessName, customDomain, dashboardURL string) error {
+	content := h1("Your custom domain is live") +
+		p(fmt.Sprintf("<strong>%s</strong> is now connected and serving <strong>%s</strong>.", html.EscapeString(customDomain), businessName)) +
+		p("Visitors can now reach your site at your own domain.") +
+		button(dashboardURL, "View your site") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
+	return c.Send(to, fmt.Sprintf("Your custom domain is live - %s", businessName), wrap("Domain connected", content))
+}
+
+// SendDomainFailed tells the owner their custom domain's verification
+// failed, most often because the DNS records weren't set (or haven't
+// propagated yet), so they know to go back and double-check them.
+func (c *Client) SendDomainFailed(to, businessName, customDomain, dashboardURL string) error {
+	content := h1("We couldn't verify your custom domain") +
+		p(fmt.Sprintf("Verification failed for <strong>%s</strong> on <strong>%s</strong>.", html.EscapeString(customDomain), businessName)) +
+		p("This usually means the DNS records weren't added correctly, or haven't propagated yet. Double-check the records in your dashboard, then try again.") +
+		button(dashboardURL, "Check DNS records") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
+	return c.Send(to, fmt.Sprintf("Action needed - domain verification failed for %s", businessName), wrap("Action needed", content))
+}
+
 func (c *Client) SendAnalyticsDigest(to, businessName string, stats *domain.SiteStats, siteURL string) error {
 	statsRow := fmt.Sprintf(`<table width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;"><tr>%s%s</tr></table>`,
 		statTile(fmt.Sprintf("%d", stats.TotalViews), "Total visits"),

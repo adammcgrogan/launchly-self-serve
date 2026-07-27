@@ -10,6 +10,7 @@ import (
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/cloudflare"
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
+	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
 	"github.com/lib/pq"
 )
@@ -23,6 +24,15 @@ type DomainRegistrar interface {
 	DeleteCustomHostname(ctx context.Context, cfID string) error
 }
 
+// domainsMailer is the subset of email.Client's methods domains.go calls.
+// Depending on this narrow interface (rather than *email.Client directly)
+// lets tests substitute a fake mailer that records calls instead of hitting
+// Resend over the network — mirrors billingMailer in billing.go.
+type domainsMailer interface {
+	SendDomainVerified(to, businessName, customDomain, dashboardURL string) error
+	SendDomainFailed(to, businessName, customDomain, dashboardURL string) error
+}
+
 // Domains manages Pro-plan custom domains. Each domain is registered with
 // Cloudflare for SaaS, which terminates TLS per-hostname and proxies to one
 // fixed origin — Railway itself never sees customer domains, so this
@@ -30,12 +40,14 @@ type DomainRegistrar interface {
 type Domains struct {
 	store          *postgres.Store
 	cf             DomainRegistrar
+	mailer         domainsMailer
 	fallbackOrigin string
 	platformDomain string
+	baseURL        string
 }
 
-func NewDomains(store *postgres.Store, cf DomainRegistrar, fallbackOrigin, platformDomain string) *Domains {
-	return &Domains{store: store, cf: cf, fallbackOrigin: fallbackOrigin, platformDomain: platformDomain}
+func NewDomains(store *postgres.Store, cf DomainRegistrar, mailer *email.Client, fallbackOrigin, platformDomain, baseURL string) *Domains {
+	return &Domains{store: store, cf: cf, mailer: mailer, fallbackOrigin: fallbackOrigin, platformDomain: platformDomain, baseURL: baseURL}
 }
 
 // Errors returned by the custom domain flow — web handlers show these
@@ -137,7 +149,11 @@ func isUniqueCustomDomainViolation(err error) bool {
 }
 
 // RefreshCustomDomainStatus re-checks a site's custom domain against
-// Cloudflare and updates its stored verification status accordingly.
+// Cloudflare and updates its stored verification status accordingly. The
+// first time a domain lands on active or failed, the owner is emailed —
+// this is the only place that transition is detected, so it covers both
+// the lazy refresh on dashboard load and the manual "check status" button
+// (#228).
 func (d *Domains) RefreshCustomDomainStatus(ctx context.Context, siteID int) (*cloudflare.Hostname, error) {
 	site, err := postgres.GetSiteByID(ctx, d.store.DB(), siteID)
 	if err != nil {
@@ -162,7 +178,32 @@ func (d *Domains) RefreshCustomDomainStatus(ctx context.Context, siteID int) (*c
 	if err := postgres.UpdateCustomDomainStatus(ctx, d.store.DB(), siteID, status); err != nil {
 		return nil, fmt.Errorf("update status: %w", err)
 	}
+
+	if status != site.CustomDomainStatus && (status == domain.CustomDomainActive || status == domain.CustomDomainFailed) {
+		d.notifyDomainStatusChange(ctx, siteID, site.CustomDomain, status)
+	}
 	return hostname, nil
+}
+
+// notifyDomainStatusChange emails the site owner that their custom domain
+// just went live or failed verification. Best-effort: a failed send just
+// means the owner finds out from the dashboard instead, same as before
+// this existed.
+func (d *Domains) notifyDomainStatusChange(ctx context.Context, siteID int, customDomain string, status domain.CustomDomainStatus) {
+	site, to, err := resolveNotifyTarget(ctx, d.store, siteID)
+	if err != nil || site == nil || to == "" {
+		return
+	}
+	dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", d.baseURL, site.Slug)
+	if status == domain.CustomDomainActive {
+		if err := d.mailer.SendDomainVerified(to, site.BusinessName, customDomain, dashboardURL); err != nil {
+			slog.Error("send domain verified email", "site_id", siteID, "error", err)
+		}
+		return
+	}
+	if err := d.mailer.SendDomainFailed(to, site.BusinessName, customDomain, dashboardURL); err != nil {
+		slog.Error("send domain failed email", "site_id", siteID, "error", err)
+	}
 }
 
 // RemoveCustomDomain detaches a site's custom domain, deleting it from
