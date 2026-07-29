@@ -51,8 +51,11 @@ type Config struct {
 	CloudflareZoneID         string
 	CloudflareFallbackOrigin string // fixed hostname customer domains are CNAME'd to, e.g. "origin.launchly.ltd"
 
-	AlertWebhookURL string // Slack/Discord/Google Chat incoming webhook posted to on log records at or above AlertMinLevel; unset disables alerting
-	AlertMinLevel   string // minimum slog level to post to the webhook: "info", "warn", or "error" (default)
+	AlertWebhookURL      string // default Discord webhook posted to on log records at or above AlertMinLevel; unset disables alerting (unless a per-level override below is set)
+	AlertWebhookURLInfo  string // overrides AlertWebhookURL for info-level records; unset falls back to AlertWebhookURL
+	AlertWebhookURLWarn  string // overrides AlertWebhookURL for warn-level records; unset falls back to AlertWebhookURL
+	AlertWebhookURLError string // overrides AlertWebhookURL for error-level records; unset falls back to AlertWebhookURL
+	AlertMinLevel        string // minimum slog level to post to the webhook(s): "info", "warn", or "error" (default)
 
 	GeminiAPIKey string // Google Gemini API key for AI-drafted site copy; unset disables the feature
 
@@ -100,8 +103,11 @@ func Load() (*Config, error) {
 		CloudflareZoneID:         getEnv("CLOUDFLARE_ZONE_ID", ""),
 		CloudflareFallbackOrigin: getEnv("CLOUDFLARE_FALLBACK_ORIGIN", ""),
 
-		AlertWebhookURL: getEnv("ALERT_WEBHOOK_URL", ""),
-		AlertMinLevel:   getEnv("ALERT_MIN_LEVEL", "error"),
+		AlertWebhookURL:      getEnv("ALERT_WEBHOOK_URL", ""),
+		AlertWebhookURLInfo:  getEnv("ALERT_WEBHOOK_URL_INFO", ""),
+		AlertWebhookURLWarn:  getEnv("ALERT_WEBHOOK_URL_WARN", ""),
+		AlertWebhookURLError: getEnv("ALERT_WEBHOOK_URL_ERROR", ""),
+		AlertMinLevel:        getEnv("ALERT_MIN_LEVEL", "error"),
 
 		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
 

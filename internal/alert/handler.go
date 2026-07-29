@@ -1,12 +1,14 @@
 // Package alert wraps an slog.Handler so that log records at or above a
 // configurable minimum level also get posted to a Discord incoming
 // webhook (payload shape is Discord's {"content": "..."} — not Slack's
-// {"text": "..."}, the two aren't interchangeable). It's entirely
-// optional: with no webhook URL configured, Handler behaves exactly like
-// the handler it wraps — same "unset key = feature off" pattern as
-// internal/notify and internal/email. This gives production alerting
-// (errors, or general logs if the level is lowered) without paying for a
-// hosted APM vendor.
+// {"text": "..."}, the two aren't interchangeable). Different levels can be
+// routed to different webhooks/channels via Webhooks, so e.g. warnings and
+// hard errors don't have to share one channel. It's entirely optional: with
+// no webhook URL configured for a level (and no Default), Handler behaves
+// exactly like the handler it wraps for those records — same "unset key =
+// feature off" pattern as internal/notify and internal/email. This gives
+// production alerting (errors, or general logs if the level is lowered)
+// without paying for a hosted APM vendor.
 package alert
 
 import (
@@ -19,21 +21,52 @@ import (
 	"time"
 )
 
-// Handler wraps an slog.Handler and posts records at or above minLevel to a webhook.
+// Webhooks maps slog levels to Discord webhook URLs, so different severities
+// can be routed to different channels (e.g. a low-noise warn channel and a
+// paged error channel). Default is used for any level without a more
+// specific override, and for Debug records (there's no per-level override
+// for Debug since it's rarely worth its own channel).
+type Webhooks struct {
+	Default string
+	Info    string
+	Warn    string
+	Error   string
+}
+
+// forLevel returns the webhook URL to post level to, falling back to
+// Default when no override is set for that level's bucket.
+func (w Webhooks) forLevel(level slog.Level) string {
+	var override string
+	switch {
+	case level >= slog.LevelError:
+		override = w.Error
+	case level >= slog.LevelWarn:
+		override = w.Warn
+	case level >= slog.LevelInfo:
+		override = w.Info
+	}
+	if override != "" {
+		return override
+	}
+	return w.Default
+}
+
+// Handler wraps an slog.Handler and posts records at or above minLevel to a
+// per-level Discord webhook.
 type Handler struct {
 	next       slog.Handler
-	webhookURL string
+	webhooks   Webhooks
 	minLevel   slog.Level
 	httpClient *http.Client
 }
 
-// New wraps next so records at or above minLevel are also posted to
-// webhookURL. If webhookURL is empty, the returned handler just delegates
-// to next.
-func New(next slog.Handler, webhookURL string, minLevel slog.Level) *Handler {
+// New wraps next so records at or above minLevel are also posted to the
+// webhook selected for the record's level (see Webhooks.forLevel). If no
+// webhook is configured at all, the returned handler just delegates to next.
+func New(next slog.Handler, webhooks Webhooks, minLevel slog.Level) *Handler {
 	return &Handler{
 		next:       next,
-		webhookURL: webhookURL,
+		webhooks:   webhooks,
 		minLevel:   minLevel,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
@@ -54,18 +87,18 @@ var skipMessages = map[string]bool{
 }
 
 func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
-	if h.webhookURL != "" && r.Level >= h.minLevel && !skipMessages[r.Message] {
-		h.notify(r)
+	if url := h.webhooks.forLevel(r.Level); url != "" && r.Level >= h.minLevel && !skipMessages[r.Message] {
+		h.notify(r, url)
 	}
 	return h.next.Handle(ctx, r)
 }
 
 func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &Handler{next: h.next.WithAttrs(attrs), webhookURL: h.webhookURL, minLevel: h.minLevel, httpClient: h.httpClient}
+	return &Handler{next: h.next.WithAttrs(attrs), webhooks: h.webhooks, minLevel: h.minLevel, httpClient: h.httpClient}
 }
 
 func (h *Handler) WithGroup(name string) slog.Handler {
-	return &Handler{next: h.next.WithGroup(name), webhookURL: h.webhookURL, minLevel: h.minLevel, httpClient: h.httpClient}
+	return &Handler{next: h.next.WithGroup(name), webhooks: h.webhooks, minLevel: h.minLevel, httpClient: h.httpClient}
 }
 
 // ParseLevel maps a config string ("info", "warn", "error", ...) to an
@@ -111,9 +144,9 @@ type discordEmbed struct {
 	Timestamp string              `json:"timestamp"`
 }
 
-// notify posts the record to the webhook in the background so logging
-// never blocks on a slow/unreachable webhook endpoint.
-func (h *Handler) notify(r slog.Record) {
+// notify posts the record to url in the background so logging never blocks
+// on a slow/unreachable webhook endpoint.
+func (h *Handler) notify(r slog.Record, url string) {
 	var fields []discordEmbedField
 	r.Attrs(func(a slog.Attr) bool {
 		fields = append(fields, discordEmbedField{Name: a.Key, Value: a.Value.String(), Inline: true})
@@ -138,5 +171,5 @@ func (h *Handler) notify(r slog.Record) {
 			return
 		}
 		resp.Body.Close()
-	}(h.webhookURL, payload, h.httpClient)
+	}(url, payload, h.httpClient)
 }
