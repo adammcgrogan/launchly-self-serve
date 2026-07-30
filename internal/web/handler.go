@@ -46,6 +46,7 @@ type Handler struct {
 	aiGenerateLimiter         *middleware.RateLimiter
 	uploadLimiter             *middleware.RateLimiter
 	domainLimiter             *middleware.RateLimiter
+	inviteLimiter             *middleware.RateLimiter
 }
 
 // Deps bundles everything main.go constructs so the Handler constructor
@@ -98,6 +99,7 @@ func New(d Deps) (*Handler, error) {
 		aiGenerateLimiter:         middleware.NewRateLimiter(10, time.Hour),
 		uploadLimiter:             middleware.NewRateLimiter(60, time.Hour),
 		domainLimiter:             middleware.NewRateLimiter(20, time.Hour),
+		inviteLimiter:             middleware.NewRateLimiter(20, time.Hour),
 	}
 
 	h.render = NewRenderer(d.Cfg.Domain)

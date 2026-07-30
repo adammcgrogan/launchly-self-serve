@@ -17,6 +17,12 @@ func (h *Handler) InviteMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.inviteLimiter.Allow(middleware.UserID(r).String()) {
+		middleware.SetFlashError(w, "Too many invites sent — please wait a while and try again.")
+		redirectToSite(w, r, site.Slug)
+		return
+	}
+
 	inviterEmail := ""
 	if profile, err := h.accounts.GetProfile(r.Context(), middleware.UserID(r)); err == nil && profile != nil {
 		inviterEmail = profile.Email
