@@ -82,6 +82,41 @@ func TestSiteSectionsRender(t *testing.T) {
 	}
 }
 
+// TestSectionFragmentSkipsChrome checks the section-nav fetch path renders
+// only the #site-workspace block — the point of it is not re-sending (and
+// re-parsing) a whole document the client throws away.
+func TestSectionFragmentSkipsChrome(t *testing.T) {
+	chdirToRepoRoot(t)
+
+	r := NewRenderer("launchly.ltd")
+	if err := r.LoadAll(siteTemplates); err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	data := smokeSectionData(smokeSite(), "form")
+
+	full := httptest.NewRecorder()
+	r.Render(full, "dashboard:site_form", data)
+	frag := httptest.NewRecorder()
+	r.RenderPartial(frag, "dashboard:site_form", "site_workspace", data)
+
+	fragBody := frag.Body.String()
+	if !strings.Contains(fragBody, `id="site-workspace"`) {
+		t.Fatal("fragment missing #site-workspace — the client has nothing to swap in")
+	}
+	if !strings.Contains(fragBody, "Booking form") {
+		t.Error("fragment missing the section's own content")
+	}
+	for _, chrome := range []string{"<!DOCTYPE html>", "app.css", "__sectionNavBound"} {
+		if strings.Contains(fragBody, chrome) {
+			t.Errorf("fragment still carries page chrome (%q)", chrome)
+		}
+	}
+	if frag.Body.Len() >= full.Body.Len() {
+		t.Errorf("fragment (%d bytes) is not smaller than the full page (%d bytes)", frag.Body.Len(), full.Body.Len())
+	}
+	t.Logf("fragment %d bytes vs full page %d bytes", frag.Body.Len(), full.Body.Len())
+}
+
 // TestAnalyticsCardPartialRenders exercises the analytics_card template both
 // standalone (as the fetch-driven partial, #177) and embedded in the site
 // overview page, checking they render the same period toggle.

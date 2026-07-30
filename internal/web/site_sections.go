@@ -71,7 +71,13 @@ func isSitePath(slug, p string) bool {
 // siteSectionData assembles the template data every section of the site
 // dashboard shares: the site itself, the nav's state, flash/CSRF, and the
 // trial/past-due banners rendered by site_layout.html.
-func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, section string) map[string]any {
+// isSectionFetch reports whether this is the section nav fetching a bare
+// #site-workspace fragment rather than a browser loading a whole page.
+func isSectionFetch(r *http.Request) bool {
+	return r.Header.Get("X-Requested-With") == "fetch"
+}
+
+func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, section string, fragment bool) map[string]any {
 	var trialDaysLeft int
 	showTrialBanner := site.Billing.PaymentStatus == domain.PaymentStatusTrialing && site.Billing.TrialEndsAt != nil
 	if showTrialBanner {
@@ -98,6 +104,17 @@ func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *
 		}
 	}
 
+	// A fragment renders neither base.html's chrome nor its flash banner, so
+	// it skips the profile lookup behind the email-verified nudge, and must
+	// not read the flash cookie — reading it clears it, which would swallow
+	// the message before the page that shows it ever renders.
+	flash := middleware.Flash{}
+	emailVerified := true
+	if !fragment {
+		flash = middleware.GetFlash(w, r)
+		emailVerified = h.emailVerified(r)
+	}
+
 	return map[string]any{
 		"Site":              site,
 		"SiteURL":           h.siteURL(site.Slug),
@@ -110,9 +127,9 @@ func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *
 		"ChecklistTotal":    len(checklist),
 		"ChecklistPercent":  checklistPercent,
 		"IsOwner":           site.OwnerUserID == middleware.UserID(r),
-		"Flash":             middleware.GetFlash(w, r),
+		"Flash":             flash,
 		"CSRFToken":         h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
-		"EmailVerified":     h.emailVerified(r),
+		"EmailVerified":     emailVerified,
 		"Upgraded":          r.URL.Query().Get("upgraded") == "1",
 		"ShowTrialBanner":   showTrialBanner,
 		"TrialDaysLeft":     trialDaysLeft,
@@ -122,12 +139,23 @@ func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *
 
 // renderSection renders one section of the site dashboard: the shared
 // layout data merged with whatever extra data the section itself needs.
+//
+// The section nav fetches sections rather than navigating to them, and only
+// keeps #site-workspace out of the response — so for those requests this
+// renders just that block, skipping the surrounding document (chrome, page
+// header, and ~30KB of scripts the client already has running).
 func (h *Handler) renderSection(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, section string, extra map[string]any) {
-	data := h.siteSectionData(w, r, site, section)
+	fragment := isSectionFetch(r)
+	data := h.siteSectionData(w, r, site, section, fragment)
 	for k, v := range extra {
 		data[k] = v
 	}
-	h.render.Render(w, "dashboard:site_"+sectionTemplate(section), data)
+	key := "dashboard:site_" + sectionTemplate(section)
+	if fragment {
+		h.render.RenderPartial(w, key, "site_workspace", data)
+		return
+	}
+	h.render.Render(w, key, data)
 }
 
 // sectionTemplate maps a section key to its template suffix — the overview

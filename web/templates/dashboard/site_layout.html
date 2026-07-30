@@ -37,9 +37,16 @@
   </div>
 </div>
 
-<!-- The section rail and the section panel swap together (see the section-nav
-     script below), so both live inside #site-workspace: one fetch replaces the
-     panel and the rail's active state in a single step. -->
+{{template "site_workspace" .}}
+{{template "site_layout_scripts" .}}
+{{end}}
+
+<!-- The section rail and the section panel swap together, so both live inside
+     #site-workspace: one fetch replaces the panel and the rail's active state
+     in a single step. It's a named template so a section-nav fetch can render
+     just this block (see renderSection) instead of a whole document the
+     client would only throw away. -->
+{{define "site_workspace"}}
 <div id="site-workspace" class="grid gap-6 md:grid-cols-[15rem_minmax(0,1fr)] md:items-start md:gap-8 transition-opacity">
   <div class="md:sticky md:top-24">
     <nav aria-label="Site settings" class="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
@@ -101,7 +108,9 @@
     {{template "section" .}}
   </div>
 </div>
+{{end}}
 
+{{define "site_layout_scripts"}}
 <script>
   // Scripts inserted via DOMParser/innerHTML don't execute — each one has to
   // be recreated via createElement to run, so every widget in freshly swapped
@@ -118,27 +127,69 @@
     });
   };
 
-  // Section navigation without a full page load: clicking a rail link fetches
-  // that section's page and swaps in just #site-workspace (the rail plus the
-  // panel), so the header, banners, fonts and stylesheet are never re-parsed
-  // and the scroll position of the chrome is preserved. Pure progressive
-  // enhancement — the links are real hrefs, so no-JS and middle/⌘-click keep
-  // working, and any failure falls back to a normal navigation.
+  // Section navigation without a full page load: a rail link's target is
+  // fetched as a bare #site-workspace fragment (renderSection serves that
+  // when X-Requested-With is set) and swapped in, so the header, banners,
+  // fonts, stylesheet and this script are never re-parsed.
+  //
+  // Switching still costs a server round trip — the aggregate query fan-out
+  // plus render — so two things hide it: every fetched section is cached for
+  // the life of the page, and hovering (or touching, or tabbing to) a link
+  // starts the fetch before the click lands. In practice the click resolves
+  // against an already-warm cache. Saves clear the cache, since they're the
+  // only thing that can invalidate it.
+  //
+  // Pure progressive enhancement — the links are real hrefs, so no-JS and
+  // middle/⌘-click keep working, and any failure falls back to a normal
+  // navigation.
   (function () {
     if (window.__sectionNavBound) return;
     window.__sectionNavBound = true;
 
-    function swap(url, push) {
-      var current = document.getElementById('site-workspace');
-      if (!current) return Promise.reject(new Error('no workspace'));
-      current.style.opacity = '0.55';
-      current.setAttribute('aria-busy', 'true');
-      return fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
+    var cache = new Map();
+    var inflight = new Map();
+    // Fragments are cheap (a few KB each) and there are only ~9 sections, so
+    // the cache is bounded by the nav itself and needs no eviction policy.
+    window.__clearSectionCache = function () { cache.clear(); inflight.clear(); };
+
+    // The hash selects a section inside the content editor, not a different
+    // document — key the cache on the path so #basics and #hours share one.
+    function keyFor(url) { return url.split('#')[0]; }
+
+    function load(url) {
+      var key = keyFor(url);
+      if (cache.has(key)) return Promise.resolve(cache.get(key));
+      if (inflight.has(key)) return inflight.get(key);
+      var p = fetch(key, { headers: { 'X-Requested-With': 'fetch' } })
         .then(function (res) {
           if (!res.ok) throw new Error('section fetch failed');
           return res.text();
         })
         .then(function (html) {
+          inflight.delete(key);
+          cache.set(key, html);
+          return html;
+        })
+        .catch(function (err) {
+          inflight.delete(key);
+          throw err;
+        });
+      inflight.set(key, p);
+      return p;
+    }
+
+    function swap(url, push) {
+      var current = document.getElementById('site-workspace');
+      if (!current) return Promise.reject(new Error('no workspace'));
+      // Only show the busy state if the fetch is actually slow — a cache hit
+      // swaps within a frame, and flashing it there just looks like a glitch.
+      var busy = setTimeout(function () {
+        current.style.opacity = '0.55';
+        current.setAttribute('aria-busy', 'true');
+      }, 120);
+      return load(url)
+        .then(function (html) {
+          clearTimeout(busy);
           var next = new DOMParser().parseFromString(html, 'text/html').getElementById('site-workspace');
           if (!next) throw new Error('missing #site-workspace in response');
           document.getElementById('site-workspace').replaceWith(next);
@@ -148,11 +199,21 @@
           document.dispatchEvent(new CustomEvent('dashboard:swapped', { detail: { root: next } }));
         })
         .catch(function (err) {
+          clearTimeout(busy);
           current.style.opacity = '';
           current.removeAttribute('aria-busy');
           throw err;
         });
     }
+
+    function prefetch(e) {
+      var link = e.target.closest && e.target.closest('[data-section-link]');
+      if (!link || link.target === '_blank') return;
+      load(link.href).catch(function () { /* the click will retry and fall back */ });
+    }
+    document.addEventListener('mouseover', prefetch);
+    document.addEventListener('touchstart', prefetch, { passive: true });
+    document.addEventListener('focusin', prefetch);
 
     document.addEventListener('click', function (e) {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -333,6 +394,8 @@
             if (!next || !current) throw new Error('missing #dash-content in response');
             current.replaceWith(next);
             history.pushState({ section: true }, '', r.url);
+            // A save is the one thing that can make a cached section stale.
+            if (window.__clearSectionCache) window.__clearSectionCache();
             window.__runScripts(next);
             document.dispatchEvent(new CustomEvent('dashboard:swapped', { detail: { root: next } }));
           });
