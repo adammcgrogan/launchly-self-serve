@@ -27,6 +27,35 @@ func testLeadSite() *domain.SiteAggregate {
 	}
 }
 
+// TestEffectiveHostUntrustedPeerIgnoresSpoofedHeader confirms a client
+// reaching the origin directly can't set X-Real-Host to impersonate another
+// site's host — only a request whose immediate peer is a trusted Cloudflare
+// edge IP gets the header honored.
+func TestEffectiveHostUntrustedPeerIgnoresSpoofedHeader(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.RemoteAddr = "1.2.3.4:5678"
+	r.Host = "real-site.launchly.ltd"
+	r.Header.Set("X-Real-Host", "victim-site.launchly.ltd")
+
+	got := effectiveHost(r)
+	if got != "real-site.launchly.ltd" {
+		t.Fatalf("expected r.Host to be used for a non-Cloudflare peer, got %q", got)
+	}
+}
+
+func TestEffectiveHostTrustedPeerUsesHeader(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	// 172.64.0.1 falls within Cloudflare's published 172.64.0.0/13 range.
+	r.RemoteAddr = "172.64.0.1:5678"
+	r.Host = "internal-proxy-host"
+	r.Header.Set("X-Real-Host", "some-site.launchly.ltd")
+
+	got := effectiveHost(r)
+	if got != "some-site.launchly.ltd" {
+		t.Fatalf("expected X-Real-Host to be trusted for a Cloudflare peer, got %q", got)
+	}
+}
+
 func newLeadRequest(t *testing.T, form url.Values, fetch bool) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/contact", strings.NewReader(form.Encode()))

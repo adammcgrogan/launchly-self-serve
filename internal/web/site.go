@@ -571,10 +571,17 @@ func extractSlug(r *http.Request, domain string) string {
 	return ""
 }
 
-// effectiveHost returns X-Real-Host if set (e.g. from a proxy fronting
-// wildcard subdomains), falling back to the raw Host header.
+// effectiveHost returns X-Real-Host if set by the trusted Cloudflare proxy
+// fronting wildcard subdomains, falling back to the raw Host header
+// otherwise. X-Real-Host is client-controllable, so — like
+// middleware.ClientIP does for forwarded IPs — it's only honored when the
+// request's immediate peer is a known Cloudflare edge IP; anyone reaching
+// the origin directly could otherwise set it to impersonate any site's host.
 func effectiveHost(r *http.Request) string {
-	host := r.Header.Get("X-Real-Host")
+	host := ""
+	if middleware.TrustedProxyPeer(r) {
+		host = r.Header.Get("X-Real-Host")
+	}
 	if host == "" {
 		host = r.Host
 	}

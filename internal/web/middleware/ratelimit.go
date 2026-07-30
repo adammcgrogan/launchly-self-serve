@@ -161,3 +161,12 @@ func ClientIP(r *http.Request) string {
 
 	return peer
 }
+
+// TrustedProxyPeer reports whether the request's immediate peer
+// (r.RemoteAddr) is a known Cloudflare edge IP — the same guard ClientIP
+// uses before trusting a client-controllable forwarding header. Callers
+// that trust another proxy-set header (e.g. X-Real-Host for site routing)
+// should check this first for the same reason.
+func TrustedProxyPeer(r *http.Request) bool {
+	return isCloudflareIP(net.ParseIP(remoteAddrIP(r.RemoteAddr)))
+}
