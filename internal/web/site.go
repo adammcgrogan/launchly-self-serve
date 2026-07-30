@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/service"
@@ -72,7 +71,7 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domai
 		h.render.RenderError(w, http.StatusNotFound)
 		return
 	}
-	go h.recordPageView(r, site.ID, site.OwnerUserID)
+	h.recordPageView(r, site.ID, site.OwnerUserID)
 	h.renderSiteTemplate(w, site, formAction, r.URL.Query().Get("lead") == "1", false)
 }
 
@@ -330,7 +329,9 @@ func (h *Handler) renderClaimOrError(w http.ResponseWriter, slug string) {
 // recordPageView records a page view unless the visitor is the site's own
 // logged-in owner checking or editing their live site — otherwise owners
 // repeatedly opening their own site inflate the very numbers meant to prove
-// the product's value.
+// the product's value. Filtering happens inline (cheap, no I/O); the actual
+// DB write is handed to the bounded analytics queue so a traffic spike can't
+// spawn unbounded per-request goroutines against the DB connection pool.
 func (h *Handler) recordPageView(r *http.Request, siteID int, ownerUserID uuid.UUID) {
 	ua := r.Header.Get("User-Agent")
 	if isBot(ua) {
@@ -350,11 +351,12 @@ func (h *Handler) recordPageView(r *http.Request, siteID int, ownerUserID uuid.U
 	if path == "" {
 		path = "/"
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := h.analytics.RecordPageView(ctx, siteID, path, ref, middleware.ClientIP(r)); err != nil {
-		slog.Error("record page view", "error", err)
-	}
+	ip := middleware.ClientIP(r)
+	h.analyticsQ.submit(func(ctx context.Context) {
+		if err := h.analytics.RecordPageView(ctx, siteID, path, ref, ip); err != nil {
+			slog.Error("record page view", "error", err)
+		}
+	})
 }
 
 // isSelfReferral reports whether ref is the site's own host (in-site
@@ -424,7 +426,8 @@ func (h *Handler) RecordSiteEventPath(w http.ResponseWriter, r *http.Request) {
 // already-resolved site. Always responds 204 regardless of outcome —
 // sendBeacon ignores the response, and there's nothing useful to tell a
 // caller that isn't already filtered out server-side (bot, rate-limited,
-// unknown kind).
+// unknown kind). Filtering happens inline; the DB write goes through the
+// bounded analytics queue for the same reason as recordPageView.
 func (h *Handler) recordSiteEvent(r *http.Request, site *domain.Site) {
 	if site.Status != domain.SiteStatusLive {
 		return
@@ -439,9 +442,13 @@ func (h *Handler) recordSiteEvent(r *http.Request, site *domain.Site) {
 	if !ok {
 		return
 	}
-	if err := h.analytics.RecordEvent(r.Context(), site.ID, kind, middleware.ClientIP(r)); err != nil {
-		slog.Error("record site event", "site_id", site.ID, "error", err)
-	}
+	siteID := site.ID
+	ip := middleware.ClientIP(r)
+	h.analyticsQ.submit(func(ctx context.Context) {
+		if err := h.analytics.RecordEvent(ctx, siteID, kind, ip); err != nil {
+			slog.Error("record site event", "site_id", siteID, "error", err)
+		}
+	})
 }
 
 // SubmitLead handles the contact form POST on subdomain-routed sites, and

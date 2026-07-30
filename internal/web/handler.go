@@ -36,6 +36,7 @@ type Handler struct {
 	members       *service.Members
 	ai            *ai.Client
 	superadminSvc *service.Superadmin
+	analyticsQ    *analyticsQueue
 
 	loginLimiter              *middleware.RateLimiter
 	signupLimiter             *middleware.RateLimiter
@@ -88,6 +89,7 @@ func New(d Deps) (*Handler, error) {
 		uploads:                   d.Uploads,
 		members:                   d.Members,
 		ai:                        d.AI,
+		analyticsQ:                newAnalyticsQueue(),
 		loginLimiter:              middleware.NewRateLimiter(10, 15*time.Minute),
 		signupLimiter:             middleware.NewRateLimiter(5, 15*time.Minute),
 		contactLimiter:            middleware.NewRateLimiter(5, time.Minute),
