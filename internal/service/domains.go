@@ -39,6 +39,7 @@ type domainsMailer interface {
 // doesn't depend on Railway's own per-service domain limits.
 type Domains struct {
 	store          *postgres.Store
+	sites          *Sites
 	cf             DomainRegistrar
 	mailer         domainsMailer
 	fallbackOrigin string
@@ -46,8 +47,8 @@ type Domains struct {
 	baseURL        string
 }
 
-func NewDomains(store *postgres.Store, cf DomainRegistrar, mailer *email.Client, fallbackOrigin, platformDomain, baseURL string) *Domains {
-	return &Domains{store: store, cf: cf, mailer: mailer, fallbackOrigin: fallbackOrigin, platformDomain: platformDomain, baseURL: baseURL}
+func NewDomains(store *postgres.Store, sites *Sites, cf DomainRegistrar, mailer *email.Client, fallbackOrigin, platformDomain, baseURL string) *Domains {
+	return &Domains{store: store, sites: sites, cf: cf, mailer: mailer, fallbackOrigin: fallbackOrigin, platformDomain: platformDomain, baseURL: baseURL}
 }
 
 // Errors returned by the custom domain flow — web handlers show these
@@ -134,6 +135,7 @@ func (d *Domains) SetCustomDomain(ctx context.Context, siteID int, rawDomain str
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
+	d.sites.invalidateAggregate(siteID)
 	return hostname, nil
 }
 
@@ -178,6 +180,7 @@ func (d *Domains) RefreshCustomDomainStatus(ctx context.Context, siteID int) (*c
 	if err := postgres.UpdateCustomDomainStatus(ctx, d.store.DB(), siteID, status); err != nil {
 		return nil, fmt.Errorf("update status: %w", err)
 	}
+	d.sites.invalidateAggregate(siteID)
 
 	if status != site.CustomDomainStatus && (status == domain.CustomDomainActive || status == domain.CustomDomainFailed) {
 		d.notifyDomainStatusChange(ctx, siteID, site.CustomDomain, status)
@@ -219,5 +222,9 @@ func (d *Domains) RemoveCustomDomain(ctx context.Context, siteID int) error {
 			return fmt.Errorf("remove from cloudflare: %w", err)
 		}
 	}
-	return postgres.ClearCustomDomain(ctx, d.store.DB(), siteID)
+	if err := postgres.ClearCustomDomain(ctx, d.store.DB(), siteID); err != nil {
+		return err
+	}
+	d.sites.invalidateAggregate(siteID)
+	return nil
 }

@@ -91,7 +91,7 @@ func main() {
 		}
 	}
 
-	domains := service.NewDomains(store, cf, mailer, cfg.CloudflareFallbackOrigin, cfg.Domain, baseURL)
+	domains := service.NewDomains(store, sites, cf, mailer, cfg.CloudflareFallbackOrigin, cfg.Domain, baseURL)
 	members := service.NewMembers(store, mailer, baseURL)
 
 	superadminSvc := service.NewSuperadmin(store)
