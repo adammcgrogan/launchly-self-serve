@@ -135,6 +135,9 @@ func (l *Leads) SubmitLead(ctx context.Context, siteID int, name, emailAddr, pho
 // would otherwise persist and propagate into the dashboard, notification
 // email, and CSV export.
 func validateLeadInput(name, emailAddr, phone, message, serviceLabel, preferredTime, partySize string) error {
+	if strings.TrimSpace(emailAddr) == "" && strings.TrimSpace(phone) == "" {
+		return &ValidationError{Message: "enter an email address or phone number so we can reply.", Field: "email"}
+	}
 	for _, err := range []error{
 		checkLen("name", name, maxShortField),
 		checkEmail("email", emailAddr),

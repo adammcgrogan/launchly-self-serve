@@ -38,8 +38,9 @@ func TestValidateLeadInput(t *testing.T) {
 			message: "Looking to book a table for four.", serviceLabel: "Dinner", preferredTime: "7pm", partySize: "4",
 		},
 		{
-			name: "valid with only required-ish fields blank", leadName: "Jane Doe",
+			name: "valid with only name and phone", leadName: "Jane Doe", phone: "+1 555-123-4567",
 		},
+		{name: "no email or phone", leadName: "Jane Doe", wantErr: true},
 		{name: "invalid email format", leadName: "Jane Doe", email: "not-an-email", wantErr: true},
 		{name: "invalid phone format", leadName: "Jane Doe", phone: "not-a-phone-number-at-all-#$%", wantErr: true},
 		{name: "name too long", leadName: tooLongShort, wantErr: true},
