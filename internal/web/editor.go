@@ -27,22 +27,15 @@ func detachedContext(r *http.Request) (context.Context, context.CancelFunc) {
 }
 
 // redirectToSite redirects back to a site's dashboard page after a save,
-// preserving the tab/subtab/csubtab query params from the page the form was
-// submitted on (read from the Referer) so the owner lands back where they
-// were instead of the default Overview tab.
+// landing on the section the form was submitted from (read from the Referer)
+// rather than bouncing the owner back to the Overview. The Referer's path is
+// only trusted when it's one of this site's own section URLs, so it can't be
+// used to redirect anywhere else.
 func redirectToSite(w http.ResponseWriter, r *http.Request, slug string) {
 	target := "/dashboard/sites/" + slug
 	if referer := r.Header.Get("Referer"); referer != "" {
-		if u, err := url.Parse(referer); err == nil {
-			params := url.Values{}
-			for _, key := range []string{"tab", "subtab", "csubtab"} {
-				if v := u.Query().Get(key); v != "" {
-					params.Set(key, v)
-				}
-			}
-			if len(params) > 0 {
-				target += "?" + params.Encode()
-			}
+		if u, err := url.Parse(referer); err == nil && isSitePath(slug, u.Path) {
+			target = u.Path
 		}
 	}
 	http.Redirect(w, r, target, http.StatusSeeOther)

@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* The content editor's collapsible sections draw their own chevron, so hide
+   the native disclosure triangle Safari still renders despite list-style:none.
+   Scoped to those sections — the builder wizard's <details> have no chevron of
+   their own and rely on the native marker. */
+[data-editor-section] > summary::-webkit-details-marker {
+  display: none;
+}

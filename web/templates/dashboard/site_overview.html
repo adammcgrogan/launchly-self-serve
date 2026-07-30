@@ -1,0 +1,300 @@
+{{define "section"}}
+<div class="space-y-6">
+  {{if lt .ChecklistPercent 100}}
+  <div id="site-checklist" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h3 class="font-semibold text-slate-900">Finish setting up your site</h3>
+        <p class="text-sm text-slate-500 mt-0.5">A fuller site wins more customers — you're {{.ChecklistPercent}}% there.</p>
+      </div>
+      <button type="button" onclick="localStorage.setItem('checklist-hidden-{{.Site.Slug}}','1');document.getElementById('site-checklist').classList.add('hidden');var l=document.getElementById('show-checklist-link');if(l)l.classList.remove('hidden')" class="shrink-0 text-slate-400 hover:text-slate-600 text-sm" aria-label="Dismiss checklist">Dismiss</button>
+    </div>
+    <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div class="h-full rounded-full bg-brand transition-all" style="width:{{.ChecklistPercent}}%"></div>
+    </div>
+    <ul class="mt-4 space-y-2">
+      {{range .Checklist}}
+      <li class="flex items-center gap-3 text-sm">
+        {{if .Done}}
+        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">✓</span>
+        <span class="text-slate-400 line-through">{{.Label}}</span>
+        {{else}}
+        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300"></span>
+        <a href="{{.Link}}" class="font-medium text-slate-700 hover:text-brand">{{.Label}}</a>
+        {{end}}
+      </li>
+      {{end}}
+    </ul>
+  </div>
+  <button type="button" id="show-checklist-link" onclick="localStorage.removeItem('checklist-hidden-{{.Site.Slug}}');var c=document.getElementById('site-checklist');if(c)c.classList.remove('hidden');this.classList.add('hidden')" class="hidden text-sm font-medium text-brand hover:underline" aria-label="Show setup checklist">Setup: {{.ChecklistPercent}}% — show checklist</button>
+  <script>if(localStorage.getItem('checklist-hidden-{{.Site.Slug}}')){var c=document.getElementById('site-checklist');if(c)c.classList.add('hidden');var l=document.getElementById('show-checklist-link');if(l)l.classList.remove('hidden');}</script>
+  {{end}}
+
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <a href="/dashboard/sites/{{.Site.Slug}}/design" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 transition">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Design</p>
+      <p class="mt-1 font-semibold text-slate-900">{{.Design.Name}}</p>
+    </a>
+    <a href="/dashboard/sites/{{.Site.Slug}}/form" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 transition">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Form type</p>
+      <p class="mt-1 font-semibold text-slate-900 capitalize">{{.Site.FormType}}</p>
+    </a>
+    {{if .IsOwner}}
+    <a href="/dashboard/sites/{{.Site.Slug}}/billing" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 transition">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Plan</p>
+      <p class="mt-1 font-semibold text-slate-900 capitalize">{{.Site.Billing.Plan}} · <span class="capitalize">{{.Site.Billing.PaymentStatus}}</span></p>
+    </a>
+    {{else}}
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Plan</p>
+      <p class="mt-1 font-semibold text-slate-900 capitalize">{{.Site.Billing.Plan}}</p>
+    </div>
+    {{end}}
+    <a href="/dashboard/sites/{{.Site.Slug}}/content#announcement" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 transition">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Announcement</p>
+      {{if .Site.Announcement.Text}}
+      <p class="mt-1 font-semibold text-slate-900">Active{{if .Site.Announcement.ExpiresAt}} until {{.Site.Announcement.ExpiresAt.Format "2 Jan"}}{{end}}</p>
+      {{else}}
+      <p class="mt-1 font-semibold text-slate-400">None</p>
+      {{end}}
+    </a>
+  </div>
+
+  {{template "analytics_card" .}}
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-slate-900">Leads</h3>
+      {{if .NewLeadCount}}<span class="rounded-full bg-brand/10 text-brand px-3 py-1 text-xs font-medium">{{.NewLeadCount}} new</span>{{end}}
+    </div>
+
+    <form method="GET" action="/dashboard/sites/{{.Site.Slug}}" class="flex flex-wrap gap-3 mb-4">
+      <input type="search" name="lead_q" value="{{.LeadSearch}}" placeholder="Search name or email" class="flex-1 min-w-[10rem] rounded-lg border border-slate-200 px-3 py-2 text-sm">
+      <select name="lead_status" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <option value="" {{if eq (print .LeadStatus) ""}}selected{{end}}>All statuses</option>
+        <option value="new" {{if eq (print .LeadStatus) "new"}}selected{{end}}>New</option>
+        <option value="contacted" {{if eq (print .LeadStatus) "contacted"}}selected{{end}}>Contacted</option>
+        <option value="won" {{if eq (print .LeadStatus) "won"}}selected{{end}}>Won</option>
+        <option value="lost" {{if eq (print .LeadStatus) "lost"}}selected{{end}}>Lost</option>
+      </select>
+      <button type="submit" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Filter</button>
+    </form>
+
+    {{if not .Leads}}
+    <p class="text-sm text-slate-500">{{if or .LeadSearch (ne (print .LeadStatus) "")}}No leads match this filter.{{else}}No enquiries yet. They'll show up here as visitors contact you.{{end}}</p>
+    {{else}}
+    <div class="divide-y divide-slate-100">
+      {{range .Leads}}
+      <div class="py-3">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="font-medium text-slate-900">{{.Name}}{{if .Email}} · {{.Email}}{{end}}{{if .Phone}} · {{.Phone}}{{end}}{{if .NotifyFailed}} <span title="We couldn't email you about this lead — check the contact details on your Notifications settings." class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700 align-middle"><svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.28 11.18c.75 1.334-.213 2.987-1.744 2.987H3.72c-1.53 0-2.493-1.653-1.744-2.987l6.28-11.18zM10 6a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>Notification failed</span>{{end}}</p>
+            {{if .ServiceLabel}}<p class="text-sm text-slate-500 mt-1">{{.ServiceLabel}}{{if .PreferredTime}} · {{.PreferredTime}}{{end}}{{if .PartySize}} · {{.PartySize}}{{end}}</p>{{end}}
+            {{if .Message}}<p class="text-sm text-slate-500 mt-1">{{.Message}}</p>{{end}}
+            <p class="text-xs text-slate-400 mt-1">{{.CreatedAt.Format "2 Jan 2006, 15:04"}}</p>
+          </div>
+          <div class="relative shrink-0" data-lead-status data-status="{{.Status}}" data-update-url="/dashboard/sites/{{$.Site.Slug}}/leads/{{.ID}}/status" data-csrf="{{$.CSRFToken}}">
+            <button type="button" data-lead-status-trigger class="inline-flex items-center gap-1.5 rounded-full pl-3 pr-2 py-1.5 text-xs font-semibold capitalize focus:outline-none focus:ring-2 focus:ring-offset-1">
+              <span data-lead-status-label>{{.Status}}</span>
+              <svg class="h-3 w-3 opacity-60" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div data-lead-status-menu class="hidden absolute right-0 z-10 mt-1 w-32 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+              <button type="button" data-value="new" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>New</button>
+              <button type="button" data-value="contacted" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>Contacted</button>
+              <button type="button" data-value="won" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>Won</button>
+              <button type="button" data-value="lost" class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"><span class="h-1.5 w-1.5 rounded-full bg-red-400"></span>Lost</button>
+            </div>
+          </div>
+        </div>
+        <div class="mt-2" data-lead-notes data-add-url="/dashboard/sites/{{$.Site.Slug}}/leads/{{.ID}}/notes" data-csrf="{{$.CSRFToken}}">
+          <button type="button" data-lead-notes-toggle class="text-xs font-medium text-slate-500 hover:text-slate-800">Notes{{if .Notes}} ({{len .Notes}}){{end}}</button>
+          <div data-lead-notes-panel class="hidden mt-2 max-w-md space-y-2">
+            <ul data-lead-notes-list class="space-y-1.5">
+              {{range .Notes}}
+              <li class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <p>{{.Body}}</p>
+                <p class="mt-0.5 text-xs text-slate-400">{{.CreatedAt.Format "2 Jan 2006, 15:04"}}</p>
+              </li>
+              {{end}}
+            </ul>
+            <form data-lead-notes-form class="flex items-start gap-2">
+              <textarea data-lead-notes-input rows="1" placeholder="Add a follow-up note…" class="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"></textarea>
+              <button type="submit" class="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white">Add</button>
+            </form>
+            <p data-lead-notes-error class="hidden text-xs text-red-600"></p>
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </div>
+    {{if gt .LeadTotalPages 1}}
+    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+      {{if .LeadHasPrev}}
+      <a href="/dashboard/sites/{{.Site.Slug}}?lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadPrevPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Previous</a>
+      {{else}}<span></span>{{end}}
+      <span class="text-xs text-slate-400">Page {{.LeadPage}} of {{.LeadTotalPages}}</span>
+      {{if .LeadHasNext}}
+      <a href="/dashboard/sites/{{.Site.Slug}}?lead_status={{.LeadStatus}}&lead_q={{.LeadSearch | urlquery}}&lead_page={{.LeadNextPage}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Next</a>
+      {{else}}<span></span>{{end}}
+    </div>
+    {{end}}
+    {{end}}
+  </div>
+</div>
+
+<script>
+  // Analytics period toggle: fetch the card fragment instead of a full page
+  // reload. data-period-url is the fetch endpoint; href is the shareable
+  // full-page URL and doubles as the no-JS fallback.
+  //
+  // Guarded against re-running — a [data-ajax-form] save swaps in fresh page
+  // content and re-executes every script on it, and document-level delegated
+  // listeners would otherwise stack up.
+  (function () {
+    if (window.__analyticsPeriodToggleBound) return;
+    window.__analyticsPeriodToggleBound = true;
+    document.addEventListener('click', function (e) {
+      var link = e.target.closest && e.target.closest('[data-period-url]');
+      var card = document.getElementById('analytics-card');
+      if (!link || !card) return;
+      e.preventDefault();
+      fetch(link.getAttribute('data-period-url')).then(function (res) {
+        if (!res.ok) throw new Error('analytics card fetch failed');
+        return res.text();
+      }).then(function (html) {
+        var temp = document.createElement('div');
+        temp.innerHTML = html.trim();
+        var next = temp.firstElementChild;
+        if (!next) throw new Error('empty analytics card response');
+        document.getElementById('analytics-card').replaceWith(next);
+        history.replaceState(null, '', link.getAttribute('href'));
+      }).catch(function () {
+        window.location.href = link.getAttribute('href');
+      });
+    });
+  })();
+
+  (function () {
+    // Custom lead-status pill: a button + menu (not a native <select>, so it
+    // can be fully styled) that POSTs the status via fetch instead of a form
+    // submit, so picking a status doesn't reload the whole dashboard.
+    var STYLES = {
+      new: ['bg-slate-100', 'text-slate-600', 'focus:ring-slate-300'],
+      contacted: ['bg-amber-50', 'text-amber-700', 'focus:ring-amber-300'],
+      won: ['bg-emerald-50', 'text-emerald-700', 'focus:ring-emerald-300'],
+      lost: ['bg-red-50', 'text-red-600', 'focus:ring-red-300'],
+    };
+    var ALL_STYLE_CLASSES = Object.keys(STYLES).reduce(function (acc, key) {
+      return acc.concat(STYLES[key]);
+    }, []);
+
+    function applyStyle(root, status) {
+      var trigger = root.querySelector('[data-lead-status-trigger]');
+      var label = root.querySelector('[data-lead-status-label]');
+      trigger.classList.remove.apply(trigger.classList, ALL_STYLE_CLASSES);
+      trigger.classList.add.apply(trigger.classList, STYLES[status] || STYLES.new);
+      label.textContent = status;
+      root.setAttribute('data-status', status);
+    }
+
+    function closeAllMenus() {
+      document.querySelectorAll('[data-lead-status-menu]').forEach(function (menu) {
+        menu.classList.add('hidden');
+      });
+    }
+
+    document.querySelectorAll('[data-lead-status]').forEach(function (root) {
+      applyStyle(root, root.getAttribute('data-status'));
+      var trigger = root.querySelector('[data-lead-status-trigger]');
+      var menu = root.querySelector('[data-lead-status-menu]');
+
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var wasOpen = !menu.classList.contains('hidden');
+        closeAllMenus();
+        menu.classList.toggle('hidden', wasOpen);
+      });
+
+      menu.querySelectorAll('[data-value]').forEach(function (option) {
+        option.addEventListener('click', function () {
+          var status = option.getAttribute('data-value');
+          closeAllMenus();
+          var previous = root.getAttribute('data-status');
+          if (status === previous) return;
+          applyStyle(root, status);
+          fetch(root.getAttribute('data-update-url'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ status: status, csrf_token: root.getAttribute('data-csrf') }),
+          }).then(function (res) {
+            if (!res.ok) throw new Error('status update failed');
+          }).catch(function () {
+            applyStyle(root, previous);
+          });
+        });
+      });
+    });
+
+    if (!window.__leadStatusMenuCloserBound) {
+      window.__leadStatusMenuCloserBound = true;
+      document.addEventListener('click', closeAllMenus);
+    }
+  })();
+
+  (function () {
+    // Per-lead notes panel: toggles open/closed, then POSTs a new note via
+    // fetch (like the status pill above) and appends the server's response
+    // to the list instead of reloading the page.
+    document.querySelectorAll('[data-lead-notes]').forEach(function (root) {
+      var toggle = root.querySelector('[data-lead-notes-toggle]');
+      var panel = root.querySelector('[data-lead-notes-panel]');
+      var list = root.querySelector('[data-lead-notes-list]');
+      var form = root.querySelector('[data-lead-notes-form]');
+      var input = root.querySelector('[data-lead-notes-input]');
+      var error = root.querySelector('[data-lead-notes-error]');
+
+      toggle.addEventListener('click', function () {
+        panel.classList.toggle('hidden');
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var body = input.value.trim();
+        if (!body) return;
+        var submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        error.classList.add('hidden');
+        fetch(root.getAttribute('data-add-url'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ body: body, csrf_token: root.getAttribute('data-csrf') }),
+        }).then(function (res) {
+          return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+        }).then(function (r) {
+          submitBtn.disabled = false;
+          if (!r.ok) {
+            error.textContent = (r.data && r.data.error) || 'Could not save note.';
+            error.classList.remove('hidden');
+            return;
+          }
+          var li = document.createElement('li');
+          li.className = 'rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700';
+          var p = document.createElement('p');
+          p.textContent = r.data.body;
+          var time = document.createElement('p');
+          time.className = 'mt-0.5 text-xs text-slate-400';
+          time.textContent = r.data.createdAt;
+          li.appendChild(p);
+          li.appendChild(time);
+          list.appendChild(li);
+          input.value = '';
+        }).catch(function () {
+          submitBtn.disabled = false;
+          error.textContent = 'Could not save note.';
+          error.classList.remove('hidden');
+        });
+      });
+    });
+  })();
+</script>
+{{end}}

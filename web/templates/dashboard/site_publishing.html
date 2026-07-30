@@ -1,0 +1,48 @@
+{{define "section"}}
+<div class="space-y-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h3 class="font-semibold text-slate-900">
+          {{if eq (print .Site.Status) "live"}}Your site is live{{else if eq (print .Site.Status) "paused"}}Your site is paused{{else}}Your site isn't live yet{{end}}
+        </h3>
+        <p class="mt-1 text-sm text-slate-500">
+          {{if eq (print .Site.Status) "live"}}Anyone with the link can see it at {{.SiteURL}}.
+          {{else if eq (print .Site.Status) "paused"}}Your trial ended — reactivate a plan on Billing to bring it back online.
+          {{else}}Publish when you're ready. You can unpublish again at any time.{{end}}
+        </p>
+      </div>
+      {{if eq (print .Site.Status) "live"}}
+      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/unpublish" class="shrink-0"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-medium hover:border-slate-300">Unpublish</button>
+      </form>
+      {{else if ne (print .Site.Status) "paused"}}
+      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/publish" class="shrink-0"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button class="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark transition">Publish now</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h3 class="font-semibold text-slate-900">Share &amp; export</h3>
+    <p class="mt-1 text-sm text-slate-500">Take your site off the screen and into the real world.</p>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <a href="/dashboard/sites/{{.Site.Slug}}/print" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Print / QR one-pager</a>
+      <a href="/dashboard/sites/{{.Site.Slug}}/qr.png" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Download QR code</a>
+      <a href="/dashboard/sites/{{.Site.Slug}}/leads.csv" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Export leads (CSV)</a>
+    </div>
+  </div>
+
+  {{if .IsOwner}}
+  <div class="rounded-2xl border border-red-200 bg-red-50/40 p-6">
+    <h3 class="font-semibold text-red-900">Danger zone</h3>
+    <p class="mt-2 text-sm text-red-700/80">Deleting this site permanently removes it, its content, and every lead it has collected. This cannot be undone.</p>
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/delete" class="mt-4" onsubmit="return confirm('Delete this site? This cannot be undone.');">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button class="rounded-full border border-red-300 bg-white text-red-700 px-5 py-2.5 text-sm font-medium hover:bg-red-50">Delete this site</button>
+    </form>
+  </div>
+  {{end}}
+</div>
+{{end}}

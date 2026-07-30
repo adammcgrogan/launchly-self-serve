@@ -1,0 +1,527 @@
+{{define "section"}}
+<!-- Standalone form for the announcement fields — a <form> can't nest inside
+     the "edit" form below, so those fields live in the announcement section
+     and reference this one via each field's form="announcement-form"
+     attribute instead. -->
+<form id="announcement-form" data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/announcement" class="hidden" aria-hidden="true">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+</form>
+
+<div class="flex flex-wrap items-center gap-3 mb-5">
+  <div class="relative flex-1 min-w-[14rem]">
+    <input type="search" data-section-filter placeholder="Find a field — e.g. logo, hours, meta title" aria-label="Filter sections" class="w-full rounded-full border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
+    <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="5.5"/><path d="M13.5 13.5 17 17" stroke-linecap="round"/></svg>
+  </div>
+  <button type="button" data-toggle-all class="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:border-slate-300 transition">Expand all</button>
+</div>
+<p data-filter-empty class="hidden mb-5 rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">No sections match that search.</p>
+
+<form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/edit" class="space-y-3">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+  <details id="announcement" data-editor-section data-keywords="announcement banner notice closed holiday promo urgent expires link" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Announcement banner</span>
+        <span class="block text-xs text-slate-500 mt-0.5">A short notice pinned to the top of your site.</span>
+      </span>
+      {{if .Site.Announcement.Text}}<span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span>{{end}}
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-3">
+      <p class="text-sm text-slate-500">Shown as a banner at the top of your site until it expires or you clear it — e.g. "Closed for holidays until 4 Aug". This section saves on its own.</p>
+      <textarea form="announcement-form" name="announcement_text" rows="2" placeholder="Fully booked until September" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{.Site.Announcement.Text}}</textarea>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Link URL (optional)</label>
+          <input form="announcement-form" type="url" name="announcement_link_url" value="{{.Site.Announcement.LinkURL}}" placeholder="https://..." class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Link text (optional)</label>
+          <input form="announcement-form" type="text" name="announcement_link_label" value="{{.Site.Announcement.LinkLabel}}" placeholder="Learn more" class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="text-sm text-slate-500">Tone
+          <select form="announcement-form" name="announcement_tone" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
+            <option value="info" {{if eq .Site.Announcement.Tone "info"}}selected{{end}}>Info</option>
+            <option value="promo" {{if eq .Site.Announcement.Tone "promo"}}selected{{end}}>Promo</option>
+            <option value="urgent" {{if eq .Site.Announcement.Tone "urgent"}}selected{{end}}>Urgent</option>
+          </select>
+        </label>
+        <label class="text-sm text-slate-500">Expires
+          <input form="announcement-form" type="date" name="announcement_expires_at" value="{{if .Site.Announcement.ExpiresAt}}{{.Site.Announcement.ExpiresAt.Format "2006-01-02"}}{{end}}" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
+        </label>
+        <button type="submit" form="announcement-form" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark transition">Save announcement</button>
+        <button type="button" onclick="if(confirm('Clear the announcement banner?')){document.querySelectorAll('[form=&quot;announcement-form&quot;]').forEach(function(el){if(el.name!=='csrf_token')el.value='';});document.getElementById('announcement-form').requestSubmit(this);}" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">Clear announcement</button>
+      </div>
+    </div>
+  </details>
+
+  <details id="basics" data-editor-section data-keywords="business name tagline about intro logo image cta call to action button video youtube vimeo menu brochure pdf document thank you message redirect" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Business details</span>
+        <span class="block text-xs text-slate-500 mt-0.5">Name, tagline, intro, logo, and what your main button says.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Business name</label>
+        <input type="text" name="business_name" value="{{.Site.BusinessName}}" required maxlength="200" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Tagline</label>
+        <input type="text" name="tagline" value="{{.Site.Tagline}}" maxlength="500" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">About</label>
+        <textarea name="about" rows="4" maxlength="5000" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.About}}</textarea>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div data-upload-widget>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Logo</label>
+          <input type="url" name="logo_url" value="{{.Site.LogoURL}}" maxlength="500" placeholder="Paste an image URL, or upload below" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          <p class="mt-1 text-xs text-slate-400">Square images work best for logos.</p>
+          {{if .UploadsAvailable}}
+          <div class="mt-2 flex items-center gap-3">
+            <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload an image<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" data-image-upload data-upload-for="logo_url" data-upload-mode="replace"></label>
+            <span class="text-xs text-slate-400" data-upload-status></span>
+          </div>
+          {{end}}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Call-to-action button text</label>
+          <input type="text" name="cta_text" value="{{.Site.CTAText}}" maxlength="200" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Promo video (YouTube or Vimeo link, optional)</label>
+        <input type="url" name="video_url" value="{{.Site.VideoURL}}" maxlength="500" placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <p class="mt-1 text-xs text-slate-400">Shown as a click-to-play video on your site — nothing loads from YouTube/Vimeo until a visitor clicks it.</p>
+      </div>
+      <div data-upload-widget class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Downloadable menu/brochure title (optional)</label>
+          <input type="text" name="document_title" value="{{.Site.DocumentTitle}}" maxlength="200" placeholder="e.g. Our Menu" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Menu/brochure file (PDF, optional)</label>
+          <input type="url" name="document_url" value="{{.Site.DocumentURL}}" maxlength="500" placeholder="Paste a PDF URL, or upload below" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          {{if .UploadsAvailable}}
+          <div class="mt-2 flex items-center gap-3">
+            <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload a PDF<input type="file" accept="application/pdf" class="hidden" data-image-upload data-upload-endpoint="/dashboard/uploads/document" data-upload-for="document_url" data-upload-mode="replace"></label>
+            <span class="text-xs text-slate-400" data-upload-status></span>
+          </div>
+          {{end}}
+          <p class="mt-1 text-xs text-slate-400">Shown as a "Download our menu/brochure" button on your site.</p>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Thank-you message (optional)</label>
+        <textarea name="thank_you_message" rows="2" maxlength="500" placeholder="Replaces the default 'thanks, we'll be in touch' confirmation." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.ThankYouMessage}}</textarea>
+        <p class="mt-1 text-xs text-slate-400">Shown after a visitor submits your contact form. Leave blank to use the default.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Redirect after submit (optional)</label>
+        <input type="url" name="redirect_url" value="{{.Site.RedirectURL}}" maxlength="500" placeholder="https://your-booking-page.com" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <p class="mt-1 text-xs text-slate-400">If set, visitors go here instead of seeing a thank-you message — e.g. a booking page or WhatsApp link.</p>
+      </div>
+    </div>
+  </details>
+
+  <details id="contact" data-editor-section data-keywords="contact phone number email address location badge google maps embed map directions" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Contact details</span>
+        <span class="block text-xs text-slate-500 mt-0.5">Phone, email, address, and a map of where to find you.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-4">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+          <input type="tel" name="phone" value="{{.Site.Contact.Phone}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Public email</label>
+          <input type="email" name="email" value="{{.Site.Contact.Email}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+          <input type="text" name="address" value="{{.Site.Contact.Address}}" maxlength="500" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Location badge</label>
+          <input type="text" name="location" value="{{.Site.Contact.Location}}" maxlength="200" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Google Maps embed URL (optional)</label>
+        <input type="url" name="map_embed_url" value="{{.Site.Contact.MapEmbedURL}}" maxlength="500" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+    </div>
+  </details>
+
+  <details id="services" data-editor-section data-keywords="services prices price list certifications trust badges gas safe accredited areas we serve coverage towns" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Services, certifications &amp; areas</span>
+        <span class="block text-xs text-slate-500 mt-0.5">What you do, what it costs, and where you'll travel.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-8">
+      <section class="space-y-3">
+        <h3 class="font-semibold text-slate-900">Services</h3>
+        <div data-service-list class="space-y-3">
+          {{range $i, $s := .ServiceRows}}
+          <div class="service-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-service-row>
+            <button type="button" data-remove-service class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove service">✕</button>
+            <div class="grid sm:grid-cols-[1fr_auto] gap-3 pr-6">
+              <input type="text" name="service_label" value="{{$s.Label}}" maxlength="200" placeholder="e.g. Boiler repair" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="text" name="service_price" value="{{$s.PriceText}}" maxlength="200" placeholder="Price (optional)" class="w-full sm:w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            </div>
+            <input type="text" name="service_description" value="{{$s.Description}}" maxlength="500" placeholder="Short description (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          </div>
+          {{end}}
+        </div>
+        <button type="button" data-add-service class="text-sm font-medium text-brand hover:text-brand-dark">+ Add another service</button>
+      </section>
+
+      <section class="space-y-3">
+        <h3 class="font-semibold text-slate-900">Certifications / trust badges</h3>
+        <div data-cert-list class="space-y-2">
+          {{range $i, $c := .CertRows}}
+          <div class="cert-row relative flex items-center gap-2" data-cert-row>
+            <input type="text" name="certification_label" value="{{$c.Label}}" maxlength="200" placeholder="e.g. Gas Safe registered" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <button type="button" data-remove-cert class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove certification">✕</button>
+          </div>
+          {{end}}
+        </div>
+        <button type="button" data-add-cert class="text-sm font-medium text-brand hover:text-brand-dark">+ Add another certification</button>
+      </section>
+
+      <section class="space-y-3">
+        <h3 class="font-semibold text-slate-900">Areas we serve</h3>
+        <p class="-mt-1 text-xs text-slate-400">For mobile/at-home trades — shown on your site and used to help you rank for local searches.</p>
+        <div data-area-list class="space-y-2">
+          {{range $i, $a := .AreaRows}}
+          <div class="area-row relative flex items-center gap-2" data-area-row>
+            <input type="text" name="service_area" value="{{$a.Area}}" maxlength="200" placeholder="e.g. Belfast" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <button type="button" data-remove-area class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove area">✕</button>
+          </div>
+          {{end}}
+        </div>
+        <button type="button" data-add-area class="text-sm font-medium text-brand hover:text-brand-dark">+ Add another area</button>
+      </section>
+    </div>
+  </details>
+
+  <details id="reviews" data-editor-section data-keywords="reviews badge star rating google review link testimonials quotes customers" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Reviews &amp; testimonials</span>
+        <span class="block text-xs text-slate-500 mt-0.5">Your star rating badge and what customers have said.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-8">
+      <section class="space-y-3">
+        <h3 class="font-semibold text-slate-900">Reviews badge</h3>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Star rating (0–5)</label>
+            <input type="number" name="review_rating" value="{{.Reviews.Rating}}" min="0" max="5" step="0.1" placeholder="4.8" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Number of reviews</label>
+            <input type="number" name="review_count" value="{{if .Reviews.ReviewCount}}{{.Reviews.ReviewCount}}{{end}}" min="0" step="1" placeholder="127" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">"Leave us a review" link (e.g. your Google review page)</label>
+          <input type="url" name="review_url" value="{{.Reviews.ReviewURL}}" maxlength="500" placeholder="https://g.page/r/..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        </div>
+        <p class="text-xs text-slate-400">Shows a star badge and a one-tap review button on your site. Leave the rating blank to hide the badge.</p>
+      </section>
+
+      <section class="space-y-3">
+        <h3 class="font-semibold text-slate-900">Testimonials</h3>
+        <div data-testimonial-list class="space-y-3">
+          {{range $i, $t := .TestimonialRows}}
+          <div class="testimonial-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-testimonial-row>
+            <button type="button" data-remove-testimonial class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove testimonial">✕</button>
+            <div class="grid sm:grid-cols-2 gap-3 pr-6">
+              <input type="text" name="testimonial_name" value="{{$t.AuthorName}}" maxlength="200" placeholder="Customer name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="text" name="testimonial_role" value="{{$t.AuthorRole}}" maxlength="200" placeholder="Role, e.g. Homeowner (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            </div>
+            <textarea name="testimonial_quote" rows="2" maxlength="5000" placeholder="What did they say?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$t.Quote}}</textarea>
+          </div>
+          {{end}}
+        </div>
+        <button type="button" data-add-testimonial class="text-sm font-medium text-brand hover:text-brand-dark">+ Add another testimonial</button>
+      </section>
+    </div>
+  </details>
+
+  <details id="gallery" data-editor-section data-keywords="gallery photos images pictures upload portfolio work" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Photo gallery</span>
+        <span class="block text-xs text-slate-500 mt-0.5">Photos of your work, your space, or your products.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-3" data-upload-widget>
+      <p class="text-xs text-slate-400">Landscape photos work best in the gallery.</p>
+      <div data-gallery-list class="space-y-3">
+        {{range $i, $g := .GalleryRows}}
+        <div class="gallery-row relative rounded-xl border border-slate-200 p-3 flex items-center gap-3" data-gallery-row>
+          {{if $g.URL}}<img src="{{$g.URL}}" alt="" class="h-12 w-12 shrink-0 rounded-lg object-cover border border-slate-200" data-gallery-thumb>{{else}}<div class="h-12 w-12 shrink-0 rounded-lg bg-slate-100" data-gallery-thumb></div>{{end}}
+          <input type="url" name="gallery_url" value="{{$g.URL}}" maxlength="500" placeholder="Image URL" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <button type="button" data-remove-gallery class="hidden shrink-0 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove image">✕</button>
+        </div>
+        {{end}}
+      </div>
+      <div class="flex items-center gap-3">
+        <button type="button" data-add-gallery class="text-sm font-medium text-brand hover:text-brand-dark">+ Add image URL</button>
+        {{if .UploadsAvailable}}
+        <label class="cursor-pointer text-sm font-medium text-brand hover:text-brand-dark">Upload images<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="hidden" data-image-upload data-upload-for="gallery" data-upload-mode="rows"></label>
+        <span class="text-xs text-slate-400" data-upload-status></span>
+        {{end}}
+      </div>
+    </div>
+  </details>
+
+  <details id="faqs" data-editor-section data-keywords="faq faqs questions answers parking payment common" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">FAQs</span>
+        <span class="block text-xs text-slate-500 mt-0.5">Answer the questions you get asked over and over.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-3">
+      <div data-faq-list class="space-y-3">
+        {{range $i, $f := .FAQRows}}
+        <div class="faq-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-faq-row>
+          <button type="button" data-remove-faq class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove FAQ">✕</button>
+          <input type="text" name="faq_question" value="{{$f.Question}}" maxlength="500" placeholder="e.g. Do you offer parking?" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm pr-6">
+          <textarea name="faq_answer" rows="2" maxlength="5000" placeholder="Answer" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$f.Answer}}</textarea>
+        </div>
+        {{end}}
+      </div>
+      <button type="button" data-add-faq class="text-sm font-medium text-brand hover:text-brand-dark">+ Add another FAQ</button>
+    </div>
+  </details>
+
+  <details id="team" data-editor-section data-keywords="team staff people meet the team bio role photo headshot" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Meet the team</span>
+        <span class="block text-xs text-slate-500 mt-0.5">The people behind the business.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-3">
+      <div data-staff-list class="space-y-3">
+        {{range $i, $m := .StaffRows}}
+        <div class="staff-row relative rounded-xl border border-slate-200 p-4 space-y-3" data-staff-row>
+          <button type="button" data-remove-staff class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove staff member">✕</button>
+          <div class="grid sm:grid-cols-2 gap-3 pr-6">
+            <input type="text" name="staff_name" value="{{$m.Name}}" maxlength="200" placeholder="Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <input type="text" name="staff_role" value="{{$m.Role}}" maxlength="200" placeholder="Role (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          </div>
+          <input type="url" name="staff_photo_url" value="{{$m.PhotoURL}}" maxlength="500" placeholder="Photo URL (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <textarea name="staff_bio" rows="2" maxlength="5000" placeholder="Short bio (optional)" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">{{$m.Bio}}</textarea>
+        </div>
+        {{end}}
+      </div>
+      <button type="button" data-add-staff class="text-sm font-medium text-brand hover:text-brand-dark">+ Add another team member</button>
+    </div>
+  </details>
+
+  <details id="hours" data-editor-section data-keywords="opening hours times open closed timezone bank holiday christmas special dates" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Opening hours</span>
+        <span class="block text-xs text-slate-500 mt-0.5">Your weekly hours, timezone, and holiday overrides.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-8">
+      <section class="space-y-3">
+        <h3 class="font-semibold text-slate-900">Timezone</h3>
+        <select name="timezone" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+          {{$tz := .Site.Timezone}}
+          {{range .Timezones}}<option value="{{.}}" {{if eq . $tz}}selected{{end}}>{{.}}</option>{{end}}
+        </select>
+      </section>
+
+      <section class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="font-semibold text-slate-900">Weekly hours</h3>
+          <button type="button" data-copy-hours class="text-sm font-medium text-brand hover:text-brand-dark whitespace-nowrap">Copy Monday to every day</button>
+        </div>
+        <div data-hours-list class="space-y-2">
+          {{range .Weekdays}}
+          {{$h := index $.HoursByDay .Weekday}}
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-100 px-3 py-2" data-hours-row data-hours-key="{{.Key}}">
+            <span class="w-20 shrink-0 text-sm font-medium text-slate-600">{{.Label}}</span>
+            <div class="flex items-center gap-2">
+              <input type="time" name="hours_{{.Key}}_open" value="{{$h.OpensAt}}" {{if $h.Closed}}disabled{{end}} data-hours-open class="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-300">
+              <span class="text-slate-400 text-sm">to</span>
+              <input type="time" name="hours_{{.Key}}_close" value="{{$h.ClosesAt}}" {{if $h.Closed}}disabled{{end}} data-hours-close class="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-300">
+            </div>
+            <label class="ml-auto flex items-center gap-1.5 text-sm text-slate-600 whitespace-nowrap">
+              <input type="checkbox" name="hours_{{.Key}}_closed" value="1" {{if $h.Closed}}checked{{end}} data-hours-closed>
+              Closed
+            </label>
+          </div>
+          {{end}}
+        </div>
+      </section>
+
+      <section class="space-y-3">
+        <h3 class="font-semibold text-slate-900">Special / holiday hours</h3>
+        <p class="-mt-1 text-sm text-slate-500">Date-specific overrides, e.g. closed for Christmas or different hours on a bank holiday. Take precedence over the weekly hours above for that date.</p>
+        <div data-special-hours-list class="space-y-3">
+          {{range $i, $sh := .SpecialHoursRows}}
+          <div class="special-hours-row relative rounded-xl border border-slate-200 p-4" data-special-hours-row>
+            <button type="button" data-remove-special-hours class="hidden absolute top-3 right-3 text-slate-400 hover:text-red-500 text-sm leading-none" aria-label="Remove special hours">✕</button>
+            <div class="flex flex-wrap items-center gap-3 pr-6">
+              <input type="date" name="special_date" value="{{$sh.Date}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="text" name="special_label" value="{{$sh.Label}}" placeholder="Label (optional), e.g. Christmas Day" class="flex-1 min-w-[10rem] rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <select name="special_closed" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <option value="" {{if not $sh.Closed}}selected{{end}}>Open with hours</option>
+                <option value="1" {{if $sh.Closed}}selected{{end}}>Closed all day</option>
+              </select>
+              <input type="time" name="special_open" value="{{$sh.OpensAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <span class="text-slate-400 text-sm">to</span>
+              <input type="time" name="special_close" value="{{$sh.ClosesAt}}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            </div>
+          </div>
+          {{end}}
+        </div>
+        <button type="button" data-add-special-hours class="text-sm font-medium text-brand hover:text-brand-dark">+ Add a date override</button>
+      </section>
+    </div>
+  </details>
+
+  <details id="social" data-editor-section data-keywords="social links facebook instagram whatsapp twitter x tiktok linkedin youtube" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Social links</span>
+        <span class="block text-xs text-slate-500 mt-0.5">Where else customers can find you.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <input type="url" name="facebook_url" value="{{index .Socials "facebook"}}" maxlength="500" placeholder="Facebook URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="instagram_url" value="{{index .Socials "instagram"}}" maxlength="500" placeholder="Instagram URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="whatsapp_url" value="{{index .Socials "whatsapp"}}" maxlength="500" placeholder="WhatsApp link" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="twitter_url" value="{{index .Socials "twitter"}}" maxlength="500" placeholder="X / Twitter URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="tiktok_url" value="{{index .Socials "tiktok"}}" maxlength="500" placeholder="TikTok URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="linkedin_url" value="{{index .Socials "linkedin"}}" maxlength="500" placeholder="LinkedIn URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+        <input type="url" name="youtube_url" value="{{index .Socials "youtube"}}" maxlength="500" placeholder="YouTube URL" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+    </div>
+  </details>
+
+  <details id="seo" data-editor-section data-keywords="seo search google meta title description page title social share image og open graph" class="group rounded-2xl border border-slate-200 bg-white shadow-sm open:shadow-md transition">
+    <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold text-slate-900">Search &amp; sharing (SEO)</span>
+        <span class="block text-xs text-slate-500 mt-0.5">How your site looks in Google and when shared in chat.</span>
+      </span>
+      <svg class="shrink-0 h-4 w-4 text-slate-400 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <div class="border-t border-slate-100 px-5 py-5 space-y-4">
+      <p class="text-sm text-slate-500">Optional. Leave blank to use your business name, tagline, and logo.</p>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Page title</label>
+        <input type="text" name="meta_title" value="{{.Site.MetaTitle}}" maxlength="500" placeholder="{{.Site.BusinessName}}{{if .Site.Contact.Location}} | {{.Site.Contact.Location}}{{end}}" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Meta description</label>
+        <textarea name="meta_description" rows="2" maxlength="500" placeholder="A short summary shown under your title in Google results." class="w-full rounded-lg border border-slate-200 px-4 py-2.5">{{.Site.MetaDescription}}</textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Social share image URL</label>
+        <input type="url" name="og_image_url" value="{{.Site.OgImageURL}}" maxlength="500" placeholder="https://... (1200×630 works best)" class="w-full rounded-lg border border-slate-200 px-4 py-2.5">
+      </div>
+    </div>
+  </details>
+
+  <div class="sticky bottom-0 z-20 -mx-1 mt-4 border-t border-slate-200 bg-slate-50/90 px-1 py-4 backdrop-blur">
+    <button type="submit" class="w-full rounded-full bg-brand px-6 py-3.5 font-semibold text-white hover:bg-brand-dark transition">Save changes</button>
+    <p class="mt-2 text-center text-xs text-slate-400">Saves every section above at once. The announcement banner has its own save button.</p>
+  </div>
+</form>
+
+<script>
+  (function () {
+    // Collapsible sections: the whole editor is one scrolling page of
+    // <details>, so nothing is more than a scroll away and the save bar has
+    // a fixed home. Everything here is progressive enhancement — with JS off
+    // the sections still open and close, and the form still saves.
+    var sections = Array.prototype.slice.call(document.querySelectorAll('[data-editor-section]'));
+    if (!sections.length) return;
+
+    // Deep links (the overview checklist, the announcement card) point at
+    // #<section>, which the browser scrolls to but won't open on its own.
+    function openFromHash() {
+      var id = window.location.hash.replace('#', '');
+      if (!id) return;
+      var target = document.getElementById(id);
+      if (!target || !target.hasAttribute('data-editor-section')) return;
+      target.open = true;
+      target.scrollIntoView({ block: 'start' });
+    }
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+
+    // A required field inside a closed section can't be focused, so the
+    // browser silently refuses to submit. Open its section instead.
+    document.addEventListener('invalid', function (e) {
+      var section = e.target.closest && e.target.closest('[data-editor-section]');
+      if (section) section.open = true;
+    }, true);
+
+    var toggleAll = document.querySelector('[data-toggle-all]');
+    if (toggleAll) {
+      toggleAll.addEventListener('click', function () {
+        var expand = sections.some(function (s) { return !s.open && !s.classList.contains('hidden'); });
+        sections.forEach(function (s) { s.open = expand; });
+        toggleAll.textContent = expand ? 'Collapse all' : 'Expand all';
+      });
+    }
+
+    // Filter box: matches a section's title and its data-keywords, so "meta
+    // title" finds Search & sharing without the owner having to remember
+    // which section it lives under. Matching sections open as you type.
+    var filter = document.querySelector('[data-section-filter]');
+    var empty = document.querySelector('[data-filter-empty]');
+    if (!filter) return;
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var shown = 0;
+      sections.forEach(function (section) {
+        var summary = section.querySelector('summary');
+        var haystack = ((summary ? summary.textContent : '') + ' ' + (section.getAttribute('data-keywords') || '')).toLowerCase();
+        var match = !q || haystack.indexOf(q) !== -1;
+        section.classList.toggle('hidden', !match);
+        if (match) shown++;
+        if (q && match) section.open = true;
+      });
+      if (empty) empty.classList.toggle('hidden', shown !== 0);
+    });
+  })();
+
+</script>
+{{template "content_rows_js" .}}
+{{end}}

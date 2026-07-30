@@ -7,13 +7,84 @@ import (
 	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
+	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
+// smokeSite is the minimal site every dashboard-section smoke test renders.
+func smokeSite() *domain.SiteAggregate {
+	return &domain.SiteAggregate{Site: domain.Site{ID: 42, Slug: "acme", BusinessName: "Acme", TemplateID: siteTemplates[0].ID}}
+}
+
+// smokeSectionData mirrors what siteSectionData builds for every section of
+// the site dashboard, so a template referencing a field the handler doesn't
+// pass fails here rather than in production (LoadAll only catches parse
+// errors, not execution errors from missing fields).
+func smokeSectionData(site *domain.SiteAggregate, section string) map[string]any {
+	var label, hint string
+	for _, s := range siteSections {
+		if s.Key == section {
+			label, hint = s.Label, s.Hint
+		}
+	}
+	return map[string]any{
+		"Site": site, "SiteURL": "https://acme.example",
+		"Section": section, "SectionLabel": label, "SectionHint": hint, "Sections": siteSections,
+		"ChecklistPercent": 100, "IsOwner": true,
+		"Flash": middleware.Flash{}, "CSRFToken": "tok", "EmailVerified": true,
+		"Upgraded": false, "ShowTrialBanner": false, "TrialDaysLeft": 0, "ShowPastDueBanner": false,
+	}
+}
+
+// TestSiteSectionsRender renders every section of the site dashboard (#301),
+// each with the data its own handler supplies.
+func TestSiteSectionsRender(t *testing.T) {
+	chdirToRepoRoot(t)
+
+	r := NewRenderer("launchly.ltd")
+	if err := r.LoadAll(siteTemplates); err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	site := smokeSite()
+
+	extras := map[string]map[string]any{
+		"": {
+			"Leads": nil, "LeadCount": 7, "NewLeadCount": 0, "LeadStatus": domain.LeadStatus(""),
+			"LeadSearch": "", "LeadPage": 1, "LeadTotalPages": 1,
+			"Stats":  &domain.SiteStats{TotalViews: 10, UniqueVisitors: 4},
+			"Period": "30", "Periods": analyticsPeriods,
+			"ChartPoints": []dailyViewPoint{{Label: "Mon", Date: "1 Jan", Count: 3, HeightPx: 40}},
+			"Checklist":   nil, "Design": siteTemplates[0],
+		},
+		"content": {"UploadsAvailable": true},
+		"design":  {"Design": siteTemplates[0], "Templates": siteTemplates, "Palettes": siteTemplates[0].Palettes},
+		"domain":  {"Domain": "launchly.ltd", "DomainData": map[string]any{"IsPro": false, "FallbackOrigin": "origin.launchly.ltd"}},
+		"access":  {"Members": nil},
+	}
+	for k, v := range siteContentDisplayData(site) {
+		extras["content"][k] = v
+	}
+
+	for _, s := range siteSections {
+		data := smokeSectionData(site, s.Key)
+		for k, v := range extras[s.Key] {
+			data[k] = v
+		}
+		w := httptest.NewRecorder()
+		r.Render(w, "dashboard:site_"+sectionTemplate(s.Key), data)
+		body := w.Body.String()
+		if w.Code != 200 || !strings.Contains(body, `aria-label="Site settings"`) {
+			t.Errorf("section %q: render failed (status %d)", sectionTemplate(s.Key), w.Code)
+		}
+		// The nav must link to this section and mark it as the current page.
+		if !strings.Contains(body, `href="`+sectionPath("acme", s.Key)+`"`) {
+			t.Errorf("section %q: nav missing its own link", sectionTemplate(s.Key))
+		}
+	}
+}
+
 // TestAnalyticsCardPartialRenders exercises the analytics_card template both
-// standalone (as the fetch-driven partial, #177) and embedded in the full
-// dashboard:site page, checking they render the same period toggle without
-// panicking on template execution (LoadAll only catches parse errors, not
-// execution errors from missing fields).
+// standalone (as the fetch-driven partial, #177) and embedded in the site
+// overview page, checking they render the same period toggle.
 func TestAnalyticsCardPartialRenders(t *testing.T) {
 	chdirToRepoRoot(t)
 
@@ -22,7 +93,7 @@ func TestAnalyticsCardPartialRenders(t *testing.T) {
 		t.Fatalf("LoadAll: %v", err)
 	}
 
-	site := &domain.SiteAggregate{Site: domain.Site{ID: 42, Slug: "acme", BusinessName: "Acme"}}
+	site := smokeSite()
 	data := map[string]any{
 		"Site":        site,
 		"Stats":       &domain.SiteStats{TotalViews: 10, UniqueVisitors: 4},
@@ -47,16 +118,17 @@ func TestAnalyticsCardPartialRenders(t *testing.T) {
 	}
 
 	full := httptest.NewRecorder()
-	fullData := map[string]any{
-		"Site": site, "Leads": nil, "LeadCount": 7, "NewLeadCount": 0,
+	fullData := smokeSectionData(site, "")
+	for k, v := range map[string]any{
+		"Leads": nil, "LeadCount": 7, "NewLeadCount": 0, "LeadStatus": domain.LeadStatus(""),
 		"LeadPage": 1, "LeadTotalPages": 1, "Stats": data["Stats"], "ChartPoints": data["ChartPoints"],
-		"Period": "30", "Periods": analyticsPeriods, "SiteURL": "https://acme.example",
-		"Checklist": nil, "ChecklistPercent": 100, "Design": siteTemplates[0], "Templates": siteTemplates,
-		"Socials": map[string]string{}, "HoursByDay": map[time.Weekday]domain.BusinessHours{}, "Weekdays": weekdays, "Timezones": timezones,
-		"DomainData": map[string]any{},
+		"Period": "30", "Periods": analyticsPeriods, "Checklist": nil, "Design": siteTemplates[0],
+		"HoursByDay": map[time.Weekday]domain.BusinessHours{}, "Weekdays": weekdays, "Timezones": timezones,
+	} {
+		fullData[k] = v
 	}
-	r.Render(full, "dashboard:site", fullData)
+	r.Render(full, "dashboard:site_overview", fullData)
 	if !strings.Contains(full.Body.String(), `id="analytics-card"`) {
-		t.Error("full page missing embedded #analytics-card container")
+		t.Error("overview missing embedded #analytics-card container")
 	}
 }

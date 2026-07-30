@@ -1,0 +1,305 @@
+{{define "content"}}
+{{if .Upgraded}}<p class="mb-6 rounded-xl bg-emerald-50 text-emerald-700 text-sm px-4 py-3">Payment received. Thanks for upgrading!</p>{{end}}
+{{if .ShowTrialBanner}}
+<div class="mb-6 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+  <p class="text-sm text-amber-800">
+    {{if eq .TrialDaysLeft 0}}Your free trial ends today.{{else if eq .TrialDaysLeft 1}}Your free trial ends tomorrow.{{else}}{{.TrialDaysLeft}} days left in your free trial.{{end}}
+    Upgrade now to keep your site live.
+  </p>
+  <a href="/dashboard/sites/{{.Site.Slug}}/billing" class="shrink-0 rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700">Upgrade now</a>
+</div>
+{{end}}
+{{if .ShowPastDueBanner}}
+<div class="mb-6 rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+  <p class="text-sm text-red-800">
+    We couldn't collect your last payment. Please contact us to update your payment details before your site is paused.
+  </p>
+  <a href="mailto:hello@launchly.ltd" class="shrink-0 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700">Contact us</a>
+</div>
+{{end}}
+
+<div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-6 mb-8 border-b border-slate-200">
+  <div class="min-w-0">
+    <div class="flex items-center gap-3">
+      <h1 class="font-display text-2xl font-bold text-slate-900 truncate">{{.Site.BusinessName}}</h1>
+      <span class="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-50 text-emerald-700{{else if eq (print .Site.Status) "paused"}}bg-amber-50 text-amber-700{{else}}bg-slate-100 text-slate-500{{end}}">
+        <span class="h-1.5 w-1.5 rounded-full {{if eq (print .Site.Status) "live"}}bg-emerald-500{{else if eq (print .Site.Status) "paused"}}bg-amber-500{{else}}bg-slate-400{{end}}"></span>{{.Site.Status}}
+      </span>
+    </div>
+    {{if eq (print .Site.Status) "live"}}
+    <a href="{{.SiteURL}}" target="_blank" class="mt-1 inline-block text-sm font-medium text-slate-500 hover:text-brand transition">{{.SiteURL}} ↗</a>
+    {{else}}
+    <p class="mt-1 text-sm text-slate-500">Not live yet — only you can see it.</p>
+    {{end}}
+  </div>
+  <div class="flex items-center gap-2 shrink-0">
+    <a href="/dashboard/sites/{{.Site.Slug}}/preview" target="_blank" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 transition">Preview ↗</a>
+    <a href="/dashboard/sites/{{.Site.Slug}}/content" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition">Edit content</a>
+  </div>
+</div>
+
+<div class="lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10 lg:items-start">
+  <nav aria-label="Site settings" class="mb-8 lg:mb-0 lg:sticky lg:top-24">
+    <ul class="flex gap-1 overflow-x-auto pb-2 lg:block lg:space-y-0.5 lg:overflow-visible lg:pb-0">
+      {{$slug := .Site.Slug}}{{$current := .Section}}
+      {{range .Sections}}
+      {{if or (not .OwnerOnly) $.IsOwner}}
+      <li class="shrink-0 lg:shrink">
+        <a href="/dashboard/sites/{{$slug}}{{if .Key}}/{{.Key}}{{end}}"
+           {{if eq .Key $current}}aria-current="page"{{end}}
+           class="block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition {{if eq .Key $current}}bg-brand/10 text-brand lg:border-l-2 lg:border-brand lg:rounded-l-none{{else}}text-slate-500 hover:bg-slate-100 hover:text-slate-900 lg:border-l-2 lg:border-transparent lg:rounded-l-none{{end}}">{{.Label}}</a>
+      </li>
+      {{end}}
+      {{end}}
+    </ul>
+    {{if lt .ChecklistPercent 100}}
+    <a href="/dashboard/sites/{{.Site.Slug}}" class="mt-6 hidden lg:block rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Setup</p>
+      <p class="mt-1 text-sm font-semibold text-slate-900">{{.ChecklistPercent}}% complete</p>
+      <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+        <div class="h-full rounded-full bg-brand" style="width:{{.ChecklistPercent}}%"></div>
+      </div>
+    </a>
+    {{end}}
+  </nav>
+
+  <div class="min-w-0">
+    <div class="mb-6">
+      <h2 class="font-display text-xl font-bold text-slate-900">{{.SectionLabel}}</h2>
+      {{if .SectionHint}}<p class="mt-1 text-sm text-slate-500">{{.SectionHint}}</p>{{end}}
+    </div>
+    {{template "section" .}}
+  </div>
+</div>
+
+<script>
+  // Image/document upload: file inputs marked [data-image-upload] POST to
+  // /dashboard/uploads (or data-upload-endpoint, e.g. the PDF document field's
+  // /dashboard/uploads/document) and drop the returned public URL into the
+  // field named by data-upload-for — replacing it (logo), appending a line, or
+  // adding a new gallery row (data-upload-mode="rows"). The URL text fields
+  // stay usable as a fallback, so this only ever adds a URL, never blocks the
+  // form.
+  //
+  // Guarded against re-running: this script re-executes every time an
+  // [data-ajax-form] save swaps in fresh page content (see the ajax-form
+  // script below), and document-level delegated listeners would otherwise
+  // stack up and fire once per prior save.
+  (function () {
+    if (window.__imageUploadBound) return;
+    window.__imageUploadBound = true;
+    document.addEventListener('change', function (e) {
+      var input = e.target;
+      if (!input.matches || !input.matches('input[type="file"][data-image-upload]')) return;
+      if (!input.files || !input.files.length) return;
+
+      var form = input.closest('form');
+      if (!form) return;
+      var widget = input.closest('[data-upload-widget]');
+      var mode = input.getAttribute('data-upload-mode');
+      var target = mode === 'rows' ? null : form.querySelector('[name="' + input.getAttribute('data-upload-for') + '"]');
+      var append = mode === 'append';
+      var status = widget ? widget.querySelector('[data-upload-status]') : null;
+      var endpoint = input.getAttribute('data-upload-endpoint') || '/dashboard/uploads';
+      var csrfEl = form.querySelector('[name="csrf_token"]');
+      var csrf = csrfEl ? csrfEl.value : '';
+      var files = Array.prototype.slice.call(input.files);
+      var lastError = '';
+
+      function setStatus(msg) { if (status) status.textContent = msg; }
+      function apply(url) {
+        if (mode === 'rows') {
+          if (window.__addGalleryRow) window.__addGalleryRow(url);
+        } else if (append) {
+          var existing = target.value.replace(/\s+$/, '');
+          target.value = existing ? existing + '\n' + url : url;
+        } else {
+          target.value = url;
+        }
+      }
+      function next(i) {
+        if (i >= files.length) {
+          setStatus(lastError || 'Uploaded');
+          input.value = '';
+          return;
+        }
+        setStatus('Uploading' + (files.length > 1 ? ' (' + (i + 1) + '/' + files.length + ')' : '') + '…');
+        var fd = new FormData();
+        fd.append('file', files[i]);
+        fd.append('csrf_token', csrf);
+        fetch(endpoint, { method: 'POST', body: fd })
+          .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+          .then(function (r) {
+            if (r.ok && r.body.url) { apply(r.body.url); }
+            else { lastError = (r.body && r.body.error) || 'Upload failed'; }
+            next(i + 1);
+          })
+          .catch(function () { lastError = 'Upload failed'; next(i + 1); });
+      }
+      next(0);
+    });
+  })();
+</script>
+<script>
+  // Save forms marked [data-ajax-form] submit via fetch instead of a full
+  // page navigation, so saving feels instant instead of triggering the
+  // browser's full reload/spinner. The server-side handler is unchanged — it
+  // still redirects back to the section the form was submitted from (see
+  // redirectToSite in internal/web/editor.go) — we just follow that redirect
+  // ourselves via fetch and swap the resulting #dash-content into the page
+  // instead of letting the browser navigate there. Any failure (network
+  // error, non-OK response) falls back to a real form submit, so this is
+  // pure progressive enhancement — except a 403, handled below.
+  (function () {
+    if (window.__ajaxFormBound) return;
+    window.__ajaxFormBound = true;
+
+    // Scripts inserted via DOMParser/innerHTML don't execute — each one has
+    // to be recreated via createElement to run, so every widget on the page
+    // (collapsible sections, repeatable rows, etc.) re-initializes against
+    // the fresh DOM.
+    function runScripts(container) {
+      container.querySelectorAll('script').forEach(function (old) {
+        var fresh = document.createElement('script');
+        for (var i = 0; i < old.attributes.length; i++) {
+          fresh.setAttribute(old.attributes[i].name, old.attributes[i].value);
+        }
+        fresh.textContent = old.textContent;
+        old.parentNode.replaceChild(fresh, old);
+      });
+    }
+
+    function showFormError(form, msg) {
+      var el = form.querySelector('[data-ajax-form-error]');
+      if (!el) {
+        el = document.createElement('p');
+        el.setAttribute('data-ajax-form-error', '');
+        el.className = 'mt-3 rounded-lg bg-red-50 text-red-700 text-sm px-4 py-3';
+        form.appendChild(el);
+      }
+      el.textContent = msg;
+    }
+
+    function clearFormError(form) {
+      var el = form.querySelector('[data-ajax-form-error]');
+      if (el) el.remove();
+    }
+
+    // A dashboard tab left open longer than the CSRF token's 24h TTL still
+    // has a perfectly valid login session — only the token embedded in the
+    // page has gone stale. Fetch a fresh one from the session-authenticated
+    // /dashboard/csrf-token endpoint.
+    function refreshCSRFToken() {
+      return fetch('/dashboard/csrf-token').then(function (res) {
+        if (!res.ok) throw new Error('csrf refresh failed');
+        return res.json();
+      }).then(function (body) {
+        if (!body || !body.csrf_token) throw new Error('csrf refresh failed');
+        return body.csrf_token;
+      });
+    }
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form.matches || !form.matches('[data-ajax-form]') || e.defaultPrevented) return;
+      e.preventDefault();
+
+      // Give immediate visual feedback that the click registered — without
+      // this, a slow save looks like nothing happened, and it's tempting to
+      // hit reload while the save is still in flight.
+      var submitter = e.submitter;
+      var originalText = submitter ? submitter.textContent : null;
+      if (submitter) {
+        submitter.disabled = true;
+        submitter.textContent = 'Saving…';
+      }
+      clearFormError(form);
+
+      function resetSubmitter() {
+        if (submitter) {
+          submitter.disabled = false;
+          submitter.textContent = originalText;
+        }
+      }
+
+      // isRetry guards against looping: an expired token gets exactly one
+      // silent refresh-and-retry. If the retry still 403s (e.g. the session
+      // itself is gone, not just the token), that's a real error — surface
+      // it instead of retrying forever. The form and its in-memory values
+      // are never touched on failure, so the user's typed content survives
+      // and a manual retry (or copy-paste elsewhere) is still possible.
+      function attempt(isRetry) {
+        return fetch(form.action, { method: form.method || 'POST', body: new FormData(form) })
+          .then(function (res) {
+            if (res.status === 403 && !isRetry) {
+              return refreshCSRFToken().then(function (token) {
+                var input = form.querySelector('[name="csrf_token"]');
+                if (input) input.value = token;
+                return attempt(true);
+              });
+            }
+            if (!res.ok) {
+              var err = new Error('save failed');
+              err.status = res.status;
+              throw err;
+            }
+            return res.text().then(function (html) { return { url: res.url, html: html }; });
+          })
+          .then(function (r) {
+            var parsed = new DOMParser().parseFromString(r.html, 'text/html');
+            var next = parsed.getElementById('dash-content');
+            var current = document.getElementById('dash-content');
+            if (!next || !current) throw new Error('missing #dash-content in response');
+            current.replaceWith(next);
+            history.pushState(null, '', r.url);
+            runScripts(next);
+          });
+      }
+
+      attempt(false).catch(function (err) {
+        resetSubmitter();
+        if (err && err.status === 403) {
+          showFormError(form, 'Your save session had expired and refreshing it didn’t work. Your changes above are safe — copy them if needed, then reload the page and try again.');
+          return;
+        }
+        // Any other failure (network error, 5xx, malformed response): fall
+        // back to a real form submit, same as before this handler existed.
+        form.submit();
+      });
+    });
+  })();
+</script>
+<script>
+  // Live character counters: any input/textarea with a maxlength attribute
+  // gets a small "n / max" counter that updates as the visitor types,
+  // turning red past the limit. Excludes brand_color, whose maxlength=7 is
+  // an unrelated hex-format constraint, not a content length cap. Delegated
+  // on document so it also covers rows cloned later for repeatable fields
+  // (services, testimonials, etc.) and fields re-rendered after an ajax
+  // save — cloneNode(true) and the server-rendered markup both keep the
+  // maxlength attribute.
+  (function () {
+    var SELECTOR = '[maxlength]:not([name="brand_color"])';
+    function counterFor(el) {
+      var next = el.nextElementSibling;
+      if (next && next.classList && next.classList.contains('char-counter')) return next;
+      var counter = document.createElement('p');
+      counter.className = 'char-counter mt-1 text-xs text-slate-400 text-right';
+      el.insertAdjacentElement('afterend', counter);
+      return counter;
+    }
+    function update(el) {
+      var max = el.getAttribute('maxlength');
+      if (!max) return;
+      var counter = counterFor(el);
+      var len = el.value.length;
+      counter.textContent = len + ' / ' + max;
+      counter.classList.toggle('text-red-500', len > Number(max));
+    }
+    document.querySelectorAll(SELECTOR).forEach(update);
+    document.addEventListener('input', function (e) {
+      if (e.target && e.target.matches && e.target.matches(SELECTOR)) update(e.target);
+    });
+  })();
+</script>
+{{end}}

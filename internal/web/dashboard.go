@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -60,168 +59,9 @@ func (h *Handler) emailVerified(r *http.Request) bool {
 	return profile.EmailVerified
 }
 
-// SiteOverview shows one site's status, live URL, trial/billing state,
-// stats, and recent leads, plus every site-level setting grouped into tabs.
-// RequireSiteOwner has already loaded the site into the request context.
-func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
-	site := middleware.SiteFromContext(r)
-
-	if r.URL.Query().Get("launched") == "1" {
-		siteURL := h.siteURL(site.Slug)
-		h.render.Render(w, "dashboard:launched", map[string]any{
-			"Site":          site,
-			"SiteURL":       siteURL,
-			"EmailVerified": h.emailVerified(r),
-		})
-		return
-	}
-
-	leadStatus := domain.LeadStatus(r.URL.Query().Get("lead_status"))
-	if leadStatus != "" && !leadStatus.Valid() {
-		leadStatus = "" // ignore stale/invalid filters, fall back to all leads
-	}
-	leadSearch := strings.TrimSpace(r.URL.Query().Get("lead_q"))
-	leadPage, _ := strconv.Atoi(r.URL.Query().Get("lead_page"))
-	if leadPage < 1 {
-		leadPage = 1
-	}
-
-	// These are all independent reads (two leads queries, the analytics
-	// stats query, and — when a custom domain is mid-verification — a live
-	// Cloudflare status check), so they run concurrently rather than
-	// stacking their latencies sequentially on every page load.
-	isOwner := site.OwnerUserID == middleware.UserID(r)
-
-	var (
-		leads          []domain.Lead
-		leadTotal      int
-		leadCounts     domain.LeadCounts
-		stats          *domain.SiteStats
-		chartPoints    []dailyViewPoint
-		period         analyticsPeriodOpt
-		domainHostname any
-		members        []domain.SiteMember
-	)
-	needsDomainRefresh := site.CustomDomain != "" && site.CustomDomainStatus == domain.CustomDomainPending
-
-	// siteView is a private copy of the aggregate for this request to render
-	// from. site itself may be the same *domain.SiteAggregate pointer Sites'
-	// 15s aggregate cache is concurrently handing to other requests (another
-	// dashboard tab, or the public site renderer) — mutating fields on it
-	// in place below (custom-domain status) would race with those readers.
-	// See #247.
-	siteView := *site
-
-	g, gctx := errgroup.WithContext(r.Context())
-	g.Go(func() (err error) {
-		leads, leadTotal, err = h.leads.ListBySiteFiltered(gctx, site.ID, leadStatus, leadSearch, leadPage)
-		return
-	})
-	g.Go(func() (err error) {
-		leadCounts, err = h.leads.Counts(gctx, site.ID)
-		return
-	})
-	g.Go(func() error {
-		stats, chartPoints, period = h.analyticsCardStats(gctx, &site.Site, r.URL.Query().Get("period"))
-		return nil
-	})
-	if isOwner {
-		g.Go(func() (err error) {
-			members, err = h.members.List(gctx, site.ID)
-			return
-		})
-	}
-	if needsDomainRefresh {
-		g.Go(func() error {
-			// Best-effort: a failed Cloudflare check just means the page
-			// falls back to the last known status, same as before.
-			if hostname, err := h.domains.RefreshCustomDomainStatus(gctx, site.ID); err == nil {
-				domainHostname = hostname
-				if hostname.Active() {
-					siteView.CustomDomainStatus = domain.CustomDomainActive
-				} else if hostname.Failed() {
-					siteView.CustomDomainStatus = domain.CustomDomainFailed
-				}
-			}
-			return nil
-		})
-	}
-	if err := g.Wait(); err != nil {
-		h.render.RenderError(w, http.StatusInternalServerError)
-		return
-	}
-
-	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
-
-	tmpl, _ := findTemplate(siteView.TemplateID)
-	checklist, checklistPercent := siteChecklist(&siteView)
-
-	domainData := map[string]any{
-		"FallbackOrigin": h.domains.FallbackOrigin(),
-		"IsPro":          siteView.Billing.IsPro(),
-	}
-	if domainHostname != nil {
-		domainData["Hostname"] = domainHostname
-	}
-
-	var trialDaysLeft int
-	showTrialBanner := siteView.Billing.PaymentStatus == domain.PaymentStatusTrialing && siteView.Billing.TrialEndsAt != nil
-	if showTrialBanner {
-		trialDaysLeft = int(math.Ceil(time.Until(*siteView.Billing.TrialEndsAt).Hours() / 24))
-		if trialDaysLeft < 0 {
-			trialDaysLeft = 0
-		}
-	}
-	showPastDueBanner := siteView.Billing.PaymentStatus == domain.PaymentStatusPastDue
-
-	data := map[string]any{
-		"Site":              &siteView,
-		"Leads":             leads,
-		"LeadCount":         leadCounts.Total,
-		"NewLeadCount":      leadCounts.New,
-		"LeadStatus":        leadStatus,
-		"LeadSearch":        leadSearch,
-		"LeadPage":          leadPage,
-		"LeadTotalPages":    leadTotalPages,
-		"LeadHasPrev":       leadPage > 1,
-		"LeadHasNext":       leadPage < leadTotalPages,
-		"LeadPrevPage":      leadPage - 1,
-		"LeadNextPage":      leadPage + 1,
-		"Stats":             stats,
-		"ChartPoints":       chartPoints,
-		"Period":            period.Key,
-		"Periods":           analyticsPeriods,
-		"SiteURL":           h.siteURL(siteView.Slug),
-		"Flash":             middleware.GetFlash(w, r),
-		"CSRFToken":         h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
-		"Upgraded":          r.URL.Query().Get("upgraded") == "1",
-		"EmailVerified":     h.emailVerified(r),
-		"ShowTrialBanner":   showTrialBanner,
-		"TrialDaysLeft":     trialDaysLeft,
-		"ShowPastDueBanner": showPastDueBanner,
-
-		"Checklist":        checklist,
-		"ChecklistPercent": checklistPercent,
-
-		"Design":           tmpl,
-		"Templates":        siteTemplates,
-		"Palettes":         tmpl.Palettes,
-		"Domain":           h.cfg.Domain,
-		"DomainData":       domainData,
-		"UploadsAvailable": h.uploads.Available(),
-
-		"IsOwner": isOwner,
-		"Members": members,
-	}
-	for k, v := range siteContentDisplayData(&siteView) {
-		data[k] = v
-	}
-	h.render.Render(w, "dashboard:site", data)
-}
-
 // checklistItem is one row of the site-completeness checklist shown on the
-// overview tab: a short label, whether it's satisfied, and a deep link into
-// the editor sub-tab where the owner can complete it.
+// overview section: a short label, whether it's satisfied, and a deep link
+// into the editor section where the owner can complete it.
 type checklistItem struct {
 	Label string
 	Done  bool
@@ -234,19 +74,18 @@ type checklistItem struct {
 // conversion — a logo, an intro, services, hours, contact details, and
 // actually publishing — without needing any extra queries.
 func siteChecklist(site *domain.SiteAggregate) (items []checklistItem, percent int) {
-	base := "/dashboard/sites/" + site.Slug + "?tab=settings&subtab="
-	// The "content" sub-tab is itself split into nested groups (basics,
-	// services, gallery, hours, ...) — &csubtab=X deep-links into the right
-	// one so these links still land on the field that needs fixing instead
-	// of just the sub-tab's default "basics" group.
+	base := "/dashboard/sites/" + site.Slug
+	// The content editor is one scrolling page of collapsible sections, so
+	// #fragment deep-links land on (and open — see the hash handling in
+	// site_content.html) the exact section that needs filling in.
 	items = []checklistItem{
-		{Label: "Add your logo", Done: site.LogoURL != "", Link: base + "content&csubtab=basics"},
-		{Label: "Write your intro (about)", Done: strings.TrimSpace(site.About) != "", Link: base + "content&csubtab=basics"},
-		{Label: "List at least one service", Done: len(site.Services) > 0, Link: base + "content&csubtab=services"},
-		{Label: "Add a phone number or email", Done: site.Contact.Phone != "" || site.Contact.Email != "", Link: base + "content&csubtab=basics"},
-		{Label: "Set your opening hours", Done: len(site.BusinessHours) > 0, Link: base + "content&csubtab=hours"},
-		{Label: "Add a photo to your gallery", Done: len(site.GalleryImages) > 0, Link: base + "content&csubtab=gallery"},
-		{Label: "Publish your site", Done: site.Status == domain.SiteStatusLive, Link: base + "publishing"},
+		{Label: "Add your logo", Done: site.LogoURL != "", Link: base + "/content#basics"},
+		{Label: "Write your intro (about)", Done: strings.TrimSpace(site.About) != "", Link: base + "/content#basics"},
+		{Label: "List at least one service", Done: len(site.Services) > 0, Link: base + "/content#services"},
+		{Label: "Add a phone number or email", Done: site.Contact.Phone != "" || site.Contact.Email != "", Link: base + "/content#contact"},
+		{Label: "Set your opening hours", Done: len(site.BusinessHours) > 0, Link: base + "/content#hours"},
+		{Label: "Add a photo to your gallery", Done: len(site.GalleryImages) > 0, Link: base + "/content#gallery"},
+		{Label: "Publish your site", Done: site.Status == domain.SiteStatusLive, Link: base + "/publishing"},
 	}
 	done := 0
 	for _, it := range items {
@@ -269,8 +108,8 @@ type dailyViewPoint struct {
 
 // chartHeight and chartMinBarHeight size the 7-day page-views chart's bars —
 // kept small since this is a compact dashboard card, not a full chart page.
-// dashboard/site.html hardcodes chartHeight+16px (room for the day label) as
-// the chart row's fixed height — keep that in sync if this changes.
+// analytics_card.html hardcodes chartHeight+16px (room for the day label)
+// as the chart row's fixed height — keep that in sync if this changes.
 const (
 	chartHeight       = 80
 	chartMinBarHeight = 4
@@ -344,8 +183,8 @@ func (h *Handler) analyticsCardStats(ctx context.Context, site *domain.Site, per
 }
 
 // SiteAnalyticsCard re-renders just the Analytics card's stats/chart for a
-// new period. The period toggle in dashboard:site fetches this instead of
-// reloading the whole dashboard page.
+// new period. The period toggle on the site overview fetches this instead
+// of reloading the whole dashboard page.
 func (h *Handler) SiteAnalyticsCard(w http.ResponseWriter, r *http.Request) {
 	site := middleware.LightSiteFromContext(r)
 	stats, chartPoints, period := h.analyticsCardStats(r.Context(), site, r.URL.Query().Get("period"))

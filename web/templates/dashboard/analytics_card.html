@@ -1,11 +1,11 @@
 {{define "analytics_card"}}
-  <div id="analytics-card" class="rounded-2xl border border-slate-200 bg-white p-6">
+  <div id="analytics-card" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <h2 class="font-semibold text-slate-900">Analytics</h2>
+      <h3 class="font-semibold text-slate-900">Analytics</h3>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-full border border-slate-200 p-0.5 text-xs font-medium">
           {{range .Periods}}
-          <a href="/dashboard/sites/{{$.Site.Slug}}?tab=overview&period={{.Key}}" data-period-url="/dashboard/sites/{{$.Site.Slug}}/analytics-card?period={{.Key}}" class="rounded-full px-3 py-1.5 {{if eq .Key $.Period}}bg-slate-900 text-white{{else}}text-slate-500 hover:text-slate-800{{end}}">{{.Label}}</a>
+          <a href="/dashboard/sites/{{$.Site.Slug}}?period={{.Key}}" data-period-url="/dashboard/sites/{{$.Site.Slug}}/analytics-card?period={{.Key}}" class="rounded-full px-3 py-1.5 {{if eq .Key $.Period}}bg-slate-900 text-white{{else}}text-slate-500 hover:text-slate-800{{end}}">{{.Label}}</a>
           {{end}}
         </div>
         <a href="/dashboard/sites/{{.Site.Slug}}/analytics.csv?period={{.Period}}" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium hover:border-slate-300">Export CSV</a>

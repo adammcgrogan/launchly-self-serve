@@ -89,9 +89,24 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 			return err
 		}
 	}
+	// Each section of a site's dashboard is its own page: site_layout.html
+	// supplies the shared chrome (header, banners, section nav) and defines
+	// "content", each site_<section>.html defines the "section" block it
+	// drops into. See siteSections in site_sections.go.
 	analyticsCard := "web/templates/dashboard/analytics_card.html"
-	if err := rd.parse("dashboard:site", dashBase, "web/templates/dashboard/site.html", analyticsCard); err != nil {
-		return err
+	siteLayout := "web/templates/dashboard/site_layout.html"
+	for _, s := range siteSections {
+		name := "site_" + sectionTemplate(s.Key)
+		files := []string{siteLayout, "web/templates/dashboard/" + name + ".html"}
+		switch s.Key {
+		case "":
+			files = append(files, analyticsCard)
+		case "content":
+			files = append(files, "web/templates/dashboard/site_content_rows.html")
+		}
+		if err := rd.parse("dashboard:"+name, dashBase, files...); err != nil {
+			return err
+		}
 	}
 	if err := rd.parse("dashboard:analytics_card", analyticsCard); err != nil {
 		return err

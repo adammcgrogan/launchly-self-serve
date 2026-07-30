@@ -1,0 +1,272 @@
+{{/* Repeatable-row widgets for the content editor (services, FAQs, staff,
+     certifications, areas, testimonials, gallery, hours, special hours).
+     Split out of site_content.html purely to keep that file readable — it
+     is only ever rendered from there. */}}
+{{define "content_rows_js"}}
+<script>
+  (function () {
+    var serviceList = document.querySelector('[data-service-list]');
+    if (!serviceList) return;
+    function updateServiceRemoveButtons() {
+      var rows = serviceList.querySelectorAll('[data-service-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-service]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-service]').addEventListener('click', function () {
+      var rows = serviceList.querySelectorAll('[data-service-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      serviceList.appendChild(clone);
+      updateServiceRemoveButtons();
+    });
+    serviceList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-service]')) {
+        e.target.closest('[data-service-row]').remove();
+        updateServiceRemoveButtons();
+      }
+    });
+    updateServiceRemoveButtons();
+  })();
+
+  (function () {
+    var faqList = document.querySelector('[data-faq-list]');
+    if (!faqList) return;
+    function updateFAQRemoveButtons() {
+      var rows = faqList.querySelectorAll('[data-faq-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-faq]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-faq]').addEventListener('click', function () {
+      var rows = faqList.querySelectorAll('[data-faq-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      faqList.appendChild(clone);
+      updateFAQRemoveButtons();
+    });
+    faqList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-faq]')) {
+        e.target.closest('[data-faq-row]').remove();
+        updateFAQRemoveButtons();
+      }
+    });
+    updateFAQRemoveButtons();
+  })();
+
+  (function () {
+    var staffList = document.querySelector('[data-staff-list]');
+    if (!staffList) return;
+    function updateStaffRemoveButtons() {
+      var rows = staffList.querySelectorAll('[data-staff-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-staff]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-staff]').addEventListener('click', function () {
+      var rows = staffList.querySelectorAll('[data-staff-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      staffList.appendChild(clone);
+      updateStaffRemoveButtons();
+    });
+    staffList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-staff]')) {
+        e.target.closest('[data-staff-row]').remove();
+        updateStaffRemoveButtons();
+      }
+    });
+    updateStaffRemoveButtons();
+  })();
+
+  (function () {
+    var certList = document.querySelector('[data-cert-list]');
+    if (!certList) return;
+    function updateCertRemoveButtons() {
+      var rows = certList.querySelectorAll('[data-cert-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-cert]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-cert]').addEventListener('click', function () {
+      var rows = certList.querySelectorAll('[data-cert-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+      certList.appendChild(clone);
+      updateCertRemoveButtons();
+    });
+    certList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-cert]')) {
+        e.target.closest('[data-cert-row]').remove();
+        updateCertRemoveButtons();
+      }
+    });
+    updateCertRemoveButtons();
+  })();
+
+  (function () {
+    var areaList = document.querySelector('[data-area-list]');
+    if (!areaList) return;
+    function updateAreaRemoveButtons() {
+      var rows = areaList.querySelectorAll('[data-area-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-area]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-area]').addEventListener('click', function () {
+      var rows = areaList.querySelectorAll('[data-area-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+      areaList.appendChild(clone);
+      updateAreaRemoveButtons();
+    });
+    areaList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-area]')) {
+        e.target.closest('[data-area-row]').remove();
+        updateAreaRemoveButtons();
+      }
+    });
+    updateAreaRemoveButtons();
+  })();
+
+  (function () {
+    var testimonialList = document.querySelector('[data-testimonial-list]');
+    if (!testimonialList) return;
+    function updateTestimonialRemoveButtons() {
+      var rows = testimonialList.querySelectorAll('[data-testimonial-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-testimonial]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-testimonial]').addEventListener('click', function () {
+      var rows = testimonialList.querySelectorAll('[data-testimonial-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+      testimonialList.appendChild(clone);
+      updateTestimonialRemoveButtons();
+    });
+    testimonialList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-testimonial]')) {
+        e.target.closest('[data-testimonial-row]').remove();
+        updateTestimonialRemoveButtons();
+      }
+    });
+    updateTestimonialRemoveButtons();
+  })();
+
+  (function () {
+    var galleryList = document.querySelector('[data-gallery-list]');
+    if (!galleryList) return;
+    function updateGalleryRemoveButtons() {
+      var rows = galleryList.querySelectorAll('[data-gallery-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-gallery]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    function setThumb(row, url) {
+      var thumb = row.querySelector('[data-gallery-thumb]');
+      if (!thumb) return;
+      if (thumb.tagName === 'IMG') {
+        if (url) { thumb.src = url; return; }
+        var placeholder = document.createElement('div');
+        placeholder.className = 'h-12 w-12 shrink-0 rounded-lg bg-slate-100';
+        placeholder.setAttribute('data-gallery-thumb', '');
+        thumb.replaceWith(placeholder);
+        return;
+      }
+      if (!url) return;
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      img.className = 'h-12 w-12 shrink-0 rounded-lg object-cover border border-slate-200';
+      img.setAttribute('data-gallery-thumb', '');
+      thumb.replaceWith(img);
+    }
+    function addGalleryRow(url) {
+      var rows = galleryList.querySelectorAll('[data-gallery-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelector('input[name="gallery_url"]').value = url || '';
+      setThumb(clone, url || '');
+      galleryList.appendChild(clone);
+      updateGalleryRemoveButtons();
+      return clone;
+    }
+    document.querySelector('[data-add-gallery]').addEventListener('click', function () {
+      addGalleryRow('');
+    });
+    galleryList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-gallery]')) {
+        e.target.closest('[data-gallery-row]').remove();
+        updateGalleryRemoveButtons();
+      }
+    });
+    galleryList.addEventListener('input', function (e) {
+      if (e.target.matches('input[name="gallery_url"]')) {
+        setThumb(e.target.closest('[data-gallery-row]'), e.target.value.trim());
+      }
+    });
+    updateGalleryRemoveButtons();
+    window.__addGalleryRow = addGalleryRow;
+  })();
+
+  (function () {
+    var hoursList = document.querySelector('[data-hours-list]');
+    if (!hoursList) return;
+    var rows = hoursList.querySelectorAll('[data-hours-row]');
+
+    function setRowDisabled(row, closed) {
+      row.querySelector('[data-hours-open]').disabled = closed;
+      row.querySelector('[data-hours-close]').disabled = closed;
+    }
+
+    rows.forEach(function (row) {
+      row.querySelector('[data-hours-closed]').addEventListener('change', function (e) {
+        setRowDisabled(row, e.target.checked);
+      });
+    });
+
+    var copyBtn = document.querySelector('[data-copy-hours]');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var monday = rows[0];
+        var open = monday.querySelector('[data-hours-open]').value;
+        var close = monday.querySelector('[data-hours-close]').value;
+        var closed = monday.querySelector('[data-hours-closed]').checked;
+        rows.forEach(function (row) {
+          if (row === monday) return;
+          row.querySelector('[data-hours-open]').value = open;
+          row.querySelector('[data-hours-close]').value = close;
+          row.querySelector('[data-hours-closed]').checked = closed;
+          setRowDisabled(row, closed);
+        });
+      });
+    }
+  })();
+
+  (function () {
+    var specialHoursList = document.querySelector('[data-special-hours-list]');
+    if (!specialHoursList) return;
+    function updateSpecialHoursRemoveButtons() {
+      var rows = specialHoursList.querySelectorAll('[data-special-hours-row]');
+      rows.forEach(function (row) {
+        row.querySelector('[data-remove-special-hours]').classList.toggle('hidden', rows.length <= 1);
+      });
+    }
+    document.querySelector('[data-add-special-hours]').addEventListener('click', function () {
+      var rows = specialHoursList.querySelectorAll('[data-special-hours-row]');
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+      clone.querySelectorAll('select').forEach(function (el) { el.value = ''; });
+      specialHoursList.appendChild(clone);
+      updateSpecialHoursRemoveButtons();
+    });
+    specialHoursList.addEventListener('click', function (e) {
+      if (e.target.matches('[data-remove-special-hours]')) {
+        e.target.closest('[data-special-hours-row]').remove();
+        updateSpecialHoursRemoveButtons();
+      }
+    });
+    updateSpecialHoursRemoveButtons();
+  })();
+</script>
+{{end}}

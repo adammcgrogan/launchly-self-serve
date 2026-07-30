@@ -7,7 +7,7 @@
 <div class="grid gap-6 lg:grid-cols-3">
   <div class="lg:col-span-2 space-y-6">
 
-    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div class="flex items-start gap-4">
         <div class="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-brand/10 font-display text-lg font-bold text-brand">
           {{.Initial}}
@@ -27,9 +27,9 @@
       {{end}}
     </div>
 
-    <div class="rounded-2xl border border-slate-200 bg-white p-6">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div class="flex items-center justify-between">
-        <h2 class="font-semibold text-slate-900">Your sites</h2>
+        <h2 class="font-display text-lg font-bold text-slate-900">Your sites</h2>
         <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{len .Sites}}</span>
       </div>
       {{if .Sites}}
@@ -53,8 +53,8 @@
 
   <div class="space-y-6">
 
-    <div class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="font-semibold text-slate-900 mb-4">Security &amp; data</h2>
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="font-display text-lg font-bold text-slate-900 mb-4">Security &amp; data</h2>
       <div class="divide-y divide-slate-100">
         <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
           <p class="text-sm text-slate-600">Change your password by email</p>
@@ -71,8 +71,8 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border border-red-200 bg-red-50/40 p-6">
-      <h2 class="font-semibold text-red-900">Danger zone</h2>
+    <div class="rounded-2xl border border-red-200 bg-red-50/40 p-6 shadow-sm">
+      <h2 class="font-display text-lg font-bold text-red-900">Danger zone</h2>
       <p class="mt-2 text-sm text-red-700/80">Deleting your account permanently removes your profile, all sites, and all leads. This cannot be undone.</p>
       <form method="POST" action="/dashboard/account/delete" class="mt-4" onsubmit="return confirm('Delete your account? This permanently removes your profile, all sites, and all leads, and cannot be undone.');">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

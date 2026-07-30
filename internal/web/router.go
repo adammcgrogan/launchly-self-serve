@@ -75,7 +75,19 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/new/generate-copy", h.auth.RequireUser(h.GenerateCopy))
 	mux.HandleFunc("POST /dashboard/uploads", h.auth.RequireUser(h.UploadImage))
 	mux.HandleFunc("POST /dashboard/uploads/document", h.auth.RequireUser(h.UploadDocument))
+	// Each section of a site's dashboard is its own URL (see siteSections in
+	// site_sections.go) rather than a client-side tab, so every screen is
+	// linkable and only loads the data it shows. They all render from the
+	// full aggregate, which the ownership middleware caches per request.
 	mux.HandleFunc("GET /dashboard/sites/{slug}", ownedFull(h.SiteOverview))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/content", ownedFull(h.SiteContent))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/design", ownedFull(h.SiteDesign))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/form", ownedFull(h.SiteForm))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/domain", ownedFull(h.SiteDomain))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/publishing", ownedFull(h.SitePublishing))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/notifications", ownedFull(h.SiteNotifications))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/access", ownedFull(h.SiteAccess))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/billing", ownedFull(h.SiteBilling))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/preview", ownedFull(h.PreviewSite))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/edit", owned(h.EditSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/appearance", owned(h.AppearanceSubmit))

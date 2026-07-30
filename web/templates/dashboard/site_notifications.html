@@ -1,0 +1,18 @@
+{{define "section"}}
+<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <h3 class="font-semibold text-slate-900">Analytics report</h3>
+  <p class="mt-1 text-sm text-slate-500">One email a month summarising your traffic and leads. For day-by-day detail or a downloadable file, use the Overview.</p>
+  <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/analytics-frequency" class="mt-4 max-w-xs">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label class="block text-sm font-medium text-slate-700 mb-1">Frequency</label>
+    <select name="analytics_frequency" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+      <option value="off" {{if eq .Site.Analytics.AnalyticsFrequency "off"}}selected{{end}}>Off</option>
+      <option value="monthly" {{if eq .Site.Analytics.AnalyticsFrequency "monthly"}}selected{{end}}>Monthly</option>
+    </select>
+  </form>
+  <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/send-analytics" class="mt-4">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button class="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-medium hover:border-slate-300">Send report now</button>
+  </form>
+</div>
+{{end}}

@@ -80,7 +80,7 @@ func (c *Cron) sendDunningStage(ctx context.Context, conn *sql.Conn, siteID int,
 	if to == "" {
 		return
 	}
-	dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s?tab=billing", c.baseURL, site.Slug)
+	dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s/billing", c.baseURL, site.Slug)
 	daysPastDue := int(time.Since(*billing.PaymentFailedAt).Hours() / 24)
 	if daysPastDue < 1 {
 		daysPastDue = 1

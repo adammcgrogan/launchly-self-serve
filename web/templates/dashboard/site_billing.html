@@ -1,0 +1,30 @@
+{{define "section"}}
+<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm max-w-lg">
+  <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Current plan</p>
+  <p class="mt-1 font-display text-xl font-bold text-slate-900 capitalize">{{.Site.Billing.Plan}} <span class="text-base font-medium text-slate-400 capitalize">· {{.Site.Billing.PaymentStatus}}</span></p>
+  {{if eq (print .Site.Status) "paused"}}<p class="mt-2 text-sm font-medium text-amber-700">Your site is paused — reactivate below to bring it back online.</p>{{end}}
+  {{if eq (print .Site.Billing.PaymentStatus) "trialing" "pending" "cancelled"}}
+    {{if eq (print .Site.Billing.PaymentStatus) "trialing"}}
+      {{if .Site.Billing.TrialEndsAt}}<p class="text-sm text-slate-500 mt-1">Trial ends {{.Site.Billing.TrialEndsAt.Format "2 Jan 2006"}}</p>{{end}}
+    {{else if eq (print .Site.Billing.PaymentStatus) "pending"}}
+      <p class="text-sm text-slate-500 mt-1">Your last checkout wasn't completed.</p>
+    {{else}}
+      <p class="text-sm text-slate-500 mt-1">Your subscription was cancelled.</p>
+    {{end}}
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/upgrade" class="mt-5 space-y-2">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" name="plan" value="starter" class="w-full rounded-full bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand-dark transition">Upgrade to Starter (£9/mo)</button>
+      <button type="submit" name="plan" value="pro" class="w-full rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 hover:border-slate-300 transition">Upgrade to Pro (£19/mo)</button>
+      <p class="pt-1 text-center text-xs text-slate-400">Pro adds your own custom domain. <a href="/pricing" class="font-medium text-brand hover:underline">Compare plans</a></p>
+    </form>
+  {{else if eq (print .Site.Billing.PaymentStatus) "paid"}}
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/cancel-subscription" class="mt-5" onsubmit="return confirm('Cancel your subscription?');">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button class="w-full rounded-full border border-red-200 text-red-600 px-4 py-3 text-sm font-semibold hover:border-red-300">Cancel subscription</button>
+    </form>
+  {{else if eq (print .Site.Billing.PaymentStatus) "past_due"}}
+    <p class="mt-2 text-sm font-medium text-red-700">We couldn't collect your last payment. Contact us to update your payment details — your subscription will be cancelled if this isn't resolved.</p>
+    <a href="mailto:hello@launchly.ltd" class="mt-5 inline-block w-full text-center rounded-full bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand-dark transition">Contact us</a>
+  {{end}}
+</div>
+{{end}}
