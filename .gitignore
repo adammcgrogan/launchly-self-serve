@@ -19,3 +19,8 @@ CLAUDE.md
 
 # local pg_dump output from scripts/backup-db.sh
 /backups/
+
+# personal working notes — not part of the project itself; images/ is kept
+# since the README embeds screenshots from it
+/docs/*
+!/docs/images/

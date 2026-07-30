@@ -47,8 +47,6 @@ Migrations apply automatically on startup — there's no separate migration comm
 
 If the Supabase project has Auth → "Confirm email" enabled, Auth's own SMTP must also be configured (Auth → Settings → SMTP Settings in the Supabase dashboard) — it's separate from this app's `RESEND_API_KEY`/`EMAIL_FROM`, which only cover our own transactional email. Without it, GoTrue can fail to send the confirmation email on `/auth/v1/signup` after already creating the user, which surfaces to the user as a signup error and turns a retry into a confusing "already registered" response.
 
-See `docs/backups.md` for the Postgres backup/restore strategy (Supabase's managed backups plus a supplemental `pg_dump` script).
-
 ## Stack
 
 Go (single binary, standard library HTTP server), Supabase (Postgres + Auth), server-rendered `html/template` with Tailwind (precompiled to a static stylesheet — no client-side/runtime build step), Stripe, Resend for transactional email, deployed on Railway.
