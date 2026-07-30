@@ -118,7 +118,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", staticCacheHeaders(http.FileServer(http.Dir("web/static")))))
 	h.RegisterRoutes(mux)
 
 	finalHandler := middleware.RequestID(middleware.Recover(h.RenderError, loggingMiddleware(securityHeaders(web.SubdomainRouter(cfg.Domain, h, mux)))))
@@ -166,6 +166,24 @@ const contentSecurityPolicy = "default-src 'self'; " +
 	"form-action 'self'"
 
 // securityHeaders adds security-related HTTP response headers to every response.
+// staticCacheHeaders sets Cache-Control on static assets so repeat visitors
+// stop re-validating every file with a conditional request. Requests
+// carrying the render package's ?v=<hash> cache-buster (internal/web/render.go's
+// asset template func) are content-addressed — a deploy that changes the
+// file changes the URL — so those get a far-future immutable cache. Anything
+// else (e.g. an unversioned image referenced directly) gets a moderate
+// max-age instead, since the same URL could later serve different content.
+func staticCacheHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "" {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
