@@ -15,7 +15,7 @@ func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.domainLimiter.Allow(middleware.UserID(r).String()) {
-		middleware.SetFlash(w, "Too many domain requests — please wait a moment and try again.")
+		middleware.SetFlashWarning(w, "Too many domain requests — please wait a moment and try again.")
 		redirectToSite(w, r, site.Slug)
 		return
 	}
@@ -28,7 +28,7 @@ func (h *Handler) DomainSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := detachedContext(r)
 	defer cancel()
 	if _, err := h.domains.SetCustomDomain(ctx, site.ID, rawDomain); err != nil {
-		middleware.SetFlash(w, err.Error())
+		middleware.SetFlashError(w, err.Error())
 		redirectToSite(w, r, site.Slug)
 		return
 	}
@@ -44,7 +44,7 @@ func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.domainLimiter.Allow(middleware.UserID(r).String()) {
-		middleware.SetFlash(w, "Too many domain requests — please wait a moment and try again.")
+		middleware.SetFlashWarning(w, "Too many domain requests — please wait a moment and try again.")
 		redirectToSite(w, r, site.Slug)
 		return
 	}
@@ -52,13 +52,13 @@ func (h *Handler) DomainCheckStatus(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	switch hostname, err := h.domains.RefreshCustomDomainStatus(ctx, site.ID); {
 	case err != nil:
-		middleware.SetFlash(w, "Couldn't check domain status — try again shortly.")
+		middleware.SetFlashError(w, "Couldn't check domain status — try again shortly.")
 	case hostname.Active():
 		middleware.SetFlash(w, "Your custom domain is live!")
 	case hostname.Failed():
-		middleware.SetFlash(w, "Domain verification failed — double-check your DNS records.")
+		middleware.SetFlashError(w, "Domain verification failed — double-check your DNS records.")
 	default:
-		middleware.SetFlash(w, "Still waiting on DNS — this can take anywhere from a few minutes to a few hours.")
+		middleware.SetFlashWarning(w, "Still waiting on DNS — this can take anywhere from a few minutes to a few hours.")
 	}
 	redirectToSite(w, r, site.Slug)
 }
@@ -73,7 +73,7 @@ func (h *Handler) DomainRemove(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	if err := h.domains.RemoveCustomDomain(ctx, site.ID); err != nil {
 		slog.Error("remove custom domain", "site_id", site.ID, "error", err)
-		middleware.SetFlash(w, "Couldn't remove the domain — try again.")
+		middleware.SetFlashError(w, "Couldn't remove the domain — try again.")
 	} else {
 		middleware.SetFlash(w, "Custom domain removed.")
 	}

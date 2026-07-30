@@ -17,9 +17,15 @@
       </div>
     </div>
   </header>
-  {{if .Flash}}
+  {{if .Flash.Message}}
   <div class="max-w-5xl mx-auto px-6 mt-6">
-    <p class="rounded-lg bg-emerald-900/40 text-emerald-300 text-sm px-4 py-3">{{.Flash}}</p>
+    {{if eq .Flash.Level "error"}}
+    <p class="rounded-lg bg-red-900/40 text-red-300 text-sm px-4 py-3">{{.Flash.Message}}</p>
+    {{else if eq .Flash.Level "warning"}}
+    <p class="rounded-lg bg-amber-900/40 text-amber-300 text-sm px-4 py-3">{{.Flash.Message}}</p>
+    {{else}}
+    <p class="rounded-lg bg-emerald-900/40 text-emerald-300 text-sm px-4 py-3">{{.Flash.Message}}</p>
+    {{end}}
   </div>
   {{end}}
   <main class="max-w-5xl mx-auto px-6 py-10">

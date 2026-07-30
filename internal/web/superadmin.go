@@ -134,7 +134,7 @@ func (h *Handler) SuperadminEditSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := h.sites.UpdateContent(r.Context(), in); err != nil {
 		var verr *service.ValidationError
 		if errors.As(err, &verr) {
-			middleware.SetFlash(w, verr.Message)
+			middleware.SetFlashError(w, verr.Message)
 			http.Redirect(w, r, "/superadmin/sites/"+strconv.Itoa(id), http.StatusSeeOther)
 			return
 		}

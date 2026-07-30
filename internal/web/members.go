@@ -27,9 +27,9 @@ func (h *Handler) InviteMember(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.members.Invite(ctx, site, inviterEmail, r.FormValue("email")); err != nil {
 		var verr *service.ValidationError
 		if errors.As(err, &verr) {
-			middleware.SetFlash(w, verr.Message)
+			middleware.SetFlashError(w, verr.Message)
 		} else {
-			middleware.SetFlash(w, err.Error())
+			middleware.SetFlashError(w, err.Error())
 		}
 		redirectToSite(w, r, site.Slug)
 		return

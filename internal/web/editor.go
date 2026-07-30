@@ -75,7 +75,7 @@ func (h *Handler) handleServiceError(w http.ResponseWriter, r *http.Request, slu
 	}
 	var verr *service.ValidationError
 	if errors.As(err, &verr) {
-		middleware.SetFlash(w, verr.Message)
+		middleware.SetFlashError(w, verr.Message)
 		redirectToSite(w, r, slug)
 		return true
 	}
@@ -94,7 +94,7 @@ func (h *Handler) AddressSubmit(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	newSlug, err := h.sites.RenameSlug(ctx, site.ID, slug)
 	if err != nil {
-		middleware.SetFlash(w, err.Error())
+		middleware.SetFlashError(w, err.Error())
 		redirectToSite(w, r, site.Slug)
 		return
 	}
@@ -196,7 +196,7 @@ func (h *Handler) AppearanceSubmit(w http.ResponseWriter, r *http.Request) {
 		headingFont = ""
 	}
 	if brandColor != "" && !service.IsValidHexColor(brandColor) {
-		middleware.SetFlash(w, "Brand colour must be a 6-digit hex code, e.g. #4F46E5.")
+		middleware.SetFlashError(w, "Brand colour must be a 6-digit hex code, e.g. #4F46E5.")
 		redirectToSite(w, r, site.Slug)
 		return
 	}
@@ -320,7 +320,7 @@ func (h *Handler) PublishSite(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	if err := h.sites.Publish(ctx, site.ID); err != nil {
 		if err == service.ErrSitePaused {
-			middleware.SetFlash(w, err.Error())
+			middleware.SetFlashError(w, err.Error())
 			redirectToSite(w, r, site.Slug)
 			return
 		}
@@ -340,7 +340,7 @@ func (h *Handler) UnpublishSite(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	if err := h.sites.Unpublish(ctx, site.ID, service.ActorOwner); err != nil {
 		if err == service.ErrSitePaused {
-			middleware.SetFlash(w, err.Error())
+			middleware.SetFlashError(w, err.Error())
 			redirectToSite(w, r, site.Slug)
 			return
 		}
@@ -437,14 +437,14 @@ func (h *Handler) UpdateNotifySettings(w http.ResponseWriter, r *http.Request) {
 	mobile := strings.TrimSpace(r.FormValue("mobile_number"))
 	enabled := r.FormValue("sms_alerts_enabled") == "on"
 	if enabled && !h.cfg.SMSAlertsAvailable() {
-		middleware.SetFlash(w, "SMS lead alerts aren't available yet.")
+		middleware.SetFlashWarning(w, "SMS lead alerts aren't available yet.")
 		redirectToSite(w, r, site.Slug)
 		return
 	}
 
 	if err := h.sites.UpdateNotifySettings(r.Context(), site.ID, mobile, enabled); err != nil {
 		if err == service.ErrNotifyNotPro || err == service.ErrNotifyInvalidNumber {
-			middleware.SetFlash(w, err.Error())
+			middleware.SetFlashError(w, err.Error())
 			redirectToSite(w, r, site.Slug)
 			return
 		}
