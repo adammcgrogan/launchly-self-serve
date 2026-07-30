@@ -2,11 +2,16 @@ package web
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 )
@@ -52,8 +57,47 @@ func NewRenderer(domain string) *Renderer {
 		"marketingURL": func(path string) string {
 			return "https://" + domain + path
 		},
+		// asset appends a content hash to a static file's URL so a deploy
+		// that changes it also changes its URL. Without this, app.css is
+		// served from one unversioned path with a multi-hour max-age, and
+		// everyone who visited before a deploy keeps rendering the new
+		// markup against the old stylesheet until their cache expires.
+		"asset": assetURL,
 	}
 	return &Renderer{tmpl: make(map[string]*template.Template), funcMap: fm}
+}
+
+// assetVersions caches each static file's content hash, computed on first
+// use — the files don't change while the server is running.
+var (
+	assetVersionsMu sync.Mutex
+	assetVersions   = map[string]string{}
+)
+
+// assetURL returns path with a ?v=<hash> cache buster. A file it can't read
+// (which would mean the deploy is already broken) falls back to the bare
+// path rather than failing the render.
+func assetURL(path string) string {
+	assetVersionsMu.Lock()
+	defer assetVersionsMu.Unlock()
+	if v, ok := assetVersions[path]; ok {
+		if v == "" {
+			return path
+		}
+		return path + "?v=" + v
+	}
+	var version string
+	if b, err := os.ReadFile(filepath.Join("web", strings.TrimPrefix(path, "/"))); err == nil {
+		sum := sha256.Sum256(b)
+		version = hex.EncodeToString(sum[:])[:10]
+	} else {
+		slog.Warn("asset hash failed, serving unversioned", "path", path, "error", err)
+	}
+	assetVersions[path] = version
+	if version == "" {
+		return path
+	}
+	return path + "?v=" + version
 }
 
 func (rd *Renderer) parse(key, base string, files ...string) error {

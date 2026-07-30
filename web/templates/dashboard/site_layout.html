@@ -32,39 +32,69 @@
     <p class="mt-1 text-sm text-slate-500">Not live yet — only you can see it.</p>
     {{end}}
   </div>
-  <div class="flex items-center gap-2 shrink-0">
-    <a href="/dashboard/sites/{{.Site.Slug}}/preview" target="_blank" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 transition">Preview ↗</a>
-    <a href="/dashboard/sites/{{.Site.Slug}}/content" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition">Edit content</a>
+  <div class="shrink-0">
+    <a href="/dashboard/sites/{{.Site.Slug}}/preview" target="_blank" class="inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 transition">Preview ↗</a>
   </div>
 </div>
 
-<div class="lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10 lg:items-start">
-  <nav aria-label="Site settings" class="mb-8 lg:mb-0 lg:sticky lg:top-24">
-    <ul class="flex gap-1 overflow-x-auto pb-2 lg:block lg:space-y-0.5 lg:overflow-visible lg:pb-0">
-      {{$slug := .Site.Slug}}{{$current := .Section}}
-      {{range .Sections}}
-      {{if or (not .OwnerOnly) $.IsOwner}}
-      <li class="shrink-0 lg:shrink">
-        <a href="/dashboard/sites/{{$slug}}{{if .Key}}/{{.Key}}{{end}}"
-           {{if eq .Key $current}}aria-current="page"{{end}}
-           class="block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition {{if eq .Key $current}}bg-brand/10 text-brand lg:border-l-2 lg:border-brand lg:rounded-l-none{{else}}text-slate-500 hover:bg-slate-100 hover:text-slate-900 lg:border-l-2 lg:border-transparent lg:rounded-l-none{{end}}">{{.Label}}</a>
-      </li>
-      {{end}}
-      {{end}}
-    </ul>
+<!-- The section rail and the section panel swap together (see the section-nav
+     script below), so both live inside #site-workspace: one fetch replaces the
+     panel and the rail's active state in a single step. -->
+<div id="site-workspace" class="grid gap-6 md:grid-cols-[15rem_minmax(0,1fr)] md:items-start md:gap-8 transition-opacity">
+  <div class="md:sticky md:top-24">
+    <nav aria-label="Site settings" class="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+      <ul class="flex gap-1 overflow-x-auto md:block md:space-y-0.5 md:overflow-visible">
+        {{$slug := .Site.Slug}}{{$current := .Section}}
+        {{range .Sections}}
+        {{if or (not .OwnerOnly) $.IsOwner}}
+        <li class="shrink-0 md:shrink">
+          <a href="/dashboard/sites/{{$slug}}{{if .Key}}/{{.Key}}{{end}}" data-section-link
+             {{if eq .Key $current}}aria-current="page"{{end}}
+             class="flex items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition {{if eq .Key $current}}bg-brand/10 text-brand{{else}}text-slate-600 hover:bg-slate-50 hover:text-slate-900{{end}}">
+            <svg class="h-4 w-4 shrink-0 {{if eq .Key $current}}text-brand{{else}}text-slate-400{{end}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{.Icon}}"/></svg>
+            {{.Label}}
+          </a>
+        </li>
+        {{end}}
+        {{end}}
+      </ul>
+    </nav>
+
     {{if lt .ChecklistPercent 100}}
-    <a href="/dashboard/sites/{{.Site.Slug}}" class="mt-6 hidden lg:block rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Setup</p>
-      <p class="mt-1 text-sm font-semibold text-slate-900">{{.ChecklistPercent}}% complete</p>
-      <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-        <div class="h-full rounded-full bg-brand" style="width:{{.ChecklistPercent}}%"></div>
-      </div>
-    </a>
+    <details class="group mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <summary class="block cursor-pointer list-none px-4 py-3">
+        <span class="flex items-baseline justify-between gap-2">
+          <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Setup</span>
+          <span class="text-xs font-semibold text-slate-500">{{.ChecklistDone}} of {{.ChecklistTotal}} done</span>
+        </span>
+        <span class="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <span class="block h-full rounded-full bg-brand" style="width:{{.ChecklistPercent}}%"></span>
+        </span>
+        <span class="mt-2.5 flex items-center justify-between gap-2 text-xs font-semibold text-brand">
+          <span class="group-open:hidden">See what's left</span>
+          <span class="hidden group-open:inline">Hide checklist</span>
+          <svg class="h-3.5 w-3.5 shrink-0 transition group-open:rotate-180" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </summary>
+      <ul class="border-t border-slate-100 px-4 py-3 space-y-2">
+        {{range .Checklist}}
+        <li class="flex items-start gap-2 text-sm">
+          {{if .Done}}
+          <span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] text-green-600">✓</span>
+          <span class="text-slate-400 line-through">{{.Label}}</span>
+          {{else}}
+          <span class="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-slate-300"></span>
+          <a href="{{.Link}}" data-section-link class="font-medium text-slate-700 hover:text-brand">{{.Label}}</a>
+          {{end}}
+        </li>
+        {{end}}
+      </ul>
+    </details>
     {{end}}
-  </nav>
+  </div>
 
   <div class="min-w-0">
-    <div class="mb-6">
+    <div class="mb-5">
       <h2 class="font-display text-xl font-bold text-slate-900">{{.SectionLabel}}</h2>
       {{if .SectionHint}}<p class="mt-1 text-sm text-slate-500">{{.SectionHint}}</p>{{end}}
     </div>
@@ -72,6 +102,72 @@
   </div>
 </div>
 
+<script>
+  // Scripts inserted via DOMParser/innerHTML don't execute — each one has to
+  // be recreated via createElement to run, so every widget in freshly swapped
+  // markup (collapsible sections, repeatable rows, lead pills) initializes
+  // against the new DOM. Shared by the section nav and the ajax save forms.
+  window.__runScripts = function (container) {
+    container.querySelectorAll('script').forEach(function (old) {
+      var fresh = document.createElement('script');
+      for (var i = 0; i < old.attributes.length; i++) {
+        fresh.setAttribute(old.attributes[i].name, old.attributes[i].value);
+      }
+      fresh.textContent = old.textContent;
+      old.parentNode.replaceChild(fresh, old);
+    });
+  };
+
+  // Section navigation without a full page load: clicking a rail link fetches
+  // that section's page and swaps in just #site-workspace (the rail plus the
+  // panel), so the header, banners, fonts and stylesheet are never re-parsed
+  // and the scroll position of the chrome is preserved. Pure progressive
+  // enhancement — the links are real hrefs, so no-JS and middle/⌘-click keep
+  // working, and any failure falls back to a normal navigation.
+  (function () {
+    if (window.__sectionNavBound) return;
+    window.__sectionNavBound = true;
+
+    function swap(url, push) {
+      var current = document.getElementById('site-workspace');
+      if (!current) return Promise.reject(new Error('no workspace'));
+      current.style.opacity = '0.55';
+      current.setAttribute('aria-busy', 'true');
+      return fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
+        .then(function (res) {
+          if (!res.ok) throw new Error('section fetch failed');
+          return res.text();
+        })
+        .then(function (html) {
+          var next = new DOMParser().parseFromString(html, 'text/html').getElementById('site-workspace');
+          if (!next) throw new Error('missing #site-workspace in response');
+          document.getElementById('site-workspace').replaceWith(next);
+          if (push) history.pushState({ section: true }, '', url);
+          window.scrollTo({ top: 0, behavior: 'auto' });
+          window.__runScripts(next);
+          document.dispatchEvent(new CustomEvent('dashboard:swapped', { detail: { root: next } }));
+        })
+        .catch(function (err) {
+          current.style.opacity = '';
+          current.removeAttribute('aria-busy');
+          throw err;
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var link = e.target.closest && e.target.closest('[data-section-link]');
+      if (!link || link.target === '_blank') return;
+      e.preventDefault();
+      swap(link.href, true).catch(function () { window.location.href = link.href; });
+    });
+
+    window.addEventListener('popstate', function (e) {
+      if (!e.state || !e.state.section) return;
+      swap(window.location.href, false).catch(function () { window.location.reload(); });
+    });
+  })();
+</script>
 <script>
   // Image/document upload: file inputs marked [data-image-upload] POST to
   // /dashboard/uploads (or data-upload-endpoint, e.g. the PDF document field's
@@ -153,21 +249,6 @@
   (function () {
     if (window.__ajaxFormBound) return;
     window.__ajaxFormBound = true;
-
-    // Scripts inserted via DOMParser/innerHTML don't execute — each one has
-    // to be recreated via createElement to run, so every widget on the page
-    // (collapsible sections, repeatable rows, etc.) re-initializes against
-    // the fresh DOM.
-    function runScripts(container) {
-      container.querySelectorAll('script').forEach(function (old) {
-        var fresh = document.createElement('script');
-        for (var i = 0; i < old.attributes.length; i++) {
-          fresh.setAttribute(old.attributes[i].name, old.attributes[i].value);
-        }
-        fresh.textContent = old.textContent;
-        old.parentNode.replaceChild(fresh, old);
-      });
-    }
 
     function showFormError(form, msg) {
       var el = form.querySelector('[data-ajax-form-error]');
@@ -251,8 +332,9 @@
             var current = document.getElementById('dash-content');
             if (!next || !current) throw new Error('missing #dash-content in response');
             current.replaceWith(next);
-            history.pushState(null, '', r.url);
-            runScripts(next);
+            history.pushState({ section: true }, '', r.url);
+            window.__runScripts(next);
+            document.dispatchEvent(new CustomEvent('dashboard:swapped', { detail: { root: next } }));
           });
       }
 
@@ -277,8 +359,12 @@
   // on document so it also covers rows cloned later for repeatable fields
   // (services, testimonials, etc.) and fields re-rendered after an ajax
   // save — cloneNode(true) and the server-rendered markup both keep the
-  // maxlength attribute.
+  // maxlength attribute. This script lives outside the swapped region, so it
+  // binds once and re-scans on 'dashboard:swapped' — without that, fields
+  // arriving via a section swap would have no counter until first keystroke.
   (function () {
+    if (window.__charCountersBound) return;
+    window.__charCountersBound = true;
     var SELECTOR = '[maxlength]:not([name="brand_color"])';
     function counterFor(el) {
       var next = el.nextElementSibling;
@@ -296,7 +382,13 @@
       counter.textContent = len + ' / ' + max;
       counter.classList.toggle('text-red-500', len > Number(max));
     }
-    document.querySelectorAll(SELECTOR).forEach(update);
+    function scan(root) {
+      (root || document).querySelectorAll(SELECTOR).forEach(update);
+    }
+    scan(document);
+    document.addEventListener('dashboard:swapped', function (e) {
+      scan(e.detail && e.detail.root);
+    });
     document.addEventListener('input', function (e) {
       if (e.target && e.target.matches && e.target.matches(SELECTOR)) update(e.target);
     });

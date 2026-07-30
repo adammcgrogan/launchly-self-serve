@@ -23,19 +23,29 @@ type siteSection struct {
 	Key       string // URL path segment; "" is the overview, at the site root
 	Label     string
 	Hint      string // one-line description shown under the section heading
+	Icon      string // SVG path data for the nav rail's 24x24 stroke icon
 	OwnerOnly bool   // hidden from (and unreachable by) team members
 }
 
 var siteSections = []siteSection{
-	{Key: "", Label: "Overview", Hint: "Your traffic, enquiries, and setup progress."},
-	{Key: "content", Label: "Content", Hint: "Everything that appears on your site, in one page."},
-	{Key: "design", Label: "Design", Hint: "Colours, fonts, and which design your site uses."},
-	{Key: "form", Label: "Form", Hint: "What your site's enquiry form asks visitors for."},
-	{Key: "domain", Label: "Domain", Hint: "Your Launchly address and any domain you own."},
-	{Key: "publishing", Label: "Publishing", Hint: "Take your site live, share it, or export your data."},
-	{Key: "notifications", Label: "Notifications", Hint: "What Launchly emails you, and how often."},
-	{Key: "access", Label: "Access", Hint: "Teammates who can see leads and edit this site.", OwnerOnly: true},
-	{Key: "billing", Label: "Billing", Hint: "Your plan and subscription.", OwnerOnly: true},
+	{Key: "", Label: "Overview", Hint: "Your traffic, enquiries, and setup progress.",
+		Icon: "M4 20V10M10 20V4M16 20v-7M2 20h20"},
+	{Key: "content", Label: "Content", Hint: "Everything that appears on your site, in one page.",
+		Icon: "M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8zM14 3v5h5M8 13h8M8 17h5"},
+	{Key: "design", Label: "Design", Hint: "Colours, fonts, and which design your site uses.",
+		Icon: "M12 3a9 9 0 100 18 2 2 0 002-2v-1a2 2 0 012-2h1a4 4 0 004-4 9 9 0 00-9-9zM7.5 10.5h.01M11 7.5h.01M15.5 9h.01"},
+	{Key: "form", Label: "Form", Hint: "What your site's enquiry form asks visitors for.",
+		Icon: "M4 5h16v14H4zM8 10h8M8 14h5"},
+	{Key: "domain", Label: "Domain", Hint: "Your Launchly address and any domain you own.",
+		Icon: "M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3a14 14 0 000 18 14 14 0 000-18z"},
+	{Key: "publishing", Label: "Publishing", Hint: "Take your site live, share it, or export your data.",
+		Icon: "M12 16V4M8 8l4-4 4 4M4 20h16"},
+	{Key: "notifications", Label: "Notifications", Hint: "What Launchly emails you, and how often.",
+		Icon: "M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8M10 21h4"},
+	{Key: "access", Label: "Access", Hint: "Teammates who can see leads and edit this site.", OwnerOnly: true,
+		Icon: "M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 4a3 3 0 100 6 3 3 0 000-6M22 20v-2a4 4 0 00-3-3.87M17 4.13a4 4 0 010 7.75"},
+	{Key: "billing", Label: "Billing", Hint: "Your plan and subscription.", OwnerOnly: true,
+		Icon: "M2 6h20v12H2zM2 10h20M6 15h3"},
 }
 
 // sectionPath returns the dashboard URL for one of a site's sections.
@@ -71,7 +81,16 @@ func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *
 		}
 	}
 
-	_, checklistPercent := siteChecklist(site)
+	// The checklist rides along on every section, not just the overview: the
+	// nav rail's setup card opens to show exactly which steps are still
+	// outstanding, wherever the owner happens to be.
+	checklist, checklistPercent := siteChecklist(site)
+	checklistDone := 0
+	for _, it := range checklist {
+		if it.Done {
+			checklistDone++
+		}
+	}
 	var current siteSection
 	for _, s := range siteSections {
 		if s.Key == section {
@@ -86,6 +105,9 @@ func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *
 		"SectionLabel":      current.Label,
 		"SectionHint":       current.Hint,
 		"Sections":          siteSections,
+		"Checklist":         checklist,
+		"ChecklistDone":     checklistDone,
+		"ChecklistTotal":    len(checklist),
 		"ChecklistPercent":  checklistPercent,
 		"IsOwner":           site.OwnerUserID == middleware.UserID(r),
 		"Flash":             middleware.GetFlash(w, r),
@@ -187,28 +209,27 @@ func (h *Handler) SiteOverview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	leadTotalPages := (leadTotal + service.LeadsPageSize - 1) / service.LeadsPageSize
-	checklist, checklistPercent := siteChecklist(site)
 	tmpl, _ := findTemplate(site.TemplateID)
 
+	// Checklist/ChecklistPercent come from siteSectionData — every section
+	// gets them for the nav rail's setup card.
 	h.renderSection(w, r, site, "", map[string]any{
-		"Leads":            leads,
-		"LeadCount":        leadCounts.Total,
-		"NewLeadCount":     leadCounts.New,
-		"LeadStatus":       leadStatus,
-		"LeadSearch":       leadSearch,
-		"LeadPage":         leadPage,
-		"LeadTotalPages":   leadTotalPages,
-		"LeadHasPrev":      leadPage > 1,
-		"LeadHasNext":      leadPage < leadTotalPages,
-		"LeadPrevPage":     leadPage - 1,
-		"LeadNextPage":     leadPage + 1,
-		"Stats":            stats,
-		"ChartPoints":      chartPoints,
-		"Period":           period.Key,
-		"Periods":          analyticsPeriods,
-		"Checklist":        checklist,
-		"ChecklistPercent": checklistPercent,
-		"Design":           tmpl,
+		"Leads":          leads,
+		"LeadCount":      leadCounts.Total,
+		"NewLeadCount":   leadCounts.New,
+		"LeadStatus":     leadStatus,
+		"LeadSearch":     leadSearch,
+		"LeadPage":       leadPage,
+		"LeadTotalPages": leadTotalPages,
+		"LeadHasPrev":    leadPage > 1,
+		"LeadHasNext":    leadPage < leadTotalPages,
+		"LeadPrevPage":   leadPage - 1,
+		"LeadNextPage":   leadPage + 1,
+		"Stats":          stats,
+		"ChartPoints":    chartPoints,
+		"Period":         period.Key,
+		"Periods":        analyticsPeriods,
+		"Design":         tmpl,
 	})
 }
 

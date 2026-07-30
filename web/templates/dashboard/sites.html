@@ -1,10 +1,7 @@
 {{define "content"}}
-<div class="flex flex-wrap items-end justify-between gap-4 mb-8">
-  <div>
-    <h1 class="font-display text-2xl font-bold text-slate-900">Your sites</h1>
-    <p class="mt-1 text-sm text-slate-500">Pick a site to edit its content, check enquiries, or take it live.</p>
-  </div>
-  <a href="/dashboard/sites/new" class="shrink-0 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark transition">+ New site</a>
+<div class="mb-8">
+  <h1 class="font-display text-2xl font-bold text-slate-900">Your sites</h1>
+  <p class="mt-1 text-sm text-slate-500">Pick a site to edit it, check enquiries, or take it live.</p>
 </div>
 
 {{if not .Sites}}
@@ -28,9 +25,8 @@
     </div>
     {{if .Tagline}}<p class="mt-3 line-clamp-2 text-sm text-slate-500">{{.Tagline}}</p>{{end}}
     <div class="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4 text-sm font-medium">
-      <a href="/dashboard/sites/{{.Slug}}/content" class="rounded-full border border-slate-200 px-3.5 py-1.5 text-slate-700 hover:border-slate-300 transition">Edit content</a>
-      <a href="/dashboard/sites/{{.Slug}}/design" class="rounded-full border border-slate-200 px-3.5 py-1.5 text-slate-700 hover:border-slate-300 transition">Design</a>
-      <a href="/dashboard/sites/{{.Slug}}/preview" target="_blank" class="rounded-full border border-slate-200 px-3.5 py-1.5 text-slate-700 hover:border-slate-300 transition">Preview ↗</a>
+      <a href="/dashboard/sites/{{.Slug}}" class="rounded-full bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700 transition">Edit site</a>
+      <a href="/dashboard/sites/{{.Slug}}/preview" target="_blank" class="rounded-full border border-slate-200 px-4 py-1.5 text-slate-700 hover:border-slate-300 transition">Preview ↗</a>
     </div>
   </div>
   {{end}}
