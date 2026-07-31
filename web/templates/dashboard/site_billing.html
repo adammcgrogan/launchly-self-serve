@@ -19,13 +19,13 @@
     </form>
   {{else if eq (print .Site.Billing.PaymentStatus) "paid"}}
     {{if eq (print .Site.Billing.Plan) "starter"}}
-    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/upgrade" class="mt-5">
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/upgrade" class="mt-5" onsubmit="return confirm('Switch to Pro at £19/mo? You\'ll be charged a prorated amount now, then £19/mo going forward.');">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <button type="submit" name="plan" value="pro" class="w-full rounded-full bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand-dark transition">Upgrade to Pro (£19/mo)</button>
       <p class="pt-2 text-center text-xs text-slate-400">Pro adds your own custom domain. <a href="/pricing" class="font-medium text-brand hover:underline">Compare plans</a></p>
     </form>
     {{else if eq (print .Site.Billing.Plan) "pro"}}
-    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/upgrade" class="mt-5">
+    <form method="POST" action="/dashboard/sites/{{.Site.Slug}}/upgrade" class="mt-5" onsubmit="return confirm('Switch to Starter at £9/mo? You\'ll lose Pro features like your custom domain and SMS lead alerts, and be credited a prorated amount.');">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <button type="submit" name="plan" value="starter" class="w-full rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 hover:border-slate-300 transition">Switch to Starter (£9/mo)</button>
     </form>
