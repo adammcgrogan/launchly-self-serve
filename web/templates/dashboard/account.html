@@ -70,7 +70,8 @@
         </div>
         <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
           <p class="text-sm text-slate-600">Lost a device, or think someone else has access?</p>
-          <form method="POST" action="/dashboard/account/logout-everywhere" class="flex-none" onsubmit="return confirm('Log out of every device? You\'ll need to log back in here too.');">
+          <form method="POST" action="/dashboard/account/logout-everywhere" class="flex-none"
+            data-confirm="You'll need to log back in here too." data-confirm-title="Log out of every device?" data-confirm-label="Log out everywhere">
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
             <button class="text-sm font-medium text-brand">Log out everywhere</button>
           </form>
@@ -81,7 +82,8 @@
     <div class="rounded-2xl border border-red-200 bg-red-50/40 p-6 shadow-sm">
       <h2 class="font-display text-lg font-bold text-red-900">Danger zone</h2>
       <p class="mt-2 text-sm text-red-700/80">Deleting your account permanently removes your profile, all sites, and all leads. This cannot be undone.</p>
-      <form method="POST" action="/dashboard/account/delete" class="mt-4" onsubmit="return confirm('Delete your account? This permanently removes your profile, all sites, and all leads, and cannot be undone.');">
+      <form method="POST" action="/dashboard/account/delete" class="mt-4"
+        data-confirm="This permanently removes your profile, all sites, and all leads, and cannot be undone." data-confirm-title="Delete your account?" data-confirm-label="Delete my account" data-confirm-danger="1">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <button class="rounded-full border border-red-300 bg-white text-red-700 px-5 py-2.5 text-sm font-medium hover:bg-red-50">Delete my account</button>
       </form>

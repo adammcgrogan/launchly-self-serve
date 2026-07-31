@@ -53,7 +53,7 @@
           <input form="announcement-form" type="date" name="announcement_expires_at" value="{{if .Site.Announcement.ExpiresAt}}{{.Site.Announcement.ExpiresAt.Format "2006-01-02"}}{{end}}" class="ml-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
         </label>
         <button type="submit" form="announcement-form" class="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark transition">Save announcement</button>
-        <button type="button" onclick="if(confirm('Clear the announcement banner?')){document.querySelectorAll('[form=&quot;announcement-form&quot;]').forEach(function(el){if(el.name!=='csrf_token')el.value='';});document.getElementById('announcement-form').requestSubmit(this);}" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">Clear announcement</button>
+        <button type="button" onclick="clearAnnouncement(this)" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">Clear announcement</button>
       </div>
     </div>
   </details>
@@ -464,6 +464,15 @@
 </form>
 
 <script>
+  function clearAnnouncement(button) {
+    window.launchlyConfirm({ title: 'Clear the announcement banner?', confirmLabel: 'Clear' }).then(function (ok) {
+      if (!ok) return;
+      document.querySelectorAll('[form="announcement-form"]').forEach(function (el) {
+        if (el.name !== 'csrf_token') el.value = '';
+      });
+      document.getElementById('announcement-form').requestSubmit(button);
+    });
+  }
   (function () {
     // Collapsible sections: the whole editor is one scrolling page of
     // <details>, so nothing is more than a scroll away and the save bar has

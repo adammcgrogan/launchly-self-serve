@@ -36,6 +36,75 @@
       <a href="/dashboard/sites/new" class="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark transition sm:hidden">+ New site</a>
     </nav>
   </header>
+  <dialog id="confirm-dialog" class="rounded-2xl border border-slate-200 p-0 w-[calc(100%-2rem)] max-w-sm shadow-xl backdrop:bg-slate-900/50">
+    <div class="p-6">
+      <p id="confirm-dialog-title" class="font-display text-lg font-bold text-slate-900"></p>
+      <p id="confirm-dialog-body" class="mt-2 text-sm text-slate-600"></p>
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" id="confirm-dialog-cancel" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 transition">Cancel</button>
+        <button type="button" id="confirm-dialog-confirm" class="rounded-full px-4 py-2 text-sm font-semibold text-white transition"></button>
+      </div>
+    </div>
+  </dialog>
+  <script>
+  // Every destructive/consequential form action (delete, cancel, plan
+  // change, etc.) opts in with data-confirm(-title/-label/-danger) instead
+  // of a native onsubmit="confirm(...)" — this renders a single branded
+  // <dialog> shared across the dashboard instead of the browser's alert
+  // chrome. requestSubmit() (not submit()) on confirm so [data-ajax-form]'s
+  // delegated document-level submit listener still sees and handles it.
+  (function(){
+    var dlg = document.getElementById('confirm-dialog');
+    if (!dlg) return;
+    var titleEl = document.getElementById('confirm-dialog-title');
+    var bodyEl = document.getElementById('confirm-dialog-body');
+    var cancelBtn = document.getElementById('confirm-dialog-cancel');
+    var confirmBtn = document.getElementById('confirm-dialog-confirm');
+
+    function askConfirm(opts) {
+      return new Promise(function (resolve) {
+        titleEl.textContent = opts.title || 'Are you sure?';
+        bodyEl.textContent = opts.body || '';
+        confirmBtn.textContent = opts.confirmLabel || 'Confirm';
+        confirmBtn.className = 'rounded-full px-4 py-2 text-sm font-semibold text-white transition ' +
+          (opts.danger ? 'bg-red-600 hover:bg-red-700' : 'bg-brand hover:bg-brand-dark');
+
+        function settle(result) {
+          dlg.close();
+          cancelBtn.removeEventListener('click', onCancel);
+          confirmBtn.removeEventListener('click', onConfirm);
+          dlg.removeEventListener('cancel', onCancel);
+          resolve(result);
+        }
+        function onCancel() { settle(false); }
+        function onConfirm() { settle(true); }
+        cancelBtn.addEventListener('click', onCancel);
+        confirmBtn.addEventListener('click', onConfirm);
+        dlg.addEventListener('cancel', onCancel); // Esc key
+        dlg.showModal();
+      });
+    }
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form.matches || !form.matches('form[data-confirm-title]') || form.dataset.confirmed === '1') return;
+      e.preventDefault();
+      askConfirm({
+        title: form.dataset.confirmTitle,
+        body: form.dataset.confirm,
+        confirmLabel: form.dataset.confirmLabel,
+        danger: form.dataset.confirmDanger === '1',
+      }).then(function (ok) {
+        if (!ok) return;
+        form.dataset.confirmed = '1';
+        form.requestSubmit();
+        form.dataset.confirmed = '';
+      });
+    });
+
+    window.launchlyConfirm = askConfirm;
+  })();
+  </script>
   <script>
   (function(){
     var btn = document.getElementById('nav-toggle');

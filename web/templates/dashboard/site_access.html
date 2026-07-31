@@ -20,7 +20,8 @@
           <p class="truncate text-sm font-medium text-slate-900">{{.Email}}</p>
           <p class="text-xs text-slate-500">{{if eq (print .Status) "accepted"}}Accepted{{else}}Invite pending{{end}}</p>
         </div>
-        <form method="POST" action="/dashboard/sites/{{$.Site.Slug}}/members/{{.ID}}/remove" class="shrink-0" onsubmit="return confirm('Remove this teammate?');">
+        <form method="POST" action="/dashboard/sites/{{$.Site.Slug}}/members/{{.ID}}/remove" class="shrink-0"
+          data-confirm-title="Remove this teammate?" data-confirm-label="Remove" data-confirm-danger="1">
           <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
           <button class="rounded-full border border-red-200 text-red-600 px-4 py-1.5 text-sm font-medium hover:border-red-300">Remove</button>
         </form>

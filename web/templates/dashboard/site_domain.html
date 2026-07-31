@@ -77,7 +77,8 @@
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium hover:border-slate-300">Check status</button>
       </form>
-      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/domain/remove" onsubmit="return confirm('Remove this custom domain?');">
+      <form data-ajax-form method="POST" action="/dashboard/sites/{{.Site.Slug}}/domain/remove"
+        data-confirm-title="Remove this custom domain?" data-confirm-label="Remove domain" data-confirm-danger="1">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <button class="rounded-full border border-red-200 text-red-600 px-4 py-2 text-sm font-medium hover:border-red-300">Remove domain</button>
       </form>
