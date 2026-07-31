@@ -163,7 +163,7 @@ const contentSecurityPolicy = "default-src 'self'; " +
 	"connect-src 'self'; " +
 	"frame-ancestors 'self'; " +
 	"base-uri 'self'; " +
-	"form-action 'self'"
+	"form-action 'self' https://checkout.stripe.com"
 
 // securityHeaders adds security-related HTTP response headers to every response.
 // staticCacheHeaders sets Cache-Control on static assets so repeat visitors
