@@ -68,6 +68,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /dashboard/account", h.auth.RequireUser(h.Account))
 	mux.HandleFunc("GET /dashboard/account/export", h.auth.RequireUser(h.ExportAccountData))
 	mux.HandleFunc("POST /dashboard/account/delete", h.auth.RequireUser(h.DeleteAccount))
+	mux.HandleFunc("POST /dashboard/account/logout-everywhere", h.auth.RequireUser(h.LogoutEverywhere))
 	mux.HandleFunc("GET /dashboard/invites/{token}", h.auth.RequireUser(h.AcceptInviteForm))
 	mux.HandleFunc("POST /dashboard/invites/{token}/accept", h.auth.RequireUser(h.AcceptInviteSubmit))
 	mux.HandleFunc("GET /dashboard/sites/new", h.auth.RequireUser(h.NewSiteForm))

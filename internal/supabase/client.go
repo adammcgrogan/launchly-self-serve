@@ -233,8 +233,12 @@ func (c *Client) RefreshSession(ctx context.Context, refreshToken string) (*Sess
 }
 
 // SignOut invalidates the given access token's session on Supabase's side.
-func (c *Client) SignOut(ctx context.Context, accessToken string) error {
-	_, status, err := c.do(ctx, http.MethodPost, "/auth/v1/logout", nil, accessToken)
+// scope is passed straight through to GoTrue's logout endpoint: "local"
+// revokes only this session's refresh token, "global" revokes every
+// refresh token for the user (all devices), "others" revokes every session
+// except this one. See https://supabase.com/docs/reference/auth/signout.
+func (c *Client) SignOut(ctx context.Context, accessToken, scope string) error {
+	_, status, err := c.do(ctx, http.MethodPost, "/auth/v1/logout?scope="+scope, nil, accessToken)
 	if err != nil {
 		return err
 	}

@@ -68,6 +68,13 @@
           <p class="text-sm text-slate-600">Signed in on this device</p>
           <a href="/logout" class="flex-none text-sm font-medium text-brand">Log out</a>
         </div>
+        <div class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+          <p class="text-sm text-slate-600">Lost a device, or think someone else has access?</p>
+          <form method="POST" action="/dashboard/account/logout-everywhere" class="flex-none" onsubmit="return confirm('Log out of every device? You\'ll need to log back in here too.');">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <button class="text-sm font-medium text-brand">Log out everywhere</button>
+          </form>
+        </div>
       </div>
     </div>
 

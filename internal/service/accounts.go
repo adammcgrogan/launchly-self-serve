@@ -74,7 +74,15 @@ func (a *Accounts) Login(ctx context.Context, emailAddr, password string) (*supa
 // Logout invalidates the session on Supabase's side. Errors are non-fatal —
 // the caller should clear the local session cookie regardless.
 func (a *Accounts) Logout(ctx context.Context, accessToken string) error {
-	return a.supa.SignOut(ctx, accessToken)
+	return a.supa.SignOut(ctx, accessToken, "local")
+}
+
+// LogoutEverywhere revokes every refresh token for the user identified by
+// accessToken — an owner-initiated "log out of all devices", useful after
+// losing a phone or suspecting compromise. Errors are non-fatal — the
+// caller should clear the local session cookie regardless.
+func (a *Accounts) LogoutEverywhere(ctx context.Context, accessToken string) error {
+	return a.supa.SignOut(ctx, accessToken, "global")
 }
 
 func (a *Accounts) RequestPasswordReset(ctx context.Context, emailAddr string) error {

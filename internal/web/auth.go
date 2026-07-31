@@ -173,6 +173,9 @@ func (h *Handler) LoginForm(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("verified") == "1" {
 		data["Info"] = "Email confirmed — log in below."
 	}
+	if r.URL.Query().Get("loggedout") == "all" {
+		data["Info"] = "You've been logged out of every device."
+	}
 	h.render.Render(w, "auth:login", data)
 }
 

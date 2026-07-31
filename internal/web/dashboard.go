@@ -414,6 +414,22 @@ func (h *Handler) ExportAccountData(w http.ResponseWriter, r *http.Request) {
 	enc.Encode(export)
 }
 
+// LogoutEverywhere revokes every session for the logged-in user — a "log
+// out of all devices" action for after losing a phone or suspecting
+// compromise (#280) — then clears this device's own cookies too, since its
+// access token is now revoked along with everyone else's.
+func (h *Handler) LogoutEverywhere(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserID(r)
+	if !h.checkCSRF(w, r, userID.String(), h.auth.SessionNonce(r)) {
+		return
+	}
+	if token := h.auth.AccessToken(r); token != "" {
+		_ = h.accounts.LogoutEverywhere(r.Context(), token)
+	}
+	h.auth.ClearSessionCookies(w)
+	http.Redirect(w, r, "/login?loggedout=all", http.StatusSeeOther)
+}
+
 // DeleteAccount permanently deletes the logged-in user's account: each site
 // is deleted individually first via Sites.Delete, which cancels its Stripe
 // subscription and deregisters its Cloudflare custom hostname (neither is
