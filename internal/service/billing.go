@@ -31,10 +31,28 @@ type Billing struct {
 	pay     *payment.Client
 	mailer  billingMailer
 	baseURL string
+	sites   *Sites
 }
 
 func NewBilling(store *postgres.Store, pay *payment.Client, mailer *email.Client, baseURL string) *Billing {
 	return &Billing{store: store, pay: pay, mailer: mailer, baseURL: baseURL}
+}
+
+// SetSites wires in the site cache to invalidate after a billing state
+// change. It's set post-construction, not passed to NewBilling, because
+// NewSites itself takes a *Billing (for CancelSubscriptionIfActive on site
+// delete) — a constructor-argument cycle.
+func (b *Billing) SetSites(sites *Sites) {
+	b.sites = sites
+}
+
+// invalidate drops a site's cached aggregate after any write that changes
+// its billing state, so the dashboard doesn't show a stale plan/payment
+// status for up to siteAggregateCacheTTL afterward.
+func (b *Billing) invalidate(siteID int) {
+	if b.sites != nil {
+		b.sites.invalidateAggregate(siteID)
+	}
 }
 
 // CreateUpgradeCheckout starts a Stripe Checkout session for a site's plan
@@ -57,6 +75,7 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug st
 		if err := b.setSitePlanAfterStripeChange(ctx, siteID, plan, billing.StripeSubscriptionID); err != nil {
 			return "", fmt.Errorf("record plan change: %w", err)
 		}
+		b.invalidate(siteID)
 		return successURL, nil
 	}
 
@@ -67,6 +86,7 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug st
 	if err := postgres.SetSitePending(ctx, b.store.DB(), siteID, plan, sessionID); err != nil {
 		return "", fmt.Errorf("record pending payment: %w", err)
 	}
+	b.invalidate(siteID)
 	return checkoutURL, nil
 }
 
@@ -167,6 +187,7 @@ func (b *Billing) handleCheckoutCompleted(ctx context.Context, event *payment.We
 	if err != nil || billing == nil {
 		return err
 	}
+	b.invalidate(billing.SiteID)
 	site, to, err := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if err != nil || site == nil {
 		return err
@@ -205,6 +226,7 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 	if billing == nil {
 		return nil
 	}
+	b.invalidate(billing.SiteID)
 	site, to, _ := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if site == nil {
 		return nil
@@ -259,6 +281,7 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 		slog.Info("payment failed, already in dunning sequence", "subscription_id", event.SubscriptionID)
 		return nil
 	}
+	b.invalidate(billing.SiteID)
 	site, to, _ := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if site == nil {
 		return nil
@@ -298,6 +321,7 @@ func (b *Billing) handlePaymentRecovered(ctx context.Context, event *payment.Web
 	if err != nil || billing == nil {
 		return err
 	}
+	b.invalidate(billing.SiteID)
 	site, to, err := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if err != nil || site == nil {
 		return err
@@ -324,6 +348,7 @@ func (b *Billing) CancelSubscription(ctx context.Context, siteID int) error {
 	if err := postgres.SetSiteCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID); err != nil {
 		return err
 	}
+	b.invalidate(siteID)
 	site, err := postgres.GetSiteByID(ctx, b.store.DB(), siteID)
 	if err != nil {
 		return err

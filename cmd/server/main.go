@@ -73,6 +73,7 @@ func main() {
 	analytics := service.NewAnalytics(store, cfg.AnalyticsSalt)
 	billing := service.NewBilling(store, pay, mailer, baseURL)
 	sites := service.NewSites(store, billing, cf, uploads)
+	billing.SetSites(sites)
 	leads := service.NewLeads(store, mailer, sms)
 	cron := service.NewCron(store, mailer, analytics, billing, baseURL)
 
