@@ -15,15 +15,15 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <div>
         <p class="text-3xl font-bold text-slate-900">{{.Stats.TotalViews}}</p>
-        <p class="text-sm text-slate-500">Page views</p>
+        <p class="text-sm text-slate-500">Page views{{if .Stats.PrevTotalViews}} <span class="{{if ge .Stats.ViewsChangePct 0}}text-emerald-600{{else}}text-red-600{{end}} font-medium">({{if ge .Stats.ViewsChangePct 0}}+{{end}}{{.Stats.ViewsChangePct}}%)</span>{{end}}</p>
       </div>
       <div>
         <p class="text-3xl font-bold text-slate-900">{{.Stats.UniqueVisitors}}</p>
-        <p class="text-sm text-slate-500">Unique visitors</p>
+        <p class="text-sm text-slate-500">Unique visitors{{if .Stats.PrevUniqueVisitors}} <span class="{{if ge .Stats.UniqueVisitorsChangePct 0}}text-emerald-600{{else}}text-red-600{{end}} font-medium">({{if ge .Stats.UniqueVisitorsChangePct 0}}+{{end}}{{.Stats.UniqueVisitorsChangePct}}%)</span>{{end}}</p>
       </div>
       <div>
         <p class="text-3xl font-bold text-slate-900">{{.Stats.Leads}}</p>
-        <p class="text-sm text-slate-500">Leads (period)</p>
+        <p class="text-sm text-slate-500">Leads (period){{if .Stats.PrevLeads}} <span class="{{if ge .Stats.LeadsChangePct 0}}text-emerald-600{{else}}text-red-600{{end}} font-medium">({{if ge .Stats.LeadsChangePct 0}}+{{end}}{{.Stats.LeadsChangePct}}%)</span>{{end}}</p>
       </div>
       <div>
         <p class="text-3xl font-bold text-slate-900">{{.LeadCount}}</p>
@@ -32,7 +32,7 @@
     </div>
     {{if .ChartPoints}}
     <div class="mt-5 pt-4 border-t border-slate-100">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Page views by day</p>
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">{{if eq .Period "all"}}Page views by week{{else}}Page views by day{{end}}</p>
       <div class="flex items-end justify-between gap-1" style="height:96px">
         {{range .ChartPoints}}
         <div class="group relative flex flex-1 flex-col items-center" tabindex="0">
@@ -55,6 +55,7 @@
         <li class="flex justify-between"><span>WhatsApp taps</span><span class="text-slate-900 font-medium">{{.Stats.WhatsAppTaps}}</span></li>
         <li class="flex justify-between"><span>Directions clicks</span><span class="text-slate-900 font-medium">{{.Stats.DirectionsClicks}}</span></li>
         <li class="flex justify-between"><span>Document downloads</span><span class="text-slate-900 font-medium">{{.Stats.DocumentDownloads}}</span></li>
+        <li class="flex justify-between border-t border-slate-100 pt-1.5 mt-1.5"><span class="font-medium text-slate-900">Total conversions</span><span class="text-slate-900 font-medium">{{.Stats.TotalConversions}} <span class="text-slate-400 font-normal">({{printf "%.1f" .Stats.ConversionRate}}% of visitors)</span></span></li>
       </ul>
     </div>
     {{if .Stats.TopReferrers}}
@@ -63,6 +64,16 @@
       <ul class="space-y-1.5 text-sm text-slate-600">
         {{range .Stats.TopReferrers}}
         <li class="flex justify-between"><span>{{if .Referrer}}{{.Referrer}}{{else}}Direct{{end}}</span><span class="text-slate-400">{{.Count}}</span></li>
+        {{end}}
+      </ul>
+    </div>
+    {{end}}
+    {{if .Stats.TopPages}}
+    <div class="mt-5 pt-4 border-t border-slate-100">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Top pages</p>
+      <ul class="space-y-1.5 text-sm text-slate-600">
+        {{range .Stats.TopPages}}
+        <li class="flex justify-between"><span class="truncate">{{if .Path}}{{.Path}}{{else}}/{{end}}</span><span class="text-slate-400 shrink-0 pl-2">{{.Count}}</span></li>
         {{end}}
       </ul>
     </div>

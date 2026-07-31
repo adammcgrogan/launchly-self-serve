@@ -168,16 +168,33 @@ func (p analyticsPeriodOpt) since(siteCreatedAt time.Time) time.Time {
 	return time.Now().UTC().Add(-time.Duration(p.Days) * 24 * time.Hour)
 }
 
+// prevSince returns the start of the period immediately preceding since —
+// used for the period-over-period comparison. The "Max" period (Days == 0)
+// has no fixed-length prior window to compare against, so it returns since
+// itself, which GetSiteStats treats as "skip the comparison".
+func (p analyticsPeriodOpt) prevSince(since time.Time) time.Time {
+	if p.Days == 0 {
+		return since
+	}
+	return since.Add(-time.Duration(p.Days) * 24 * time.Hour)
+}
+
 // analyticsCardStats resolves the analytics period from a query key and
 // loads that period's stats/chart data — shared by the full overview page
 // and the fetch-driven analytics-card partial (SiteAnalyticsCard) so a
 // period switch renders identically either way.
 func (h *Handler) analyticsCardStats(ctx context.Context, site *domain.Site, periodKey string) (*domain.SiteStats, []dailyViewPoint, analyticsPeriodOpt) {
 	period := analyticsPeriodFromKey(periodKey)
-	stats, _ := h.analytics.GetSiteStats(ctx, site.ID, period.since(site.CreatedAt), site.Timezone)
+	since := period.since(site.CreatedAt)
+	stats, _ := h.analytics.GetSiteStats(ctx, site.ID, since, period.prevSince(since), site.Timezone)
 	var chartPoints []dailyViewPoint
-	if stats != nil && period.Days > 0 {
-		chartPoints = lastNDayPoints(stats.ViewsByDay, period.Days, siteAnalyticsLocation(site.Timezone))
+	if stats != nil {
+		loc := siteAnalyticsLocation(site.Timezone)
+		if period.Days > 0 {
+			chartPoints = lastNDayPoints(stats.ViewsByDay, period.Days, loc)
+		} else {
+			chartPoints = weeklyViewPoints(stats.ViewsByDay, since, loc)
+		}
 	}
 	return stats, chartPoints, period
 }
@@ -233,6 +250,64 @@ func lastNDayPoints(viewsByDay []domain.DayCount, n int, loc *time.Location) []d
 		points[i] = dailyViewPoint{Label: day.Format("Mon"), Date: day.Format("2 Jan"), Count: count}
 		if count > max {
 			max = count
+		}
+	}
+	if max == 0 {
+		return points
+	}
+	for i := range points {
+		if points[i].Count == 0 {
+			continue
+		}
+		h := points[i].Count * chartHeight / max
+		if h < chartMinBarHeight {
+			h = chartMinBarHeight
+		}
+		points[i].HeightPx = h
+	}
+	return points
+}
+
+// weekStart returns the Monday-start of t's calendar week, at local midnight.
+func weekStart(t time.Time) time.Time {
+	wd := int(t.Weekday())
+	if wd == 0 {
+		wd = 7 // Sunday -> 7, so the week always starts on Monday
+	}
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()).AddDate(0, 0, -(wd - 1))
+}
+
+// weeklyViewPoints buckets ViewsByDay into Monday-start calendar weeks from
+// since to now — used for the "Max" period, where up to 180 daily bars would
+// be too dense to read. Bar heights are scaled against the period's own peak
+// week, mirroring lastNDayPoints. loc must be the same location GetSiteStats
+// bucketed ViewsByDay with.
+func weeklyViewPoints(viewsByDay []domain.DayCount, since time.Time, loc *time.Location) []dailyViewPoint {
+	counts := make(map[string]int, len(viewsByDay))
+	for _, dc := range viewsByDay {
+		counts[dayKey(dc.Day, loc)] = dc.Count
+	}
+
+	now := time.Now().In(loc)
+	var points []dailyViewPoint
+	max := 0
+	for start := weekStart(since.In(loc)); !start.After(now); start = start.AddDate(0, 0, 7) {
+		total := 0
+		for d := 0; d < 7; d++ {
+			day := start.AddDate(0, 0, d)
+			if day.After(now) {
+				break
+			}
+			total += counts[day.Format("2006-01-02")]
+		}
+		end := start.AddDate(0, 0, 6)
+		points = append(points, dailyViewPoint{
+			Label: start.Format("2 Jan"),
+			Date:  start.Format("2 Jan") + " – " + end.Format("2 Jan"),
+			Count: total,
+		})
+		if total > max {
+			max = total
 		}
 	}
 	if max == 0 {
@@ -394,7 +469,8 @@ func (h *Handler) ExportLeads(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ExportAnalytics(w http.ResponseWriter, r *http.Request) {
 	site := middleware.LightSiteFromContext(r)
 	period := analyticsPeriodFromKey(r.URL.Query().Get("period"))
-	stats, err := h.analytics.GetSiteStats(r.Context(), site.ID, period.since(site.CreatedAt), site.Timezone)
+	since := period.since(site.CreatedAt)
+	stats, err := h.analytics.GetSiteStats(r.Context(), site.ID, since, since, site.Timezone)
 	if err != nil || stats == nil {
 		h.render.RenderError(w, http.StatusInternalServerError)
 		return
@@ -410,6 +486,8 @@ func (h *Handler) ExportAnalytics(w http.ResponseWriter, r *http.Request) {
 	cw.Write([]string{"Directions clicks", strconv.Itoa(stats.DirectionsClicks)})
 	cw.Write([]string{"Document downloads", strconv.Itoa(stats.DocumentDownloads)})
 	cw.Write([]string{"Leads", strconv.Itoa(stats.Leads)})
+	cw.Write([]string{"Total conversions", strconv.Itoa(stats.TotalConversions())})
+	cw.Write([]string{"Conversion rate (%)", strconv.FormatFloat(stats.ConversionRate(), 'f', 1, 64)})
 	cw.Write([]string{})
 	cw.Write([]string{"Day", "Views"})
 	loc := siteAnalyticsLocation(site.Timezone)
@@ -424,6 +502,11 @@ func (h *Handler) ExportAnalytics(w http.ResponseWriter, r *http.Request) {
 			label = "Direct"
 		}
 		cw.Write([]string{csvSafe(label), strconv.Itoa(ref.Count)})
+	}
+	cw.Write([]string{})
+	cw.Write([]string{"Page", "Views"})
+	for _, p := range stats.TopPages {
+		cw.Write([]string{csvSafe(p.Path), strconv.Itoa(p.Count)})
 	}
 	cw.Flush()
 }

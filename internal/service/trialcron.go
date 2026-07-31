@@ -260,7 +260,7 @@ func (c *Cron) SendAnalyticsReport(ctx context.Context, siteID int) error {
 // GetSitesDueForAnalytics, #218), it computes stats and sends the digest.
 func (c *Cron) sendAnalyticsReport(ctx context.Context, siteID int, slug, businessName, timezone, to string) error {
 	since := time.Now().UTC().Add(-30 * 24 * time.Hour)
-	stats, err := c.analytics.GetSiteStats(ctx, siteID, since, timezone)
+	stats, err := c.analytics.GetSiteStats(ctx, siteID, since, since, timezone)
 	if err != nil {
 		return fmt.Errorf("get stats: %w", err)
 	}

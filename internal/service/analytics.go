@@ -43,6 +43,6 @@ func (a *Analytics) RecordEvent(ctx context.Context, siteID int, kind domain.Eve
 	return postgres.RecordSiteEvent(ctx, a.store.DB(), e)
 }
 
-func (a *Analytics) GetSiteStats(ctx context.Context, siteID int, since time.Time, timezone string) (*domain.SiteStats, error) {
-	return postgres.GetSiteStats(ctx, a.store.DB(), siteID, since, timezone)
+func (a *Analytics) GetSiteStats(ctx context.Context, siteID int, since, prevSince time.Time, timezone string) (*domain.SiteStats, error) {
+	return postgres.GetSiteStats(ctx, a.store.DB(), siteID, since, prevSince, timezone)
 }

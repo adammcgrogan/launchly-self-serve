@@ -130,8 +130,12 @@ func TestAnalyticsCardPartialRenders(t *testing.T) {
 
 	site := smokeSite()
 	data := map[string]any{
-		"Site":        site,
-		"Stats":       &domain.SiteStats{TotalViews: 10, UniqueVisitors: 4},
+		"Site": site,
+		"Stats": &domain.SiteStats{
+			TotalViews: 10, UniqueVisitors: 4, Leads: 2,
+			PrevTotalViews: 5, PrevUniqueVisitors: 4, PrevLeads: 1,
+			TopPages: []domain.PageCount{{Path: "/", Count: 6}, {Path: "/contact", Count: 4}},
+		},
 		"ChartPoints": []dailyViewPoint{{Label: "Mon", Date: "1 Jan", Count: 3, HeightPx: 40}},
 		"Period":      "30",
 		"Periods":     analyticsPeriods,
@@ -150,6 +154,15 @@ func TestAnalyticsCardPartialRenders(t *testing.T) {
 	}
 	if !strings.Contains(body, "Leads (all time)") {
 		t.Error("partial missing stats content")
+	}
+	if !strings.Contains(body, "Top pages") || !strings.Contains(body, "/contact") {
+		t.Error("partial missing top pages block")
+	}
+	if !strings.Contains(body, "Total conversions") {
+		t.Error("partial missing total conversions row")
+	}
+	if !strings.Contains(body, "(+100%)") {
+		t.Error("partial missing period-over-period views delta")
 	}
 
 	full := httptest.NewRecorder()

@@ -36,12 +36,18 @@ func PruneOldSiteEvents(ctx context.Context, q querier, before time.Time) error 
 	return err
 }
 
-// GetSiteStats runs every aggregate (totals, top referrers, daily views,
-// event-kind counts) as a single round trip via CTEs + json_agg, rather
-// than five separate queries — this is called twice per dashboard render
-// (7-day window and all-time), so five queries each would otherwise be ten
+// GetSiteStats runs every aggregate (totals, top referrers, top pages, daily
+// views, event-kind counts, and the prevSince..since comparison window) as a
+// single round trip via CTEs + json_agg, rather than issuing each as its own
+// query — this is called twice per dashboard render (7-day window and
+// all-time), so each query added here would otherwise be two more
 // full-table-aggregate round trips per page load.
-func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time, timezone string) (*domain.SiteStats, error) {
+//
+// prevSince is the start of the period immediately preceding since, used for
+// the period-over-period comparison fields (domain.SiteStats.PrevTotalViews
+// et al). Pass the same value as since to skip the comparison — the
+// (since, since] window is empty, so the Prev* fields come back zero.
+func GetSiteStats(ctx context.Context, q querier, siteID int, since, prevSince time.Time, timezone string) (*domain.SiteStats, error) {
 	// Postgres errors on an unrecognized zone name, so fall back the same
 	// way domain.SiteAggregate.OpenNow does for an unset/invalid Timezone.
 	if _, err := time.LoadLocation(timezone); err != nil {
@@ -51,15 +57,22 @@ func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time, t
 		PeriodDays: int(time.Since(since).Hours()/24) + 1,
 	}
 
-	var referrersJSON, daysJSON, eventsJSON []byte
+	var referrersJSON, pagesJSON, daysJSON, eventsJSON []byte
 	err := q.QueryRowContext(ctx, `
 		WITH views AS (
 			SELECT COUNT(*) AS total, COUNT(DISTINCT NULLIF(visitor_hash, '')) AS uniques
 			FROM page_views WHERE site_id = $1 AND created_at > $2
+		), prev_views AS (
+			SELECT COUNT(*) AS total, COUNT(DISTINCT NULLIF(visitor_hash, '')) AS uniques
+			FROM page_views WHERE site_id = $1 AND created_at > $4 AND created_at <= $2
 		), referrers AS (
 			SELECT referrer, COUNT(*) AS count FROM page_views
 			WHERE site_id = $1 AND created_at > $2 AND referrer != ''
 			GROUP BY referrer ORDER BY count DESC LIMIT 5
+		), pages AS (
+			SELECT path, COUNT(*) AS count FROM page_views
+			WHERE site_id = $1 AND created_at > $2
+			GROUP BY path ORDER BY count DESC LIMIT 5
 		), days AS (
 			SELECT (date_trunc('day', created_at AT TIME ZONE $3) AT TIME ZONE $3) AS day, COUNT(*) AS count
 			FROM page_views WHERE site_id = $1 AND created_at > $2
@@ -68,20 +81,32 @@ func GetSiteStats(ctx context.Context, q querier, siteID int, since time.Time, t
 			SELECT kind, COUNT(*) AS count FROM site_events
 			WHERE site_id = $1 AND created_at > $2
 			GROUP BY kind
+		), prev_events AS (
+			SELECT COUNT(*) AS count FROM site_events
+			WHERE site_id = $1 AND kind = 'lead' AND created_at > $4 AND created_at <= $2
 		)
 		SELECT
 			(SELECT total FROM views), (SELECT uniques FROM views),
+			(SELECT total FROM prev_views), (SELECT uniques FROM prev_views),
 			COALESCE((SELECT json_agg(referrers) FROM referrers), '[]'),
+			COALESCE((SELECT json_agg(pages) FROM pages), '[]'),
 			COALESCE((SELECT json_agg(days) FROM days), '[]'),
-			COALESCE((SELECT json_agg(events) FROM events), '[]')
-	`, siteID, since, timezone).Scan(
-		&stats.TotalViews, &stats.UniqueVisitors, &referrersJSON, &daysJSON, &eventsJSON,
+			COALESCE((SELECT json_agg(events) FROM events), '[]'),
+			(SELECT count FROM prev_events)
+	`, siteID, since, timezone, prevSince).Scan(
+		&stats.TotalViews, &stats.UniqueVisitors,
+		&stats.PrevTotalViews, &stats.PrevUniqueVisitors,
+		&referrersJSON, &pagesJSON, &daysJSON, &eventsJSON,
+		&stats.PrevLeads,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	if err := json.Unmarshal(referrersJSON, &stats.TopReferrers); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(pagesJSON, &stats.TopPages); err != nil {
 		return nil, err
 	}
 	if err := json.Unmarshal(daysJSON, &stats.ViewsByDay); err != nil {
