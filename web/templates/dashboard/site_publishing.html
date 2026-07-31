@@ -8,7 +8,7 @@
         </h3>
         <p class="mt-1 text-sm text-slate-500">
           {{if eq (print .Site.Status) "live"}}Anyone with the link can see it at {{.SiteURL}}.
-          {{else if eq (print .Site.Status) "paused"}}Your trial ended — reactivate a plan on Billing to bring it back online.
+          {{else if eq (print .Site.Status) "paused"}}Your trial ended — reactivate a plan on Billing & Plan to bring it back online.
           {{else}}Publish when you're ready. You can unpublish again at any time.{{end}}
         </p>
       </div>
