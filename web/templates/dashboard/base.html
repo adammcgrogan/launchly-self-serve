@@ -89,6 +89,7 @@
       var form = e.target;
       if (!form.matches || !form.matches('form[data-confirm-title]') || form.dataset.confirmed === '1') return;
       e.preventDefault();
+      var submitter = e.submitter; // preserve which button (e.g. name="plan" value="pro") triggered this
       askConfirm({
         title: form.dataset.confirmTitle,
         body: form.dataset.confirm,
@@ -97,7 +98,7 @@
       }).then(function (ok) {
         if (!ok) return;
         form.dataset.confirmed = '1';
-        form.requestSubmit();
+        form.requestSubmit(submitter);
         form.dataset.confirmed = '';
       });
     });
