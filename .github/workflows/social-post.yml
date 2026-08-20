@@ -8,7 +8,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  workflows: write
 
 concurrency:
   group: social-post-draft
@@ -18,6 +17,11 @@ jobs:
   draft:
     runs-on: ubuntu-latest
     steps:
+      # The default GITHUB_TOKEN can never push a ref whose tree includes
+      # .github/workflows/*, even unchanged — that's a hard-coded GitHub
+      # restriction, not something the permissions block above can grant.
+      # A personal access token with repo + workflow scope is required for
+      # the push/PR step below; see SOCIAL_PR_TOKEN.
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -55,11 +59,12 @@ jobs:
       - name: Open PR with the draft
         if: steps.branch.outputs.skip != 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SOCIAL_PR_TOKEN }}
         run: |
           branch="${{ steps.branch.outputs.branch }}"
           git config user.name "launchly-social-bot"
           git config user.email "actions@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git checkout -b "$branch"
           git add social/state.json social/output
           git commit -m "chore(social): draft post for $branch"
