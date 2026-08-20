@@ -62,7 +62,10 @@ jobs:
           git checkout -b "$branch"
           git add social/state.json social/output
           git commit -m "chore(social): draft post for $branch"
-          git push origin "$branch"
+          # Force-push: this branch is regenerated fresh from state.json each
+          # run, so a stale copy from an earlier failed run (e.g. before PR
+          # permissions were enabled) is safe to overwrite.
+          git push --force origin "$branch"
           gh pr create \
             --title "Social draft: $branch" \
             --body-file social/output/pr-body.md \
