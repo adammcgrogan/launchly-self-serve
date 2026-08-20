@@ -12,5 +12,40 @@
     "description": "Not every business needs the same website. Here's what actually matters — for a trade, a cafe, a gym, or a shop — and what doesn't.",
     "publishedAt": "2026-08-20",
     "draft": false
+  },
+  {
+    "slug": "what-should-an-electricians-website-include",
+    "title": "What should an electrician's website include?",
+    "description": "Photos of finished work, the specific jobs you take on, your actual coverage area, and your certifications — what actually gets an electrician's website to convert.",
+    "publishedAt": "2026-08-20",
+    "draft": false
+  },
+  {
+    "slug": "does-my-cafe-need-a-website",
+    "title": "Does my cafe or restaurant need a website?",
+    "description": "If your menu changes often or your hours aren't fixed, a proper website does one job that Instagram and Google Maps don't — here's the honest case for one.",
+    "publishedAt": "2026-08-20",
+    "draft": false
+  },
+  {
+    "slug": "what-makes-people-book-a-gym-from-its-website",
+    "title": "What makes people book a gym or studio from its website",
+    "description": "Visible class times and pricing, real photos of the space, and one obvious first step — what turns a visitor into a trial booking.",
+    "publishedAt": "2026-08-20",
+    "draft": false
+  },
+  {
+    "slug": "google-business-profile-vs-a-website",
+    "title": "Google Business Profile vs a website: do you need both?",
+    "description": "A Business Profile is how people find you. A website is how they decide. Most local businesses genuinely need both, not one instead of the other.",
+    "publishedAt": "2026-08-20",
+    "draft": false
+  },
+  {
+    "slug": "what-shop-and-boutique-websites-get-wrong",
+    "title": "What shop and boutique websites get wrong",
+    "description": "Retail is a visual category. Here's why too much text, generic photos, and vague product descriptions cost small shops and boutiques visits.",
+    "publishedAt": "2026-08-20",
+    "draft": false
   }
 ]
