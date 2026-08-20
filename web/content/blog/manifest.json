@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "why-we-built-launchly",
+    "title": "Why we built Launchly",
+    "description": "Plenty of good local businesses don't have a website — not because they don't want one, but because the usual path there is too slow. Here's what we built instead.",
+    "publishedAt": "2026-08-20",
+    "draft": false
+  },
+  {
+    "slug": "what-a-local-business-website-actually-needs",
+    "title": "What a local business website actually needs",
+    "description": "Not every business needs the same website. Here's what actually matters — for a trade, a cafe, a gym, or a shop — and what doesn't.",
+    "publishedAt": "2026-08-20",
+    "draft": false
+  }
+]

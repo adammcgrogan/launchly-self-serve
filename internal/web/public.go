@@ -132,6 +132,18 @@ func (h *Handler) Sitemap(w http.ResponseWriter, r *http.Request) {
 		Xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9",
 		URLs:  []sitemapURL{{Loc: fmt.Sprintf("https://%s/", h.cfg.Domain)}},
 	}
+	if posts, err := loadBlogManifest(); err == nil {
+		for _, p := range posts {
+			if p.Draft {
+				continue
+			}
+			u := sitemapURL{Loc: fmt.Sprintf("https://%s/blog/%s", h.cfg.Domain, p.Slug)}
+			if t, err := time.Parse("2006-01-02", p.PublishedAt); err == nil {
+				u.LastMod = t.Format("2006-01-02")
+			}
+			set.URLs = append(set.URLs, u)
+		}
+	}
 	for _, s := range sites {
 		lastMod := s.UpdatedAt
 		if lastMod.IsZero() && s.PublishedAt != nil {

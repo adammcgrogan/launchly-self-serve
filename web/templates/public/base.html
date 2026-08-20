@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Launchly | Build your own business website, live in minutes</title>
-  <meta name="description" content="Sign up, build your site, and go live instantly — no waiting on anyone. A self-serve website builder for local businesses.">
+  <title>{{if .PageTitle}}{{.PageTitle}}{{else}}Launchly | Build your own business website, live in minutes{{end}}</title>
+  <meta name="description" content="{{if .PageDescription}}{{.PageDescription}}{{else}}Sign up, build your site, and go live instantly — no waiting on anyone. A self-serve website builder for local businesses.{{end}}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{asset "/static/css/app.css"}}">
@@ -33,6 +33,7 @@
         <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
           <a href="{{marketingURL "/templates"}}" class="hover:text-slate-900">Templates</a>
           <a href="{{marketingURL "/pricing"}}" class="hover:text-slate-900">Pricing</a>
+          <a href="{{marketingURL "/blog"}}" class="hover:text-slate-900">Blog</a>
           {{if not .LoggedIn}}<a href="{{marketingURL "/login"}}" class="hover:text-slate-900">Log in</a>{{end}}
         </nav>
         <div class="flex items-center gap-3">
@@ -51,6 +52,7 @@
     <nav id="mobile-nav" class="hidden md:hidden border-t border-slate-100 px-6 py-4 flex flex-col gap-4 text-sm font-medium text-slate-600">
       <a href="{{marketingURL "/templates"}}" class="hover:text-slate-900">Templates</a>
       <a href="{{marketingURL "/pricing"}}" class="hover:text-slate-900">Pricing</a>
+      <a href="{{marketingURL "/blog"}}" class="hover:text-slate-900">Blog</a>
       {{if not .LoggedIn}}<a href="{{marketingURL "/login"}}" class="hover:text-slate-900">Log in</a>{{end}}
     </nav>
   </header>

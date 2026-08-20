@@ -1,0 +1,12 @@
+{{define "content"}}
+<article class="max-w-3xl mx-auto px-6 pt-20 pb-24">
+  <p class="text-sm text-slate-400">{{.Post.PublishedAt}}</p>
+  <h1 class="mt-1 font-display text-4xl sm:text-5xl font-bold text-slate-900">{{.Post.Title}}</h1>
+  <div class="mt-10 text-lg leading-relaxed text-slate-700 [&_p]:mt-5 [&_p:first-child]:mt-0 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-12 [&_a]:text-brand [&_a]:font-semibold hover:[&_a]:underline">
+    {{.Post.BodyHTML}}
+  </div>
+  <div class="mt-16 border-t border-slate-100 pt-8">
+    <a href="/blog" class="text-sm font-semibold text-brand hover:underline">&larr; Back to the blog</a>
+  </div>
+</article>
+{{end}}

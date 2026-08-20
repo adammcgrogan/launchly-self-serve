@@ -14,6 +14,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /", h.Home)
 	mux.HandleFunc("GET /pricing", h.Pricing)
 	mux.HandleFunc("GET /templates", h.TemplatesPage)
+	mux.HandleFunc("GET /blog", h.BlogIndex)
+	mux.HandleFunc("GET /blog/{slug}", h.BlogPost)
 	mux.HandleFunc("GET /privacy", h.Privacy)
 	mux.HandleFunc("GET /terms", h.Terms)
 	mux.HandleFunc("GET /dpa", h.DPA)
