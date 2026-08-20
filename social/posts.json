@@ -1,0 +1,396 @@
+[
+  {
+    "id": 1,
+    "eyebrow": "Introducing Launchly",
+    "headlineHtml": "A <span class=\"hl\">real website</span>, built and run for you",
+    "subtext": "For local businesses who need a proper site online but don't have time to brief a designer, wait on approvals, or manage hosting.",
+    "points": [
+      "Pick a design, add your content, live the same day",
+      "Every contact form lead saved and emailed to you",
+      "Edit your content or switch designs any time, yourself"
+    ],
+    "captions": {
+      "instagram": "Introducing Launchly 👋 A real website for your business — pick a design, add your content, and it's live the same day. No designer, no approval queue, no hosting to figure out. Leads from your contact form land straight in your inbox.\n#localbusiness #webdesign #smallbusiness",
+      "facebook": "If your business doesn't have a proper website yet, here's what we've been building: Launchly. Pick one of our designs, add your own content, and your site is live that same day — no waiting on a designer, no approval process. Every message a customer sends through your contact form gets saved and emailed straight to you. And if you ever want to change your content or switch to a different design, you can do that yourself, any time, from your dashboard.",
+      "twitter": "Introducing Launchly: pick a design, add your content, your business has a real website live the same day. No designer, no approval queue, no hosting headaches. Contact form leads land in your inbox automatically.",
+      "linkedin": "I've been building Launchly — a self-serve website builder for local businesses. The idea: a business owner shouldn't need to brief a designer, wait on an approval process, or think about hosting just to get a real website online. Pick a design, add your content, and you're live the same day. Every lead from your contact form gets saved and emailed to you automatically, and you can update your content or switch designs yourself, whenever you want. Excited to start sharing more of what we're building."
+    }
+  },
+  {
+    "id": 2,
+    "eyebrow": "New here",
+    "headlineHtml": "Live at <span class=\"hl\">yourbusiness.launchly.ltd</span> today",
+    "subtext": "Pick a design, add your content, and your site publishes immediately — no approval queue, no waiting on a designer.",
+    "points": [],
+    "captions": {
+      "instagram": "Pick a design, add your content, hit publish. Your business gets a real website today — no approval queue, no back-and-forth with a designer. 🚀\n#localbusiness #webdesign",
+      "facebook": "If you run a local business and don't have a website yet, here's the whole process: pick one of our designs, fill in your info, and it's live at yourbusiness.launchly.ltd right away. No approval step, no waiting on someone to get around to it — you publish it yourself, whenever you're ready.",
+      "twitter": "No approval queue. Pick a design, fill in your content, your site is live at yourbusiness.launchly.ltd immediately. That's the whole process.",
+      "linkedin": "One thing I wanted to fix with Launchly: getting a local business online shouldn't mean weeks of back-and-forth with a designer or an approval queue before anything goes live. Pick a design, add your content, and it publishes immediately at your own subdomain. Still early days for us, but that self-serve loop — no gatekeeping between you and a live site — is the whole point."
+    }
+  },
+  {
+    "id": 3,
+    "eyebrow": "No card required",
+    "headlineHtml": "Try it free for <span class=\"hl\">14 days</span>",
+    "subtext": "Sign up with just an email and password. Your trial starts automatically — no card, no commitment, no one chasing you for payment details.",
+    "points": [],
+    "captions": {
+      "instagram": "Start with just an email — no card needed. Your 14-day free trial kicks off the moment you sign up. 🔑\n#localbusiness #smallbusiness",
+      "facebook": "You can try Launchly without putting a card in — sign up with just your email and password, and a 14-day free trial starts automatically. If you decide to upgrade later, that's a button in your dashboard, not an email chasing you for payment details.",
+      "twitter": "Sign up with email + password, no card required. 14-day free trial starts automatically. Upgrading later is a button in your dashboard, not a sales call.",
+      "linkedin": "We kept the Launchly signup deliberately low-friction: email and password, no card required, and a 14-day free trial starts automatically. If a business owner decides to upgrade, it's a button in their dashboard — not an email from me chasing a payment. Removing the friction at the start matters more than most people think."
+    }
+  },
+  {
+    "id": 4,
+    "eyebrow": "Never miss a lead",
+    "headlineHtml": "Every enquiry, <span class=\"hl\">straight to your inbox</span>",
+    "subtext": "When a visitor submits your contact form, it's saved to your dashboard and emailed to you automatically — nothing to check for, nothing to miss.",
+    "points": [],
+    "captions": {
+      "instagram": "Someone fills in your contact form — it's saved to your dashboard and lands in your inbox automatically. No checking, no missing it. 📩\n#localbusiness #smallbusiness",
+      "facebook": "One of the most useful bits of Launchly: when someone submits your contact form, you don't have to go looking for it. It's saved in your dashboard and emailed straight to you, automatically, every time.",
+      "twitter": "Contact form submission comes in → saved to your dashboard, emailed to you automatically. No inbox you have to remember to check.",
+      "linkedin": "A small detail that matters a lot to a busy business owner: every contact form submission on a Launchly site is saved to the dashboard and emailed automatically. No separate inbox to remember, no lead sitting unseen. If someone's trying to reach your business, you hear about it immediately."
+    }
+  },
+  {
+    "id": 5,
+    "eyebrow": "Change your mind anytime",
+    "headlineHtml": "Switch designs <span class=\"hl\">without losing your content</span>",
+    "subtext": "Not happy with how your site looks? Switch to a different design any time from your dashboard — your content carries over.",
+    "points": [],
+    "captions": {
+      "instagram": "Fancy a different look? Switch designs any time from your dashboard — your content just carries over. 🎨\n#webdesign #smallbusiness",
+      "facebook": "Not tied to the design you picked on day one — if you want a different look for your site down the line, you can switch designs any time from your dashboard, and your content carries straight over. No starting again from scratch.",
+      "twitter": "Want a different look later? Switch designs any time from your dashboard — your content carries over, nothing lost.",
+      "linkedin": "We didn't want the design you pick on day one to be a permanent decision. In Launchly, switching to a different design is a button in the dashboard — your content carries over automatically. Businesses change, seasons change, and your site should be able to keep up without a rebuild."
+    }
+  },
+  {
+    "id": 6,
+    "eyebrow": "Your address, your rules",
+    "headlineHtml": "Change your subdomain <span class=\"hl\">any time</span>",
+    "subtext": "Rebranded, renamed, or just picked wrong at signup? Update your subdomain from your dashboard — the old address redirects automatically.",
+    "points": [],
+    "captions": {
+      "instagram": "Picked the wrong subdomain at signup? Change it any time — the old address just redirects. 🔗\n#smallbusiness",
+      "facebook": "If you rebrand, rename your business, or just picked the wrong subdomain when you signed up, you can change it any time from your dashboard. The old address keeps working — it redirects automatically to the new one.",
+      "twitter": "Your subdomain isn't locked in at signup. Change it any time from your dashboard — the old address auto-redirects to the new one.",
+      "linkedin": "Small but deliberate detail in Launchly: your subdomain isn't fixed the moment you sign up. Rename it any time from the dashboard, and the old address automatically redirects — so a rebrand or a typo you noticed too late never breaks a link someone already has."
+    }
+  },
+  {
+    "id": 7,
+    "eyebrow": "Billing, simplified",
+    "headlineHtml": "Upgrade with <span class=\"hl\">one button</span>, not an email",
+    "subtext": "Self-serve Stripe billing means upgrading your plan happens in your dashboard — no invoices to chase, no waiting on us.",
+    "points": [],
+    "captions": {
+      "instagram": "Upgrading your plan is a button in your dashboard — not an email chasing an invoice. 💳\n#smallbusiness",
+      "facebook": "We didn't want billing to be a back-and-forth with us. Upgrading your Launchly plan happens right in your dashboard through Stripe — no invoices to chase, no waiting on someone to send you a payment link.",
+      "twitter": "Upgrading your plan is a button in your dashboard, not an email from us. Self-serve Stripe billing, no invoices to chase.",
+      "linkedin": "Billing is one of those things that quietly frustrates small business owners — waiting on an invoice, chasing a payment link. In Launchly, upgrading your plan is self-serve through Stripe, right in your dashboard. No manual invoicing on either side."
+    }
+  },
+  {
+    "id": 8,
+    "eyebrow": "Keep customers in the loop",
+    "headlineHtml": "Add an <span class=\"hl\">announcement banner</span> in seconds",
+    "subtext": "Holiday hours, a new offer, a closure notice — put it at the top of your site from your dashboard, no developer required.",
+    "points": [],
+    "captions": {
+      "instagram": "Holiday hours? New offer? Add an announcement banner to your site straight from your dashboard. 📣\n#localbusiness #smallbusiness",
+      "facebook": "Got something customers need to know — holiday hours, a closure, a new offer? You can add an announcement banner to the top of your site yourself, straight from your dashboard. No developer, no waiting.",
+      "twitter": "Need customers to see something urgent? Add an announcement banner to your site from your dashboard — no developer needed.",
+      "linkedin": "A detail we hear matters a lot to local businesses: being able to put a short announcement — holiday hours, a closure, a new offer — at the top of their site themselves, without waiting on anyone. That's a dashboard toggle in Launchly, not a support ticket."
+    }
+  },
+  {
+    "id": 9,
+    "eyebrow": "Show, don't just tell",
+    "headlineHtml": "A <span class=\"hl\">photo gallery</span>, built in",
+    "subtext": "Your finished work, your space, your product — add a gallery to your site directly from your dashboard.",
+    "points": [],
+    "captions": {
+      "instagram": "Your best work deserves more than a caption. Add a photo gallery to your site straight from your dashboard. 📸\n#localbusiness #smallbusiness",
+      "facebook": "Whether it's finished jobs, your space, or your product, photos do a lot of the selling for you. Every Launchly site comes with a gallery you can manage yourself, right from your dashboard.",
+      "twitter": "Every Launchly site comes with a photo gallery, managed straight from your dashboard. Show your work, not just describe it.",
+      "linkedin": "For a lot of local businesses — tradespeople especially — photos of finished work do more selling than any paragraph of copy. That's why a gallery is built into every Launchly site, manageable from the dashboard without needing a developer to touch the page."
+    }
+  },
+  {
+    "id": 10,
+    "eyebrow": "Let your customers vouch for you",
+    "headlineHtml": "Add <span class=\"hl\">testimonials</span> to your site",
+    "subtext": "Happy customers are your best marketing. Add their words to your site directly from your dashboard.",
+    "points": [],
+    "captions": {
+      "instagram": "Happy customers are your best marketing. Add their testimonials to your site right from your dashboard. ⭐\n#localbusiness #smallbusiness",
+      "facebook": "Nothing sells a local business like a happy customer's own words. Every Launchly site has a testimonials section you can manage yourself — add, edit, or remove them any time from your dashboard.",
+      "twitter": "Testimonials section built into every Launchly site — manage it yourself, straight from your dashboard.",
+      "linkedin": "Social proof matters more for local businesses than almost anything else. Every Launchly site ships with a testimonials section, managed entirely from the dashboard — no developer needed to add a new one after a great job."
+    }
+  },
+  {
+    "id": 11,
+    "eyebrow": "The basics, covered",
+    "headlineHtml": "Hours and socials, <span class=\"hl\">always up to date</span>",
+    "subtext": "Opening hours and social links live right on your site — update them yourself, any time, from your dashboard.",
+    "points": [],
+    "captions": {
+      "instagram": "Opening hours, social links — right on your site, updated by you, any time. 🕓\n#localbusiness #smallbusiness",
+      "facebook": "The basics matter: your opening hours and social links are right there on your Launchly site, and you can update them yourself any time from your dashboard — no waiting on anyone if your hours change.",
+      "twitter": "Opening hours and social links live on your site and update from your dashboard — no waiting on a developer if your hours change.",
+      "linkedin": "Small detail, real impact: hours and social links are part of every Launchly site by default, and they're editable directly from the dashboard. If your hours change seasonally, that's a two-minute update, not a support request."
+    }
+  },
+  {
+    "id": 12,
+    "eyebrow": "Built for the trades",
+    "headlineHtml": "A site that looks <span class=\"hl\">as solid as your work</span>",
+    "subtext": "Launchly's Foundry design — dark, industrial, sharp edges — is built with electricians and other trades in mind.",
+    "points": [],
+    "captions": {
+      "instagram": "If you're an electrician or in the trades, Foundry — our dark, industrial design — might be your look. 🔧\n#localbusiness #tradesperson",
+      "facebook": "If you're an electrician, plumber, or in any trade, Launchly's Foundry design was built with you in mind — dark, industrial, sharp edges. It's one of seven designs to choose from, all switchable any time.",
+      "twitter": "Foundry — dark, industrial, sharp edges. One of seven Launchly designs, built with the trades in mind.",
+      "linkedin": "Not every business wants a soft, pastel website — a tradesperson's site often needs to feel solid and no-nonsense. That's what our Foundry design is for: dark, industrial, sharp-edged. It's one of seven designs available in Launchly, and switching between them never costs you your content."
+    }
+  },
+  {
+    "id": 13,
+    "eyebrow": "Built for hospitality",
+    "headlineHtml": "A menu-led site for <span class=\"hl\">cafes and restaurants</span>",
+    "subtext": "Launchly's Ember design is warm, tactile, and built around your menu — tailored for food service from the first click.",
+    "points": [],
+    "captions": {
+      "instagram": "Run a cafe or restaurant? Ember — our warm, menu-led design — is built for you. ☕\n#localbusiness #hospitality",
+      "facebook": "If you run a cafe, restaurant, or any food service business, Launchly's Ember design was built with you in mind — warm, tactile, and organized around your menu from the start.",
+      "twitter": "Ember — warm, tactile, menu-led. Our Launchly design built for cafes, restaurants, and food service.",
+      "linkedin": "Different industries need different things from a website, and a restaurant or cafe usually needs the menu to do the heavy lifting. That's what our Ember design is built around — warm, tactile, and structured for food service from the first click. It's suggested by default in the builder wizard for hospitality businesses, but switchable any time."
+    }
+  },
+  {
+    "id": 14,
+    "eyebrow": "Built for fitness",
+    "headlineHtml": "A high-energy site for <span class=\"hl\">gyms and studios</span>",
+    "subtext": "Launchly's Surge design is bold, dark-led, and athletic — tailored for gyms, studios, and fitness coaches.",
+    "points": [],
+    "captions": {
+      "instagram": "Run a gym or fitness studio? Surge — our bold, athletic design — is built for you. 💪\n#localbusiness #fitness",
+      "facebook": "If you run a gym, studio, or work as a fitness coach, Launchly's Surge design was built with you in mind — bold, dark-led, and high-energy from the first scroll.",
+      "twitter": "Surge — high-energy, athletic, dark-led. Our Launchly design built for gyms, studios, and fitness coaches.",
+      "linkedin": "A fitness business needs its website to carry energy, not just information. Surge, one of our seven Launchly designs, is bold and dark-led — built specifically for gyms, studios, and coaches, and suggested by default for fitness businesses in the builder wizard."
+    }
+  },
+  {
+    "id": 15,
+    "eyebrow": "Built for retail",
+    "headlineHtml": "A signage-led site for <span class=\"hl\">shops and boutiques</span>",
+    "subtext": "Launchly's Market design is bold and graphic, built around signage — tailored for retail and boutique businesses.",
+    "points": [],
+    "captions": {
+      "instagram": "Run a shop or boutique? Market — our bold, signage-led design — is built for you. 🛍️\n#localbusiness #retail",
+      "facebook": "If you run a shop, boutique, or any retail business, Launchly's Market design was built with you in mind — bold, graphic, and built around signage-style layout.",
+      "twitter": "Market — bold, graphic, signage-led. Our Launchly design built for shops, boutiques, and retail.",
+      "linkedin": "Retail businesses live and die on visual presentation, so our Market design leans into that — bold, graphic, signage-led. It's one of seven Launchly designs, suggested by default for retail businesses in the builder wizard, and switchable any time without losing your content."
+    }
+  },
+  {
+    "id": 16,
+    "eyebrow": "Seven looks, one builder",
+    "headlineHtml": "Find the design that <span class=\"hl\">actually fits you</span>",
+    "subtext": "From gradient and editorial to industrial and pastel — seven designs ship out of the box, each with its own layout and palette options.",
+    "points": [],
+    "captions": {
+      "instagram": "Seven designs. Gradient, editorial, industrial, pastel, and more. Find the one that fits your business. 🎨\n#webdesign #smallbusiness",
+      "facebook": "Not every business looks the same, so we didn't build Launchly around one template. Seven designs ship out of the box — from gradient and editorial to industrial and pastel — each with its own layout and palette options, and you can switch between them any time without losing your content.",
+      "twitter": "Seven designs ship with Launchly out of the box — each with its own layout and palette. Pick what actually fits your business.",
+      "linkedin": "One decision we made early with Launchly: no single template. Seven designs ship out of the box — gradient, industrial, editorial, pastel, and three industry-tailored options — each with its own layout and palette choices, and switching between them never costs you your content."
+    }
+  },
+  {
+    "id": 17,
+    "eyebrow": "Design spotlight",
+    "headlineHtml": "<span class=\"hl\">Aurora</span> — gradient hero, rounded cards",
+    "subtext": "A soft, modern look with a gradient hero and rounded cards — one of seven designs available in Launchly.",
+    "points": [],
+    "captions": {
+      "instagram": "Meet Aurora — gradient hero, rounded cards, soft and modern. One of seven Launchly designs. ✨\n#webdesign",
+      "facebook": "This week's design spotlight: Aurora. A soft, modern look with a gradient hero and rounded cards — one of the seven designs you can pick from (and switch between) in Launchly.",
+      "twitter": "Design spotlight: Aurora — gradient hero, rounded cards. One of seven Launchly designs.",
+      "linkedin": "Spotlighting one of Launchly's seven designs today: Aurora. Soft, modern, built around a gradient hero and rounded cards — a general-purpose look that works well for a wide range of local businesses."
+    }
+  },
+  {
+    "id": 18,
+    "eyebrow": "Design spotlight",
+    "headlineHtml": "<span class=\"hl\">Foundry</span> — dark, industrial, sharp",
+    "subtext": "Dark, industrial, sharp edges — one of seven designs available in Launchly, a favorite for trades businesses.",
+    "points": [],
+    "captions": {
+      "instagram": "Meet Foundry — dark, industrial, sharp edges. One of seven Launchly designs. ⚡\n#webdesign",
+      "facebook": "This week's design spotlight: Foundry. Dark, industrial, with sharp edges — one of the seven designs in Launchly, and a favorite among trades businesses.",
+      "twitter": "Design spotlight: Foundry — dark, industrial, sharp edges. One of seven Launchly designs.",
+      "linkedin": "Spotlighting one of Launchly's seven designs today: Foundry. Dark and industrial with sharp edges — a strong fit for trades businesses who want their site to feel solid and no-nonsense."
+    }
+  },
+  {
+    "id": 19,
+    "eyebrow": "Design spotlight",
+    "headlineHtml": "<span class=\"hl\">Meridian</span> — light, editorial, serif",
+    "subtext": "Light, editorial, with serif accents — one of seven designs available in Launchly.",
+    "points": [],
+    "captions": {
+      "instagram": "Meet Meridian — light, editorial, serif accents. One of seven Launchly designs. 📰\n#webdesign",
+      "facebook": "This week's design spotlight: Meridian. Light and editorial with serif accents — one of the seven designs you can pick from (and switch between) in Launchly.",
+      "twitter": "Design spotlight: Meridian — light, editorial, serif accents. One of seven Launchly designs.",
+      "linkedin": "Spotlighting one of Launchly's seven designs today: Meridian. Light and editorial, with serif accents — a more considered, publication-style look for businesses that want to feel established."
+    }
+  },
+  {
+    "id": 20,
+    "eyebrow": "Design spotlight",
+    "headlineHtml": "<span class=\"hl\">Bloom</span> — soft, curved, pastel",
+    "subtext": "Soft, curved, pastel — one of seven designs available in Launchly.",
+    "points": [],
+    "captions": {
+      "instagram": "Meet Bloom — soft, curved, pastel. One of seven Launchly designs. 🌸\n#webdesign",
+      "facebook": "This week's design spotlight: Bloom. Soft, curved, and pastel — one of the seven designs you can pick from (and switch between) in Launchly.",
+      "twitter": "Design spotlight: Bloom — soft, curved, pastel. One of seven Launchly designs.",
+      "linkedin": "Spotlighting one of Launchly's seven designs today: Bloom. Soft, curved, pastel — a gentler, more approachable look that suits a lot of service and wellness businesses."
+    }
+  },
+  {
+    "id": 21,
+    "eyebrow": "Design spotlight",
+    "headlineHtml": "<span class=\"hl\">Ember</span> — warm, tactile, menu-led",
+    "subtext": "Warm, tactile, and menu-led — one of Launchly's industry-tailored designs, suggested by default for hospitality.",
+    "points": [],
+    "captions": {
+      "instagram": "Meet Ember — warm, tactile, menu-led. Built for restaurants, cafes, and food service. 🍽️\n#webdesign",
+      "facebook": "This week's design spotlight: Ember. Warm, tactile, and organized around your menu — built specifically for restaurants, cafes, and food service businesses.",
+      "twitter": "Design spotlight: Ember — warm, tactile, menu-led. Built for restaurants, cafes, and food service.",
+      "linkedin": "Spotlighting one of Launchly's designs today: Ember. Warm and tactile, structured around the menu — one of three industry-tailored designs, suggested by default for hospitality businesses in the builder wizard."
+    }
+  },
+  {
+    "id": 22,
+    "eyebrow": "Design spotlight",
+    "headlineHtml": "<span class=\"hl\">Market</span> — bold, graphic, signage-led",
+    "subtext": "Bold, graphic, and signage-led — one of Launchly's industry-tailored designs, suggested by default for retail.",
+    "points": [],
+    "captions": {
+      "instagram": "Meet Market — bold, graphic, signage-led. Built for shops, boutiques, and retail. 🛍️\n#webdesign",
+      "facebook": "This week's design spotlight: Market. Bold, graphic, and built around a signage-style layout — designed specifically for shops, boutiques, and retail businesses.",
+      "twitter": "Design spotlight: Market — bold, graphic, signage-led. Built for shops, boutiques, and retail.",
+      "linkedin": "Spotlighting one of Launchly's designs today: Market. Bold and graphic, built around signage-style presentation — one of three industry-tailored designs, suggested by default for retail businesses in the builder wizard."
+    }
+  },
+  {
+    "id": 23,
+    "eyebrow": "Design spotlight",
+    "headlineHtml": "<span class=\"hl\">Surge</span> — high-energy, athletic, dark",
+    "subtext": "High-energy, athletic, and dark-led — one of Launchly's industry-tailored designs, suggested by default for fitness.",
+    "points": [],
+    "captions": {
+      "instagram": "Meet Surge — high-energy, athletic, dark-led. Built for gyms, studios, and fitness coaches. 🔥\n#webdesign",
+      "facebook": "This week's design spotlight: Surge. High-energy, athletic, and dark-led — designed specifically for gyms, studios, and fitness coaches.",
+      "twitter": "Design spotlight: Surge — high-energy, athletic, dark-led. Built for gyms, studios, and fitness coaches.",
+      "linkedin": "Spotlighting one of Launchly's designs today: Surge. High-energy and dark-led — one of three industry-tailored designs, suggested by default for fitness businesses in the builder wizard."
+    }
+  },
+  {
+    "id": 24,
+    "eyebrow": "No gatekeeping",
+    "headlineHtml": "You're in <span class=\"hl\">full control</span>, always",
+    "subtext": "No approval queue, no manual publish step, no one but you deciding when your site goes live or what it says.",
+    "points": [],
+    "captions": {
+      "instagram": "No approval queue. No manual publish step. Just you, deciding what your site says and when it goes live. 🔑\n#smallbusiness",
+      "facebook": "With Launchly, there's no approval queue and no manual publish step — you're the only one deciding what your site says and when it goes live. That's the whole point of self-serve.",
+      "twitter": "No approval queue, no manual publish step. You decide what your site says and when it goes live — full stop.",
+      "linkedin": "We built Launchly to be genuinely self-serve — no approval queue, no manual publish step sitting between a business owner and their own website. You decide what it says and when it goes live. That control is the whole point."
+    }
+  },
+  {
+    "id": 25,
+    "eyebrow": "One less thing to think about",
+    "headlineHtml": "<span class=\"hl\">No hosting</span> to set up or manage",
+    "subtext": "No domain fiddling, no server to maintain, no plugins to update — your site just runs.",
+    "points": [],
+    "captions": {
+      "instagram": "No hosting to set up. No server to maintain. No plugins to update. Your site just runs. 🛠️\n#smallbusiness",
+      "facebook": "You shouldn't need to think about hosting, servers, or plugin updates just to have a website. With Launchly, none of that is on you — your site just runs, and you focus on your business.",
+      "twitter": "No hosting to set up, no server to maintain, no plugins to update. Your Launchly site just runs.",
+      "linkedin": "A lot of small business owners get talked into a website platform and then quietly become its unpaid sysadmin — hosting renewals, plugin updates, server issues. With Launchly, none of that exists on your side. The site just runs."
+    }
+  },
+  {
+    "id": 26,
+    "eyebrow": "Start in minutes",
+    "headlineHtml": "Sign up with <span class=\"hl\">just an email</span>",
+    "subtext": "No card, no sales call, no demo booking. Email and password, and you're in the builder.",
+    "points": [],
+    "captions": {
+      "instagram": "No card. No sales call. No demo booking. Just email and password, and you're building. ✅\n#smallbusiness",
+      "facebook": "Getting started with Launchly doesn't involve a sales call or a demo booking — just sign up with your email and password, and you're straight into the builder.",
+      "twitter": "No card, no sales call, no demo booking. Email and password, and you're in the builder.",
+      "linkedin": "We wanted the path from “I need a website” to “I'm building it” to be as short as possible. With Launchly, that's an email and a password — no sales call, no demo booking, no card required to start."
+    }
+  },
+  {
+    "id": 27,
+    "eyebrow": "It's your site",
+    "headlineHtml": "Update your content <span class=\"hl\">whenever you want</span>",
+    "subtext": "New services, new prices, new hours — change your site yourself from your dashboard, no ticket, no waiting.",
+    "points": [],
+    "captions": {
+      "instagram": "New services, new prices, new hours — update your site yourself, any time, no ticket needed. ✏️\n#smallbusiness",
+      "facebook": "Your business changes — new services, new prices, new hours — and your website should be able to keep up without a support ticket. With Launchly, you update your own content, any time, straight from your dashboard.",
+      "twitter": "New services, new prices, new hours — update your Launchly site yourself, any time. No ticket, no waiting.",
+      "linkedin": "A website that a business owner can't update themselves quietly goes stale. That's why every part of a Launchly site — content, appearance, design — is editable directly from the dashboard, any time, without a support ticket."
+    }
+  },
+  {
+    "id": 28,
+    "eyebrow": "Why Launchly",
+    "headlineHtml": "Every local business deserves a <span class=\"hl\">real website</span>",
+    "subtext": "Not everyone has the time or budget to brief a designer. Launchly exists so that isn't the barrier to getting online.",
+    "points": [],
+    "captions": {
+      "instagram": "Not everyone has the time or budget to brief a designer. That shouldn't be what keeps you offline. That's why we built Launchly. 💡\n#smallbusiness",
+      "facebook": "Here's the thing that got us building Launchly: plenty of great local businesses don't have a website, not because they don't want one, but because briefing a designer, managing hosting, and waiting weeks for a result is a lot to ask of someone running a business day to day. Launchly exists to remove that barrier.",
+      "twitter": "Why we built Launchly: not everyone has the time or budget to brief a designer. That shouldn't be the reason a good local business stays offline.",
+      "linkedin": "The reason I started building Launchly: a lot of genuinely good local businesses don't have a website — not because they don't see the value, but because briefing a designer, managing hosting, and waiting weeks for a result is a real barrier when you're running a business day to day. Launchly is built to remove that barrier entirely."
+    }
+  },
+  {
+    "id": 29,
+    "eyebrow": "Who it's for",
+    "headlineHtml": "Built for businesses that <span class=\"hl\">serve their local area</span>",
+    "subtext": "Electricians, cafes, gyms, salons, shops — if you need a real site and don't have time to brief a designer, Launchly is built for you.",
+    "points": [],
+    "captions": {
+      "instagram": "Electricians, cafes, gyms, salons, shops — if that's you, Launchly is built for you. 🏷️\n#localbusiness #smallbusiness",
+      "facebook": "Launchly is built specifically for local businesses — electricians, cafes, gyms, salons, shops, and everyone in between who needs a real website but doesn't have time to brief a designer.",
+      "twitter": "Electricians, cafes, gyms, salons, shops — Launchly is built for local businesses that need a real site, fast.",
+      "linkedin": "Launchly isn't trying to be a general-purpose website builder for every use case — it's built specifically for local businesses: electricians, cafes, gyms, salons, shops, and everyone in between who needs a real site without the time to brief a designer."
+    }
+  },
+  {
+    "id": 30,
+    "eyebrow": "Ready when you are",
+    "headlineHtml": "Get your business <span class=\"hl\">online today</span>",
+    "subtext": "Sign up, pick a design, add your content. Your site is live the same day — no card required to start.",
+    "points": [],
+    "captions": {
+      "instagram": "Sign up, pick a design, add your content — your site is live the same day. No card required to start. 🚀\n#localbusiness #smallbusiness",
+      "facebook": "If you've been putting off getting your business online, here's your sign: sign up, pick a design, add your content, and your site is live the same day. No card required to start.",
+      "twitter": "Sign up, pick a design, add your content. Live the same day. No card required to start.",
+      "linkedin": "If getting your business online has been on the list for a while, here's the whole process with Launchly: sign up, pick a design, add your content, and you're live the same day — no card required to start."
+    }
+  }
+]

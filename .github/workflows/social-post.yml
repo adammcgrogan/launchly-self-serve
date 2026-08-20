@@ -1,0 +1,74 @@
+name: Daily social post draft
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # 09:00 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: social-post-draft
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: social
+        run: npm install
+
+      - name: Install Chromium
+        working-directory: social
+        run: npx playwright install --with-deps chromium
+
+      - name: Compute branch name
+        id: branch
+        run: |
+          next=$(node -p "JSON.parse(require('fs').readFileSync('social/state.json','utf8')).next")
+          total=$(node -p "JSON.parse(require('fs').readFileSync('social/posts.json','utf8')).length")
+          if [ "$next" -ge "$total" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            id=$((next + 1))
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "branch=social/day-$(printf '%02d' "$id")" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build today's post
+        if: steps.branch.outputs.skip != 'true'
+        working-directory: social
+        env:
+          SOCIAL_BRANCH: ${{ steps.branch.outputs.branch }}
+        run: node scripts/build-post.mjs
+
+      - name: Open PR with the draft
+        if: steps.branch.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="${{ steps.branch.outputs.branch }}"
+          git config user.name "launchly-social-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add social/state.json social/output
+          git commit -m "chore(social): draft post for $branch"
+          git push origin "$branch"
+          gh pr create \
+            --title "Social draft: $branch" \
+            --body-file social/output/pr-body.md \
+            --base main \
+            --head "$branch"
+
+      - name: No posts left
+        if: steps.branch.outputs.skip == 'true'
+        run: echo "All 30 calendar entries have been used — add more to social/posts.json to keep this running."

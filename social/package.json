@@ -1,0 +1,9 @@
+{
+  "name": "launchly-social-posts",
+  "private": true,
+  "type": "module",
+  "description": "Renders draft social post images for Launchly from a pre-written content calendar. Not part of the Go application build.",
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
