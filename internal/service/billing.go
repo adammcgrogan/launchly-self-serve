@@ -61,7 +61,7 @@ func (b *Billing) invalidate(siteID int) {
 // changed in place instead, so a plan change never stacks a second Stripe
 // subscription and double-bills the customer.
 func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug string, plan domain.Plan, customerEmail string) (checkoutURL string, err error) {
-	successURL := fmt.Sprintf("%s/dashboard/sites/%s?upgraded=1", b.baseURL, slug)
+	successURL := fmt.Sprintf("%s/dashboard/sites/%s/upgraded", b.baseURL, slug)
 	cancelURL := fmt.Sprintf("%s/dashboard/sites/%s", b.baseURL, slug)
 
 	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)

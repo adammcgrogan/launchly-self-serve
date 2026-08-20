@@ -130,7 +130,6 @@ func (h *Handler) siteSectionData(w http.ResponseWriter, r *http.Request, site *
 		"Flash":             flash,
 		"CSRFToken":         h.csrf.Token(middleware.UserID(r).String(), h.auth.SessionNonce(r)),
 		"EmailVerified":     emailVerified,
-		"Upgraded":          r.URL.Query().Get("upgraded") == "1",
 		"ShowTrialBanner":   showTrialBanner,
 		"TrialDaysLeft":     trialDaysLeft,
 		"ShowPastDueBanner": site.Billing.PaymentStatus == domain.PaymentStatusPastDue,
@@ -384,4 +383,18 @@ func (h *Handler) SiteBilling(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.renderSection(w, r, site, "billing", nil)
+}
+
+// SiteUpgraded is the dedicated thank-you page Stripe Checkout redirects to
+// after a successful plan upgrade — it replaces the old ?upgraded=1 flash
+// banner (see #311) with a page that shows what the new plan unlocks.
+func (h *Handler) SiteUpgraded(w http.ResponseWriter, r *http.Request) {
+	site := middleware.SiteFromContext(r)
+	if !h.requireSiteOwnerRole(w, r, site) {
+		return
+	}
+	h.render.Render(w, "dashboard:upgraded", map[string]any{
+		"Site":    site,
+		"SiteURL": h.siteURL(site.Slug),
+	})
 }

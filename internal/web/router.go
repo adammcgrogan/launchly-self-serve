@@ -91,6 +91,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /dashboard/sites/{slug}/notifications", ownedFull(h.SiteNotifications))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/access", ownedFull(h.SiteAccess))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/billing", ownedFull(h.SiteBilling))
+	mux.HandleFunc("GET /dashboard/sites/{slug}/upgraded", ownedFull(h.SiteUpgraded))
 	mux.HandleFunc("GET /dashboard/sites/{slug}/preview", ownedFull(h.PreviewSite))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/edit", owned(h.EditSubmit))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/appearance", owned(h.AppearanceSubmit))
