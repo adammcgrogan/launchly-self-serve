@@ -51,19 +51,28 @@ func (h *Handler) BlogIndex(w http.ResponseWriter, r *http.Request) {
 
 	type post struct {
 		Slug, Title, Description, PublishedAt string
+		rawDate                               string
 	}
 	var posts []post
 	for _, e := range entries {
 		if e.Draft {
 			continue
 		}
-		posts = append(posts, post{Slug: e.Slug, Title: e.Title, Description: e.Description, PublishedAt: formatBlogDate(e.PublishedAt)})
+		posts = append(posts, post{Slug: e.Slug, Title: e.Title, Description: e.Description, PublishedAt: formatBlogDate(e.PublishedAt), rawDate: e.PublishedAt})
 	}
-	sort.Slice(posts, func(i, j int) bool { return posts[i].PublishedAt > posts[j].PublishedAt })
+	sort.Slice(posts, func(i, j int) bool { return posts[i].rawDate > posts[j].rawDate })
+
+	var featured *post
+	rest := posts
+	if len(posts) > 0 {
+		featured = &posts[0]
+		rest = posts[1:]
+	}
 
 	_, loggedIn := h.auth.CheckUser(w, r)
 	h.render.Render(w, "blog_index", map[string]any{
-		"Posts":           posts,
+		"Featured":        featured,
+		"Posts":           rest,
 		"LoggedIn":        loggedIn,
 		"PageTitle":       "Blog | Launchly",
 		"PageDescription": "Notes on building Launchly, and what actually matters for a local business website.",

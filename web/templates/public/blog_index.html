@@ -1,19 +1,36 @@
 {{define "content"}}
-<section class="max-w-3xl mx-auto px-6 pt-20 pb-24">
-  <h1 class="font-display text-4xl sm:text-5xl font-bold text-slate-900">Blog</h1>
-  <p class="mt-4 text-lg text-slate-600">Notes on building Launchly, and what actually matters for a local business website.</p>
+<section class="relative overflow-hidden bg-gradient-to-b from-indigo-100 via-violet-50 to-white">
+  <div class="max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
+    <p class="text-brand font-semibold text-sm uppercase tracking-widest">Blog</p>
+    <h1 class="mt-3 font-display text-4xl sm:text-5xl font-bold text-slate-900">Practical notes for local businesses</h1>
+    <p class="mt-4 text-lg text-slate-600 max-w-xl mx-auto">What actually works on a website for a trade, a cafe, a gym, or a shop — and the odd note on what we're building at Launchly.</p>
+  </div>
+</section>
 
-  <div class="mt-16 divide-y divide-slate-100">
+<section class="max-w-5xl mx-auto px-6 py-16">
+  {{if .Featured}}
+  <a href="/blog/{{.Featured.Slug}}" class="group block rounded-2xl border border-indigo-100 bg-white shadow-sm shadow-indigo-100/50 p-8 sm:p-10 hover:border-brand/40 hover:shadow-md transition">
+    <p class="text-xs font-semibold uppercase tracking-widest text-brand">Latest &middot; {{.Featured.PublishedAt}}</p>
+    <h2 class="mt-3 font-display text-2xl sm:text-3xl font-bold text-slate-900 group-hover:text-brand transition-colors">{{.Featured.Title}}</h2>
+    <p class="mt-3 text-slate-600 max-w-2xl">{{.Featured.Description}}</p>
+    <span class="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand">Read the post <span class="transition-transform group-hover:translate-x-1">&rarr;</span></span>
+  </a>
+  {{end}}
+
+  {{if .Posts}}
+  <div class="mt-6 grid sm:grid-cols-2 gap-6">
     {{range .Posts}}
-    <article class="py-8">
-      <p class="text-sm text-slate-400">{{.PublishedAt}}</p>
-      <h2 class="mt-1 font-display text-2xl font-bold text-slate-900">
-        <a href="/blog/{{.Slug}}" class="hover:text-brand">{{.Title}}</a>
-      </h2>
-      <p class="mt-2 text-slate-600">{{.Description}}</p>
-      <a href="/blog/{{.Slug}}" class="mt-3 inline-block text-sm font-semibold text-brand hover:underline">Read more &rarr;</a>
-    </article>
+    <a href="/blog/{{.Slug}}" class="group block rounded-2xl border border-slate-200 bg-white p-6 hover:border-slate-300 hover:shadow-sm transition">
+      <p class="text-xs text-slate-400">{{.PublishedAt}}</p>
+      <h3 class="mt-1 font-display text-xl font-bold text-slate-900 group-hover:text-brand transition-colors">{{.Title}}</h3>
+      <p class="mt-2 text-sm text-slate-600">{{.Description}}</p>
+    </a>
     {{end}}
   </div>
+  {{end}}
+
+  {{if not .Featured}}
+  <p class="text-slate-500">Nothing published yet — check back soon.</p>
+  {{end}}
 </section>
 {{end}}
