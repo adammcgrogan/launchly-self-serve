@@ -120,6 +120,14 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 		}
 	}
 
+	// The paused page is parsed a second time against a stripped-down base.
+	// On a site's own custom domain, public/base.html would put Launchly's
+	// marketing nav, "Start free" CTA and cookie banner on a domain the
+	// customer owns — see renderSite, which picks this key by host.
+	if err := rd.parse("paused:bare", "web/templates/public/paused_base.html", "web/templates/public/paused.html"); err != nil {
+		return err
+	}
+
 	authBase := "web/templates/auth/base.html"
 	for _, p := range []string{"signup", "login", "forgot_password", "reset_password", "resend_verification"} {
 		if err := rd.parse("auth:"+p, authBase, "web/templates/auth/"+p+".html"); err != nil {
@@ -180,6 +188,15 @@ func (rd *Renderer) LoadAll(templates []domain.Template) error {
 // never leaves a truncated page flushed to the client with a 200 — on error
 // it falls back to the branded error page with a 500 instead.
 func (rd *Renderer) Render(w http.ResponseWriter, key string, data any) {
+	rd.RenderStatus(w, key, http.StatusOK, data)
+}
+
+// RenderStatus is Render with an explicit status code, for pages that are
+// content rather than errors but shouldn't be served as 200 — the paused
+// page uses it to return 503 so a temporarily paused site isn't treated as
+// permanently gone. Like RenderError, it buffers first so a template
+// failure can still fall back to a clean 500.
+func (rd *Renderer) RenderStatus(w http.ResponseWriter, key string, status int, data any) {
 	t, ok := rd.tmpl[key]
 	if !ok {
 		slog.Error("render: unknown template key", "key", key)
@@ -191,6 +208,9 @@ func (rd *Renderer) Render(w http.ResponseWriter, key string, data any) {
 		slog.Error("template render failed", "key", key, "error", err)
 		rd.RenderError(w, http.StatusInternalServerError)
 		return
+	}
+	if status != http.StatusOK {
+		w.WriteHeader(status)
 	}
 	w.Write(buf.Bytes())
 }

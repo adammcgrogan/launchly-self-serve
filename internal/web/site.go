@@ -64,7 +64,19 @@ func (h *Handler) serveSiteBySlug(w http.ResponseWriter, r *http.Request, slug, 
 // public, unauthenticated traffic — draft/paused sites are never shown here.
 func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, site *domain.SiteAggregate, formAction string) {
 	if site.Status == domain.SiteStatusPaused {
-		h.render.Render(w, "paused", map[string]any{"BusinessName": site.BusinessName})
+		// On the site's own custom domain, drop Launchly's marketing chrome:
+		// public/base.html's nav and "Start free" CTA are an acquisition
+		// funnel, and a domain the customer pays for is the wrong place for
+		// it. The launchly.ltd subdomain keeps the standard chrome.
+		key := "paused"
+		if site.CustomDomain != "" && effectiveHost(r) == strings.ToLower(site.CustomDomain) {
+			key = "paused:bare"
+		}
+		// 503 rather than 200 so search engines treat the site as
+		// temporarily unavailable and keep the index entry, which is what
+		// makes reactivating worth anything.
+		w.Header().Set("Retry-After", "86400")
+		h.render.RenderStatus(w, key, http.StatusServiceUnavailable, map[string]any{"BusinessName": site.BusinessName})
 		return
 	}
 	if site.Status != domain.SiteStatusLive {
