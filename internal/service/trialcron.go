@@ -29,6 +29,11 @@ const (
 // trial_ends_at) so a future policy change only needs to touch this line.
 const trialGracePeriod = 0 * time.Hour
 
+// trialLength mirrors the 7-day window CreateSiteBilling opens on every new
+// site. Used to derive when a trial started from its trial_ends_at, so the
+// value reports (#330) cover the trial itself rather than a rolling window.
+const trialLength = 7 * 24 * time.Hour
+
 // analyticsRetention bounds page_views/site_events — matches the dashboard's
 // longest analytics period (see analyticsPeriods' "Max" option in
 // internal/web/dashboard.go), so pruning past it never changes what the
@@ -45,6 +50,8 @@ const stripeEventRetention = 30 * 24 * time.Hour
 // Resend over the network — mirrors billingMailer in billing.go.
 type cronMailer interface {
 	SendTrialWarning(to, businessName, dashboardURL string, daysLeft int) error
+	SendTrialEarlyReport(to, businessName, dashboardURL string, stats *domain.SiteStats) error
+	SendTrialWeekReport(to, businessName, dashboardURL string, stats *domain.SiteStats, daysLeft int) error
 	SendSitePaused(to, businessName, dashboardURL string) error
 	SendAnalyticsDigest(to, businessName string, stats *domain.SiteStats, siteURL string) error
 	SendDunningReminder(to, businessName, dashboardURL string, daysPastDue int) error
@@ -132,7 +139,13 @@ func (c *Cron) sendDueTrialReminders() {
 		// match both queries sends only the higher-priority "final" reminder
 		// instead of both back-to-back (#198).
 		sentThisSweep := make(map[int]bool)
-		for _, kind := range []string{"final", "first"} {
+		// Ordered most-urgent first, and sentThisSweep tracks sites already
+		// emailed in this pass, so a sweep that's behind enough for a site to
+		// match several kinds sends only the highest-priority one instead of
+		// a burst back-to-back (#198). The value reports (#330) sit below the
+		// billing warnings for that reason: if a lagging sweep has to pick
+		// one, the deadline is the more urgent thing to say.
+		for _, kind := range []string{"final", "first", "report", "report_early"} {
 			due, err := postgres.GetSitesDueForTrialReminder(ctx, conn, kind)
 			if err != nil {
 				slog.Error("trial cron: list sites", "kind", kind, "error", err)
@@ -151,7 +164,7 @@ func (c *Cron) sendDueTrialReminders() {
 					daysLeft = 1
 				}
 				dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, d.Slug)
-				if err := c.mailer.SendTrialWarning(d.NotifyEmail, d.BusinessName, dashboardURL, daysLeft); err != nil {
+				if err := c.sendTrialEmail(ctx, kind, d, dashboardURL, daysLeft); err != nil {
 					slog.Error("trial cron: send reminder", "slug", d.Slug, "kind", kind, "error", err)
 					continue
 				}
@@ -164,6 +177,30 @@ func (c *Cron) sendDueTrialReminders() {
 			}
 		}
 	})
+}
+
+// sendTrialEmail dispatches the email for one trial-reminder kind. The two
+// report kinds compute the site's stats for the trial so far — deliberately
+// not the rolling 30-day window SendAnalyticsDigest uses, which would be
+// mostly empty time for a site that's existed for three days.
+func (c *Cron) sendTrialEmail(ctx context.Context, kind string, d postgres.DueTrialReminder, dashboardURL string, daysLeft int) error {
+	switch kind {
+	case "first", "final":
+		return c.mailer.SendTrialWarning(d.NotifyEmail, d.BusinessName, dashboardURL, daysLeft)
+	}
+
+	// The trial started trialLength before it ends, so that's the window the
+	// owner actually cares about. No comparison window: there is no previous
+	// period to compare a brand-new site against.
+	since := d.TrialEndsAt.Add(-trialLength)
+	stats, err := c.analytics.GetSiteStats(ctx, d.SiteID, since, since, d.Timezone)
+	if err != nil {
+		return fmt.Errorf("get stats: %w", err)
+	}
+	if kind == "report_early" {
+		return c.mailer.SendTrialEarlyReport(d.NotifyEmail, d.BusinessName, dashboardURL, stats)
+	}
+	return c.mailer.SendTrialWeekReport(d.NotifyEmail, d.BusinessName, dashboardURL, stats, daysLeft)
 }
 
 // pauseDueSites pauses live sites whose trial ended more than

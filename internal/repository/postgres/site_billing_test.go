@@ -44,6 +44,8 @@ func TestGetSitesDueForTrialReminder_KindSelectsCorrectColumnAndWindow(t *testin
 	}{
 		{"first", "trial_reminder_sent_at", "INTERVAL '3 days'"},
 		{"final", "trial_final_reminder_sent_at", "INTERVAL '1 day'"},
+		{"report", "sb.trial_report_sent_at", "INTERVAL '2 days'"},
+		{"report_early", "trial_early_report_sent_at", "INTERVAL '4 days'"},
 	}
 
 	for _, tt := range tests {
@@ -52,8 +54,8 @@ func TestGetSitesDueForTrialReminder_KindSelectsCorrectColumnAndWindow(t *testin
 			trialEndsAt := time.Now().UTC().Add(20 * time.Hour)
 
 			mock.ExpectQuery(tt.wantColumn + " IS NULL").
-				WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "trial_ends_at", "notify_email"}).
-					AddRow(1, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
+				WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "trial_ends_at", "timezone", "notify_email"}).
+					AddRow(1, "acme", "Acme Co", trialEndsAt, "Europe/London", "owner@acme.test"))
 
 			due, err := GetSitesDueForTrialReminder(context.Background(), db, tt.kind)
 			if err != nil {

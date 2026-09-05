@@ -197,16 +197,32 @@ type DueTrialReminder struct {
 	Slug         string
 	BusinessName string
 	TrialEndsAt  time.Time
+	Timezone     string
 	NotifyEmail  string
 }
 
 // GetSitesDueForTrialReminder returns sites whose trial is ending soon and
-// haven't yet received a reminder of the given kind ("first" = 3 days out,
-// "final" = 1 day out), along with each site's resolved notification email
+// haven't yet received a reminder of the given kind, along with each site's
+// resolved notification email
 // (the account owner's login email, falling back to the site's public
 // contact email — mirroring notifyEmail) computed in the same query. This
 // joins in everything the cron sweep's per-site loop needs so it doesn't
 // have to follow up with a GetSiteByID/GetSiteContact/GetProfile per ID (#218).
+// The kinds, on a 7-day trial, in the order they land:
+//
+//	"report_early" — day 3, 4 days out: the first value report
+//	"first"        — day 4, 3 days out: first upgrade nudge
+//	"report"       — day 5, 2 days out: the fuller value report
+//	"final"        — day 6, 1 day out:  last upgrade nudge
+//
+// The two report kinds are what stop every trial email being about billing
+// (#330) — each lands the day before an upgrade ask, so the ask follows
+// evidence rather than replacing it.
+//
+// Reports are only sent to live sites: a draft site has no public traffic to
+// report on, so a "here's how you did" email about an unpublished site would
+// be noise. The upgrade nudges still go to drafts, since those are about the
+// trial expiring rather than about traffic.
 func GetSitesDueForTrialReminder(ctx context.Context, q querier, kind string) ([]DueTrialReminder, error) {
 	var cond string
 	switch kind {
@@ -216,11 +232,17 @@ func GetSitesDueForTrialReminder(ctx context.Context, q querier, kind string) ([
 	case "final":
 		cond = `sb.trial_ends_at <= now() + INTERVAL '1 day' AND sb.trial_ends_at > now()
 			  AND sb.trial_final_reminder_sent_at IS NULL`
+	case "report_early":
+		cond = `sb.trial_ends_at <= now() + INTERVAL '4 days' AND sb.trial_ends_at > now()
+			  AND sb.trial_early_report_sent_at IS NULL AND s.status = 'live'`
+	case "report":
+		cond = `sb.trial_ends_at <= now() + INTERVAL '2 days' AND sb.trial_ends_at > now()
+			  AND sb.trial_report_sent_at IS NULL AND s.status = 'live'`
 	default:
 		return nil, fmt.Errorf("unknown trial reminder kind: %s", kind)
 	}
 	rows, err := q.QueryContext(ctx, `
-		SELECT s.id, s.slug, s.business_name, sb.trial_ends_at,
+		SELECT s.id, s.slug, s.business_name, sb.trial_ends_at, s.timezone,
 		       COALESCE(NULLIF(p.email, ''), c.email, '') AS notify_email
 		FROM site_billing sb
 		JOIN sites s ON s.id = sb.site_id
@@ -235,7 +257,7 @@ func GetSitesDueForTrialReminder(ctx context.Context, q querier, kind string) ([
 	var due []DueTrialReminder
 	for rows.Next() {
 		var d DueTrialReminder
-		if err := rows.Scan(&d.SiteID, &d.Slug, &d.BusinessName, &d.TrialEndsAt, &d.NotifyEmail); err != nil {
+		if err := rows.Scan(&d.SiteID, &d.Slug, &d.BusinessName, &d.TrialEndsAt, &d.Timezone, &d.NotifyEmail); err != nil {
 			return nil, err
 		}
 		due = append(due, d)
@@ -293,6 +315,10 @@ func MarkTrialReminderSent(ctx context.Context, q querier, siteID int, kind stri
 		col = "trial_reminder_sent_at"
 	case "final":
 		col = "trial_final_reminder_sent_at"
+	case "report_early":
+		col = "trial_early_report_sent_at"
+	case "report":
+		col = "trial_report_sent_at"
 	default:
 		return fmt.Errorf("unknown trial reminder kind: %s", kind)
 	}

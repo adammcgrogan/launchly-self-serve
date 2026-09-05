@@ -203,6 +203,23 @@ func statRow(label string, count int, first bool) string {
 </table>`, borderTop, brandSansFont, label, brandSansFont, count)
 }
 
+// statRowText is statRow with a text value instead of a count — used where
+// the right-hand column is a short note rather than a number (see
+// quietSiteAdvice's next-steps card).
+func statRowText(label, value string, first bool) string {
+	borderTop := "border-top:1px solid #eef1f6;"
+	if first {
+		borderTop = ""
+	}
+	return fmt.Sprintf(`
+<table width="100%%" cellpadding="0" cellspacing="0" style="%s">
+  <tr>
+    <td style="padding:10px 18px;font-family:%s;font-size:13.5px;color:#334155;">%s</td>
+    <td style="padding:10px 18px;font-family:%s;font-size:12.5px;color:#94a3b8;text-align:right;">%s</td>
+  </tr>
+</table>`, borderTop, brandSansFont, label, brandSansFont, value)
+}
+
 func sectionLabel(text string) string {
 	return fmt.Sprintf(`<p style="margin:0 0 8px;font-family:%s;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;">%s</p>`, brandSansFont, text)
 }
@@ -381,6 +398,95 @@ func (c *Client) SendFinalPaymentWarning(to, businessName, dashboardURL string) 
 		divider() +
 		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
 	return c.Send(to, fmt.Sprintf("Final notice - update your payment for %s", businessName), wrap("Final notice", content))
+}
+
+// quietSiteAdvice is the zero-traffic body shared by both trial reports. A
+// silent report would be the one useless outcome (#330) — "nobody found you
+// yet, here's the first thing to do about it" is still worth sending, and
+// for a brand-new local business it's usually the more actionable of the
+// two.
+func quietSiteAdvice() string {
+	return p("Your site is live but quiet so far. The quickest way to change that:") +
+		infoCard(
+			statRowText("1. Add the link to your Google Business Profile", "most local searches start there", true)+
+				statRowText("2. Send it to your last few customers", "a WhatsApp message costs nothing", false)+
+				statRowText("3. Put it where people already see you", "van, window, invoices, receipts", false),
+		)
+}
+
+// SendTrialEarlyReport is the day-3 trial report: short, activation-focused,
+// and sent before the first upgrade nudge so the owner sees something about
+// their website before anything asks them for money (#330). It deliberately
+// leads with whatever number exists rather than waiting for a good one.
+func (c *Client) SendTrialEarlyReport(to, businessName, dashboardURL string, stats *domain.SiteStats) error {
+	var body string
+	if stats.TotalViews == 0 {
+		body = quietSiteAdvice()
+	} else {
+		body = fmt.Sprintf(`<table width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;"><tr>%s%s</tr></table>`,
+			statTile(fmt.Sprintf("%d", stats.TotalViews), "Visits so far"),
+			statTile(fmt.Sprintf("%d", stats.UniqueVisitors), "People")) +
+			p("That's real people finding <strong>"+html.EscapeString(businessName)+"</strong> online. Keep sharing the link — it compounds.")
+	}
+
+	content := h1("Your site's first few days") +
+		p(fmt.Sprintf("<strong>%s</strong> has been live for a few days. Here's what's happened so far.", html.EscapeString(businessName))) +
+		body +
+		button(dashboardURL, "See the full breakdown") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">You're getting this because your site is in its free trial. Questions? Just reply to this email.</span>`)
+	return c.sendBulk(to, fmt.Sprintf("Your site's first few days - %s", businessName), wrap("Your site", content))
+}
+
+// SendTrialWeekReport is the day-5 trial report: the fuller picture, landing
+// the day before the final trial warning so the upgrade ask follows evidence
+// (#330). Unlike SendAnalyticsDigest this is scoped to the trial so far, not
+// a rolling 30 days, and it names what the owner would lose.
+func (c *Client) SendTrialWeekReport(to, businessName, dashboardURL string, stats *domain.SiteStats, daysLeft int) error {
+	statsRow := fmt.Sprintf(`<table width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;"><tr>%s%s</tr></table>`,
+		statTile(fmt.Sprintf("%d", stats.TotalViews), "Total visits"),
+		statTile(fmt.Sprintf("%d", stats.UniqueVisitors), "Unique visitors"))
+
+	var conversions string
+	if stats.TotalConversions() > 0 {
+		rows := statRow("Call taps", stats.CallTaps, true) +
+			statRow("WhatsApp taps", stats.WhatsAppTaps, false) +
+			statRow("Directions clicks", stats.DirectionsClicks, false) +
+			statRow("Leads", stats.Leads, false)
+		conversions = p(fmt.Sprintf("<strong>%d people</strong> tried to get in touch through your site this week.", stats.TotalConversions())) +
+			sectionLabel("Contacts") + infoCard(rows)
+	}
+
+	var referrers string
+	if len(stats.TopReferrers) > 0 {
+		rows := ""
+		for i, ref := range stats.TopReferrers {
+			label := ref.Referrer
+			if label == "" {
+				label = "Direct / unknown"
+			}
+			rows += statRow(html.EscapeString(label), ref.Count, i == 0)
+		}
+		referrers = sectionLabel("Where visitors came from") + infoCard(rows)
+	}
+
+	body := statsRow + conversions + referrers
+	if stats.TotalViews == 0 {
+		body = quietSiteAdvice()
+	}
+
+	urgency := fmt.Sprintf("%d days", daysLeft)
+	if daysLeft == 1 {
+		urgency = "1 day"
+	}
+	content := h1("Your first week, in numbers") +
+		p(fmt.Sprintf("Here's how <strong>%s</strong> has done since going live.", html.EscapeString(businessName))) +
+		body +
+		p(fmt.Sprintf("Your free trial ends in <strong>%s</strong>. Keeping the site online is £9/mo — everything above keeps running.", urgency)) +
+		button(dashboardURL, "Keep my site online") +
+		divider() +
+		p(`<span style="color:#94a3b8;font-size:13px;">You're getting this because your site is in its free trial. Questions? Just reply to this email.</span>`)
+	return c.sendBulk(to, fmt.Sprintf("Your first week in numbers - %s", businessName), wrap("Your site", content))
 }
 
 // SendTrialWarning links straight to the dashboard upgrade button — there is
