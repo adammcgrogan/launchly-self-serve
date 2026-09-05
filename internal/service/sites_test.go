@@ -90,3 +90,34 @@ func TestGuardPublishTransition(t *testing.T) {
 		}
 	}
 }
+
+// TestSiteCapAllows covers #338: Pro is sold as unlimited sites and one
+// subscription covers every one of them, so a paid Pro account must be able
+// to keep creating sites — the only ceiling is the abuse backstop. Before
+// this, Pro lifted the creation cap but each extra site started its own
+// trial and paused a week later.
+func TestSiteCapAllows(t *testing.T) {
+	tests := []struct {
+		name  string
+		count int
+		isPro bool
+		want  bool
+	}{
+		{"first site is always allowed", 0, false, true},
+		{"non-pro is capped at one site", 1, false, false},
+		{"pro can add a second site", 1, true, true},
+		{"pro well under the backstop", 20, true, true},
+		{"pro one below the backstop", domain.MaxProSites - 1, true, true},
+		{"pro at the backstop is blocked", domain.MaxProSites, true, false},
+		{"pro past the backstop is blocked", domain.MaxProSites + 5, true, false},
+		{"a pro account's first site is allowed", 0, true, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := siteCapAllows(tt.count, tt.isPro); got != tt.want {
+				t.Errorf("siteCapAllows(%d, %v) = %v, want %v", tt.count, tt.isPro, got, tt.want)
+			}
+		})
+	}
+}

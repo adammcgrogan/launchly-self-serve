@@ -11,6 +11,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/payment"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
+	"github.com/google/uuid"
 )
 
 // billingMailer is the subset of email.Client's methods billing.go calls.
@@ -56,33 +57,55 @@ func (b *Billing) invalidate(siteID int) {
 	}
 }
 
+// invalidateOwner is invalidate for every site an account owns. Billing is
+// per-account (#338), so one payment event changes the plan shown on all of
+// them — invalidating only the site that happened to be in hand would leave
+// the others serving a stale plan until the cache expired.
+func (b *Billing) invalidateOwner(ctx context.Context, ownerID uuid.UUID) {
+	if b.sites == nil {
+		return
+	}
+	ids, err := postgres.ListSiteIDsByOwner(ctx, b.store.DB(), ownerID)
+	if err != nil {
+		slog.Error("list sites for cache invalidation", "owner_user_id", ownerID, "error", err)
+		return
+	}
+	for _, id := range ids {
+		b.sites.invalidateAggregate(id)
+	}
+}
+
 // billingURL is the dashboard billing page for a site — where the billing
 // portal button lives, and so where every payment email points.
 func (b *Billing) billingURL(slug string) string {
 	return fmt.Sprintf("%s/dashboard/sites/%s/billing", b.baseURL, slug)
 }
 
-// CreateUpgradeCheckout starts a Stripe Checkout session for a site's plan
-// upgrade and records it as pending. If the site already has an active paid
+// CreateUpgradeCheckout starts a Stripe Checkout session for an account's
+// plan upgrade and records it as pending. One subscription covers every site
+// the account owns (#338). If the account already has an active paid
 // subscription, there's nothing to check out — the existing subscription is
 // changed in place instead, so a plan change never stacks a second Stripe
 // subscription and double-bills the customer.
-func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug string, plan domain.Plan, customerEmail string) (checkoutURL string, err error) {
+//
+// slug is only used to build the return URLs, so the customer lands back on
+// the site they started from.
+func (b *Billing) CreateUpgradeCheckout(ctx context.Context, ownerID uuid.UUID, slug string, plan domain.Plan, customerEmail string) (checkoutURL string, err error) {
 	successURL := fmt.Sprintf("%s/dashboard/sites/%s/upgraded", b.baseURL, slug)
 	cancelURL := fmt.Sprintf("%s/dashboard/sites/%s", b.baseURL, slug)
 
-	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)
+	billing, err := postgres.GetAccountBilling(ctx, b.store.DB(), ownerID)
 	if err != nil {
-		return "", fmt.Errorf("load site billing: %w", err)
+		return "", fmt.Errorf("load account billing: %w", err)
 	}
 	if billing != nil && billing.PaymentStatus == domain.PaymentStatusPaid && billing.StripeSubscriptionID != "" {
 		if err := b.pay.ChangeSubscriptionPlan(billing.StripeSubscriptionID, plan); err != nil {
 			return "", fmt.Errorf("change subscription plan: %w", err)
 		}
-		if err := b.setSitePlanAfterStripeChange(ctx, siteID, plan, billing.StripeSubscriptionID); err != nil {
+		if err := b.setAccountPlanAfterStripeChange(ctx, ownerID, plan, billing.StripeSubscriptionID); err != nil {
 			return "", fmt.Errorf("record plan change: %w", err)
 		}
-		b.invalidate(siteID)
+		b.invalidateOwner(ctx, ownerID)
 		return successURL, nil
 	}
 
@@ -94,27 +117,27 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug st
 	if err != nil {
 		return "", fmt.Errorf("create checkout session: %w", err)
 	}
-	if err := postgres.SetSitePending(ctx, b.store.DB(), siteID, plan, sessionID); err != nil {
+	if err := postgres.SetAccountPending(ctx, b.store.DB(), ownerID, plan, sessionID); err != nil {
 		return "", fmt.Errorf("record pending payment: %w", err)
 	}
-	b.invalidate(siteID)
+	b.invalidateOwner(ctx, ownerID)
 	return checkoutURL, nil
 }
 
-// ErrNoBillingCustomer means a site has no Stripe customer to open the
+// ErrNoBillingCustomer means an account has no Stripe customer to open the
 // billing portal against — it never completed a checkout, so there is no
 // card or invoice history to manage yet. Callers surface this as "upgrade
 // first" rather than a server error.
-var ErrNoBillingCustomer = errors.New("site has no stripe customer")
+var ErrNoBillingCustomer = errors.New("account has no stripe customer")
 
-// CreateBillingPortalSession opens a Stripe Billing Portal session for a
-// site's owner and returns the URL to redirect to. This is the self-serve
+// CreateBillingPortalSession opens a Stripe Billing Portal session for an
+// account and returns the URL to redirect to. This is the self-serve
 // path for updating a failing card (see #316) — before it existed, a
 // past-due customer's only options on the billing page were to email support
 // or cancel, so the dunning sequence ran to cancellation on customers who
 // wanted to keep paying.
-func (b *Billing) CreateBillingPortalSession(ctx context.Context, siteID int, slug string) (portalURL string, err error) {
-	customerID, err := b.stripeCustomerID(ctx, siteID)
+func (b *Billing) CreateBillingPortalSession(ctx context.Context, ownerID uuid.UUID, slug string) (portalURL string, err error) {
+	customerID, err := b.stripeCustomerID(ctx, ownerID)
 	if err != nil {
 		return "", err
 	}
@@ -122,15 +145,14 @@ func (b *Billing) CreateBillingPortalSession(ctx context.Context, siteID int, sl
 	return b.pay.CreateBillingPortalSession(customerID, returnURL)
 }
 
-// stripeCustomerID resolves a site's Stripe customer, backfilling it from
-// the subscription if it was never recorded. site_billing.stripe_customer_id
-// has existed since the initial schema but nothing wrote to it until #316,
-// so every site that subscribed before then has an empty one — and those are
-// exactly the customers whose card may now be failing.
-func (b *Billing) stripeCustomerID(ctx context.Context, siteID int) (string, error) {
-	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)
+// stripeCustomerID resolves an account's Stripe customer, backfilling it
+// from the subscription if it was never recorded — nothing wrote the column
+// until #316, so an account that subscribed before then has an empty one,
+// and those are exactly the customers whose card may now be failing.
+func (b *Billing) stripeCustomerID(ctx context.Context, ownerID uuid.UUID) (string, error) {
+	billing, err := postgres.GetAccountBilling(ctx, b.store.DB(), ownerID)
 	if err != nil {
-		return "", fmt.Errorf("load site billing: %w", err)
+		return "", fmt.Errorf("load account billing: %w", err)
 	}
 	if billing == nil {
 		return "", ErrNoBillingCustomer
@@ -147,23 +169,23 @@ func (b *Billing) stripeCustomerID(ctx context.Context, siteID int) (string, err
 	}
 	// A failure to persist isn't fatal — the portal still opens, it just
 	// costs another Stripe lookup next time.
-	if err := postgres.SetStripeCustomerID(ctx, b.store.DB(), siteID, customerID); err != nil {
-		slog.Error("persist backfilled stripe customer", "site_id", siteID, "error", err)
+	if err := postgres.SetStripeCustomerID(ctx, b.store.DB(), ownerID, customerID); err != nil {
+		slog.Error("persist backfilled stripe customer", "owner_user_id", ownerID, "error", err)
 	}
 	return customerID, nil
 }
 
-// setSitePlanAfterStripeChange persists a plan change once Stripe has already
-// committed it — that commit can't be cleanly undone, so a transient DB
-// failure here would otherwise leave site_billing.plan silently out of sync
-// with what the customer is actually being billed. A few retries absorb
+// setAccountPlanAfterStripeChange persists a plan change once Stripe has
+// already committed it — that commit can't be cleanly undone, so a transient
+// DB failure here would otherwise leave account_billing.plan silently out of
+// sync with what the customer is actually being billed. A few retries absorb
 // transient errors; if it still fails, this alerts at error level with
 // enough detail (site, subscription, target plan) for manual reconciliation.
-func (b *Billing) setSitePlanAfterStripeChange(ctx context.Context, siteID int, plan domain.Plan, subscriptionID string) error {
+func (b *Billing) setAccountPlanAfterStripeChange(ctx context.Context, ownerID uuid.UUID, plan domain.Plan, subscriptionID string) error {
 	const maxAttempts = 3
 	var err error
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		if err = postgres.SetSitePlan(ctx, b.store.DB(), siteID, plan); err == nil {
+		if err = postgres.SetAccountPlan(ctx, b.store.DB(), ownerID, plan); err == nil {
 			return nil
 		}
 		if attempt < maxAttempts {
@@ -171,11 +193,11 @@ func (b *Billing) setSitePlanAfterStripeChange(ctx context.Context, siteID int, 
 		}
 	}
 	slog.Error("stripe/db plan desync: subscription updated but db write failed after retries",
-		"site_id", siteID, "subscription_id", subscriptionID, "target_plan", plan, "error", err)
+		"owner_user_id", ownerID, "subscription_id", subscriptionID, "target_plan", plan, "error", err)
 	b.mailer.SendAdminAlert(
 		"hello@launchly.ltd",
 		"Stripe/DB plan desync needs manual reconciliation",
-		fmt.Sprintf("Site <strong>%d</strong> subscription <strong>%s</strong> was changed to <strong>%s</strong> in Stripe, but the local plan record failed to update after %d attempts: %v. site_billing.plan is now out of sync with Stripe and needs manual correction.", siteID, subscriptionID, plan, maxAttempts, err),
+		fmt.Sprintf("Account <strong>%s</strong> subscription <strong>%s</strong> was changed to <strong>%s</strong> in Stripe, but the local plan record failed to update after %d attempts: %v. account_billing.plan is now out of sync with Stripe and needs manual correction.", ownerID, subscriptionID, plan, maxAttempts, err),
 	)
 	return err
 }
@@ -237,28 +259,28 @@ func (b *Billing) handleCheckoutCompleted(ctx context.Context, event *payment.We
 	if event.SessionID == "" {
 		return nil
 	}
-	first, err := postgres.SetSitePaid(ctx, b.store.DB(), event.SessionID, event.SubscriptionID, event.CustomerID)
+	first, err := postgres.SetAccountPaid(ctx, b.store.DB(), event.SessionID, event.SubscriptionID, event.CustomerID)
 	if err != nil {
-		return fmt.Errorf("set site paid: %w", err)
+		return fmt.Errorf("set account paid: %w", err)
 	}
 	slog.Info("payment received", "session_id", event.SessionID, "first", first)
 	if !first {
 		return nil
 	}
 
-	billing, err := postgres.GetSiteBillingBySessionID(ctx, b.store.DB(), event.SessionID)
+	billing, err := postgres.GetAccountBillingBySessionID(ctx, b.store.DB(), event.SessionID)
 	if err != nil || billing == nil {
 		return err
 	}
-	b.invalidate(billing.SiteID)
-	site, to, err := resolveNotifyTarget(ctx, b.store, billing.SiteID)
+	// Paying brings back every site the account had paused for non-payment,
+	// not just one — the subscription covers the whole account (#338).
+	if err := postgres.ReactivateSitesByOwner(ctx, b.store.DB(), billing.OwnerUserID); err != nil {
+		slog.Error("reactivate paused sites", "owner_user_id", billing.OwnerUserID, "error", err)
+	}
+	b.invalidateOwner(ctx, billing.OwnerUserID)
+	site, to, err := resolveAccountNotifyTarget(ctx, b.store, billing.OwnerUserID)
 	if err != nil || site == nil {
 		return err
-	}
-	if site.Status == domain.SiteStatusPaused {
-		if err := postgres.SetSiteStatus(ctx, b.store.DB(), site.ID, domain.SiteStatusLive); err != nil {
-			slog.Error("reactivate paused site", "site_id", site.ID, "error", err)
-		}
 	}
 	if to == "" {
 		return nil
@@ -273,31 +295,32 @@ func (b *Billing) handleSubscriptionDeleted(ctx context.Context, event *payment.
 	if event.SubscriptionID == "" {
 		return nil
 	}
-	billing, err := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	billing, err := postgres.GetAccountBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
 	if err != nil {
-		slog.Error("lookup site billing by subscription id", "subscription_id", event.SubscriptionID, "error", err)
+		slog.Error("lookup account billing by subscription id", "subscription_id", event.SubscriptionID, "error", err)
 		b.mailer.SendAdminAlert(
 			"hello@launchly.ltd",
 			"Subscription cancellation lookup failed",
-			fmt.Sprintf("Looking up site billing for subscription <strong>%s</strong> failed: %v. The subscription was still marked cancelled, but the owner may not have been notified.", event.SubscriptionID, err),
+			fmt.Sprintf("Looking up account billing for subscription <strong>%s</strong> failed: %v. The subscription was still marked cancelled, but the owner may not have been notified.", event.SubscriptionID, err),
 		)
 	}
-	if err := postgres.SetSiteCancelled(ctx, b.store.DB(), event.SubscriptionID); err != nil {
-		return fmt.Errorf("set site cancelled: %w", err)
+	if err := postgres.SetAccountCancelled(ctx, b.store.DB(), event.SubscriptionID); err != nil {
+		return fmt.Errorf("set account cancelled: %w", err)
 	}
 	slog.Info("subscription cancelled", "subscription_id", event.SubscriptionID)
 	if billing == nil {
 		return nil
 	}
-	b.invalidate(billing.SiteID)
-	site, to, _ := resolveNotifyTarget(ctx, b.store, billing.SiteID)
+	// One subscription covers the account, so losing it takes every live site
+	// down together (#338) — that's the deal the customer agreed to, and the
+	// alternative is a paid-for account with silently unpaid sites.
+	if err := postgres.SetSitesPausedByOwner(ctx, b.store.DB(), billing.OwnerUserID); err != nil {
+		slog.Error("pause sites on subscription cancellation", "owner_user_id", billing.OwnerUserID, "error", err)
+	}
+	b.invalidateOwner(ctx, billing.OwnerUserID)
+	site, to, _ := resolveAccountNotifyTarget(ctx, b.store, billing.OwnerUserID)
 	if site == nil {
 		return nil
-	}
-	if site.Status == domain.SiteStatusLive {
-		if err := postgres.SetSiteStatus(ctx, b.store.DB(), site.ID, domain.SiteStatusPaused); err != nil {
-			slog.Error("pause site on subscription cancellation", "site_id", site.ID, "error", err)
-		}
 	}
 	if to != "" {
 		if err := b.mailer.SendCancellationConfirmation(to, site.BusinessName); err != nil {
@@ -323,37 +346,37 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 	if event.SubscriptionID == "" {
 		return nil
 	}
-	billing, err := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	billing, err := postgres.GetAccountBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
 	if err != nil {
-		slog.Error("lookup site billing by subscription id", "subscription_id", event.SubscriptionID, "error", err)
+		slog.Error("lookup account billing by subscription id", "subscription_id", event.SubscriptionID, "error", err)
 		b.mailer.SendAdminAlert(
 			"hello@launchly.ltd",
 			"Payment failure lookup failed",
-			fmt.Sprintf("Looking up site billing for subscription <strong>%s</strong> failed after a payment failure event: %v. The owner may not have been notified.", event.SubscriptionID, err),
+			fmt.Sprintf("Looking up account billing for subscription <strong>%s</strong> failed after a payment failure event: %v. The owner may not have been notified.", event.SubscriptionID, err),
 		)
 	}
 	slog.Warn("payment failed", "subscription_id", event.SubscriptionID)
 	if billing == nil {
 		return nil
 	}
-	first, err := postgres.SetSitePaymentFailed(ctx, b.store.DB(), event.SubscriptionID)
+	first, err := postgres.SetAccountPaymentFailed(ctx, b.store.DB(), event.SubscriptionID)
 	if err != nil {
-		return fmt.Errorf("set site payment failed: %w", err)
+		return fmt.Errorf("set account payment failed: %w", err)
 	}
 	if !first {
 		slog.Info("payment failed, already in dunning sequence", "subscription_id", event.SubscriptionID)
 		return nil
 	}
-	b.invalidate(billing.SiteID)
-	// A past-due site is the one that most needs the billing portal, so make
-	// sure the customer it opens against is on record before the dunning
+	b.invalidateOwner(ctx, billing.OwnerUserID)
+	// A past-due account is the one that most needs the billing portal, so
+	// make sure the customer it opens against is on record before the dunning
 	// emails start pointing people at it.
 	if event.CustomerID != "" && billing.StripeCustomerID == "" {
-		if err := postgres.SetStripeCustomerID(ctx, b.store.DB(), billing.SiteID, event.CustomerID); err != nil {
-			slog.Error("record stripe customer on payment failure", "site_id", billing.SiteID, "error", err)
+		if err := postgres.SetStripeCustomerID(ctx, b.store.DB(), billing.OwnerUserID, event.CustomerID); err != nil {
+			slog.Error("record stripe customer on payment failure", "owner_user_id", billing.OwnerUserID, "error", err)
 		}
 	}
-	site, to, _ := resolveNotifyTarget(ctx, b.store, billing.SiteID)
+	site, to, _ := resolveAccountNotifyTarget(ctx, b.store, billing.OwnerUserID)
 	if site == nil {
 		return nil
 	}
@@ -380,20 +403,20 @@ func (b *Billing) handlePaymentRecovered(ctx context.Context, event *payment.Web
 	if event.SubscriptionID == "" {
 		return nil
 	}
-	recovered, err := postgres.SetSitePaymentRecovered(ctx, b.store.DB(), event.SubscriptionID)
+	recovered, err := postgres.SetAccountPaymentRecovered(ctx, b.store.DB(), event.SubscriptionID)
 	if err != nil {
-		return fmt.Errorf("set site payment recovered: %w", err)
+		return fmt.Errorf("set account payment recovered: %w", err)
 	}
 	if !recovered {
 		return nil
 	}
 	slog.Info("payment recovered", "subscription_id", event.SubscriptionID)
-	billing, err := postgres.GetSiteBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
+	billing, err := postgres.GetAccountBillingBySubscriptionID(ctx, b.store.DB(), event.SubscriptionID)
 	if err != nil || billing == nil {
 		return err
 	}
-	b.invalidate(billing.SiteID)
-	site, to, err := resolveNotifyTarget(ctx, b.store, billing.SiteID)
+	b.invalidateOwner(ctx, billing.OwnerUserID)
+	site, to, err := resolveAccountNotifyTarget(ctx, b.store, billing.OwnerUserID)
 	if err != nil || site == nil {
 		return err
 	}
@@ -405,8 +428,12 @@ func (b *Billing) handlePaymentRecovered(ctx context.Context, event *payment.Web
 	return nil
 }
 
-func (b *Billing) CancelSubscription(ctx context.Context, siteID int) error {
-	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)
+// CancelSubscription cancels an account's subscription and takes every site
+// it owns offline. One subscription covers the whole account (#338), so this
+// is deliberately all-or-nothing — there is no way to stop paying for one
+// site while keeping another.
+func (b *Billing) CancelSubscription(ctx context.Context, ownerID uuid.UUID) error {
+	billing, err := postgres.GetAccountBilling(ctx, b.store.DB(), ownerID)
 	if err != nil {
 		return err
 	}
@@ -416,27 +443,33 @@ func (b *Billing) CancelSubscription(ctx context.Context, siteID int) error {
 	if err := b.pay.CancelSubscription(billing.StripeSubscriptionID); err != nil {
 		return err
 	}
-	if err := postgres.SetSiteCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID); err != nil {
+	if err := postgres.SetAccountCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID); err != nil {
 		return err
 	}
-	b.invalidate(siteID)
-	site, err := postgres.GetSiteByID(ctx, b.store.DB(), siteID)
-	if err != nil {
+	if err := postgres.SetSitesPausedByOwner(ctx, b.store.DB(), ownerID); err != nil {
 		return err
 	}
-	if site != nil && site.Status == domain.SiteStatusLive {
-		return postgres.SetSiteStatus(ctx, b.store.DB(), siteID, domain.SiteStatusPaused)
-	}
+	b.invalidateOwner(ctx, ownerID)
 	return nil
 }
 
-// CancelSubscriptionIfActive cancels a site's Stripe subscription if one
-// exists, and is a no-op (not an error) if the site was never upgraded — so
-// callers like Sites.Delete can call it unconditionally before a site (and
-// its billing row) disappears, instead of leaving an orphaned subscription
-// that keeps charging a customer for a site that no longer exists.
-func (b *Billing) CancelSubscriptionIfActive(ctx context.Context, siteID int) error {
-	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)
+// CancelSubscriptionIfLastSite cancels an account's Stripe subscription when
+// the site being deleted is the last one it owns, and is a no-op otherwise.
+// Sites.Delete calls it before removing a site: with per-account billing
+// (#338) deleting one of several sites must leave the subscription running
+// for the rest, but deleting the last one would otherwise keep charging a
+// customer with nothing left to pay for and no dashboard page to cancel from.
+//
+// siteID is still counted at this point, so "last site" means a count of 1.
+func (b *Billing) CancelSubscriptionIfLastSite(ctx context.Context, ownerID uuid.UUID) error {
+	count, err := postgres.CountSitesByOwner(ctx, b.store.DB(), ownerID)
+	if err != nil {
+		return err
+	}
+	if count > 1 {
+		return nil
+	}
+	billing, err := postgres.GetAccountBilling(ctx, b.store.DB(), ownerID)
 	if err != nil {
 		return err
 	}
@@ -446,5 +479,5 @@ func (b *Billing) CancelSubscriptionIfActive(ctx context.Context, siteID int) er
 	if err := b.pay.CancelSubscription(billing.StripeSubscriptionID); err != nil {
 		return err
 	}
-	return postgres.SetSiteCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID)
+	return postgres.SetAccountCancelled(ctx, b.store.DB(), billing.StripeSubscriptionID)
 }

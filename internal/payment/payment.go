@@ -96,7 +96,7 @@ func (c *Client) CreateBillingPortalSession(customerID, returnURL string) (porta
 }
 
 // SubscriptionCustomerID looks up the Stripe customer behind a subscription.
-// Used to backfill site_billing.stripe_customer_id for sites that subscribed
+// Used to backfill account_billing.stripe_customer_id for accounts that subscribed
 // before the ID was persisted — without it those customers, who are exactly
 // the ones who may need the portal, have no way into it.
 func (c *Client) SubscriptionCustomerID(subscriptionID string) (string, error) {

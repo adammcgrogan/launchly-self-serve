@@ -30,11 +30,12 @@ var (
 // through checkout so the reactivation actually resolves the unpaid trial.
 var ErrSitePaused = errors.New("your site is paused — upgrade to reactivate it.")
 
-// ErrSiteLimitReached is returned by CreateSite when an account with no
-// Pro-plan site tries to create more than one site. Plan is tracked per
-// site, not per account, so the cap is: Starter/trial accounts get 1 site;
-// having Pro on any existing site lifts the cap to unlimited.
-var ErrSiteLimitReached = errors.New("your plan is limited to 1 site — upgrade an existing site to Pro to add more.")
+// ErrSiteLimitReached is returned by CreateSite when an account without a
+// paid Pro plan tries to create more than one site. Plan is tracked per
+// account (#338), so the cap is: Starter/trial accounts get 1 site; a Pro
+// account gets as many as it likes on the one subscription, bounded only by
+// domain.MaxProSites as an abuse backstop.
+var ErrSiteLimitReached = errors.New("your plan is limited to 1 site — upgrade to Pro to build as many as you like, all on the one subscription.")
 
 var (
 	slugStripRe = regexp.MustCompile(`['\x60]`)
@@ -185,7 +186,11 @@ func (s *Sites) createSiteTx(ctx context.Context, in CreateSiteInput, slug strin
 		return 0, fmt.Errorf("create site: %w", err)
 	}
 
-	if err := postgres.CreateSiteBilling(ctx, tx, siteID, domain.PlanStarter); err != nil {
+	// Billing hangs off the account, not the site (#338): the first site an
+	// account creates opens its trial, and every later one inherits whatever
+	// plan the account is already on rather than starting a trial that would
+	// expire and pause it a week later.
+	if err := postgres.EnsureAccountBilling(ctx, tx, site.OwnerUserID, domain.PlanStarter); err != nil {
 		return 0, fmt.Errorf("create billing: %w", err)
 	}
 	in.Contact.SiteID = siteID
@@ -226,9 +231,10 @@ func (s *Sites) createSiteTx(ctx context.Context, in CreateSiteInput, slug strin
 	return siteID, nil
 }
 
-// canCreateSite enforces the per-account site cap: an account with no
-// Pro-plan site is limited to 1 site total; having Pro on any existing site
-// lifts the cap, since plan is tracked per site rather than per account. tx
+// canCreateSite enforces the per-account site cap: an account without a paid
+// Pro plan is limited to 1 site total, and a Pro account is limited only by
+// domain.MaxProSites — a backstop against abuse, not a plan limit (#338).
+// Every site a Pro account creates is covered by that one subscription. tx
 // must be the same transaction createSiteTx will insert on, and the caller
 // must have already taken LockOwnerForSiteCreate on it — otherwise this
 // count-then-check is racy across concurrent CreateSite calls (#214).
@@ -240,7 +246,23 @@ func (s *Sites) canCreateSite(ctx context.Context, tx *sql.Tx, ownerID uuid.UUID
 	if count == 0 {
 		return true, nil
 	}
-	return postgres.OwnerHasProSite(ctx, tx, ownerID)
+	isPro, err := postgres.OwnerHasProPlan(ctx, tx, ownerID)
+	if err != nil {
+		return false, err
+	}
+	return siteCapAllows(count, isPro), nil
+}
+
+// siteCapAllows is the cap rule itself, pulled out of canCreateSite so it's
+// unit-testable without a database (same reason as guardPublishTransition).
+// A non-Pro account gets 1 site; a Pro account gets domain.MaxProSites, which
+// is an abuse backstop rather than a plan limit — Pro is sold as unlimited
+// sites and one subscription covers all of them (#338).
+func siteCapAllows(count int, isPro bool) bool {
+	if !isPro {
+		return count == 0
+	}
+	return count < domain.MaxProSites
 }
 
 func (s *Sites) uniqueSlug(ctx context.Context, businessName string) (string, error) {
@@ -394,19 +416,24 @@ func (s *Sites) Unpublish(ctx context.Context, siteID int, actor string) error {
 	return err
 }
 
-// Delete removes a site and, if it had an active paid subscription,
-// cancels it in Stripe first — otherwise the customer keeps being billed
-// for a site that no longer exists, with no dashboard page left to cancel
-// it from themselves. actor identifies who triggered it (ActorOwner or
+// Delete removes a site and, if it was the account's last one and had an
+// active paid subscription, cancels it in Stripe first — otherwise the
+// customer keeps being billed with nothing left to pay for and no dashboard
+// page to cancel it from themselves. actor identifies who triggered it (ActorOwner or
 // ActorSuperadmin) so the log line can distinguish an owner's self-service
 // deletion from a superadmin's abuse-handling intervention.
 func (s *Sites) Delete(ctx context.Context, siteID int, actor string) error {
-	if err := s.billing.CancelSubscriptionIfActive(ctx, siteID); err != nil {
-		return fmt.Errorf("cancel subscription: %w", err)
-	}
 	site, err := postgres.GetSiteByID(ctx, s.store.DB(), siteID)
 	if err != nil {
 		return fmt.Errorf("load site: %w", err)
+	}
+	// Billing is per-account (#338): only cancel when this is the account's
+	// last site, or deleting one of several would stop the others being paid
+	// for.
+	if site != nil {
+		if err := s.billing.CancelSubscriptionIfLastSite(ctx, site.OwnerUserID); err != nil {
+			return fmt.Errorf("cancel subscription: %w", err)
+		}
 	}
 	if site != nil && site.CustomDomainCFID != "" {
 		if err := s.cf.DeleteCustomHostname(ctx, site.CustomDomainCFID); err != nil {

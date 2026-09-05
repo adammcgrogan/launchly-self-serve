@@ -261,7 +261,7 @@ var e164Re = regexp.MustCompile(`^\+[1-9]\d{6,14}$`)
 // owner can still turn it off.
 func (s *Sites) UpdateNotifySettings(ctx context.Context, siteID int, mobileNumber string, enabled bool) error {
 	if enabled {
-		billing, err := postgres.GetSiteBilling(ctx, s.store.DB(), siteID)
+		billing, err := postgres.GetAccountBillingBySiteID(ctx, s.store.DB(), siteID)
 		if err != nil {
 			return err
 		}

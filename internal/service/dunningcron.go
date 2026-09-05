@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
+	"github.com/google/uuid"
 )
 
 // advisoryLockDunningCron serializes the dunning sweep across server
@@ -16,7 +17,7 @@ import (
 // sweeps don't needlessly serialize against each other.
 const advisoryLockDunningCron = 8735102
 
-// Dunning schedule, anchored to site_billing.payment_failed_at (the moment a
+// Dunning schedule, anchored to account_billing.payment_failed_at (the moment a
 // payment first failed for a subscription — see Billing.handlePaymentFailed
 // / postgres.SetSitePaymentFailed). This is independent of how many times
 // Stripe itself retries the underlying charge, so the sequence always
@@ -47,9 +48,9 @@ func (c *Cron) sendDueDunningReminders() {
 			{"final_warning", dunningFinalWarningDelay},
 		}
 		for _, stage := range stages {
-			ids, err := postgres.GetSiteIDsDueForDunningReminder(ctx, conn, stage.kind, stage.delay)
+			ids, err := postgres.GetOwnerIDsDueForDunningReminder(ctx, conn, stage.kind, stage.delay)
 			if err != nil {
-				slog.Error("dunning cron: list sites", "kind", stage.kind, "error", err)
+				slog.Error("dunning cron: list accounts", "kind", stage.kind, "error", err)
 				continue
 			}
 			for _, id := range ids {
@@ -59,16 +60,16 @@ func (c *Cron) sendDueDunningReminders() {
 	})
 }
 
-func (c *Cron) sendDunningStage(ctx context.Context, conn *sql.Conn, siteID int, kind string) {
-	site, err := postgres.GetSiteByID(ctx, conn, siteID)
-	if err != nil || site == nil {
-		return
-	}
-	billing, err := postgres.GetSiteBilling(ctx, conn, siteID)
+func (c *Cron) sendDunningStage(ctx context.Context, conn *sql.Conn, ownerID uuid.UUID, kind string) {
+	billing, err := postgres.GetAccountBilling(ctx, conn, ownerID)
 	if err != nil || billing == nil || billing.PaymentFailedAt == nil {
 		return
 	}
-	contact, err := postgres.GetSiteContact(ctx, conn, siteID)
+	site, err := postgres.GetPrimarySiteByOwner(ctx, conn, ownerID)
+	if err != nil || site == nil {
+		return
+	}
+	contact, err := postgres.GetSiteContact(ctx, conn, site.ID)
 	if err != nil {
 		return
 	}
@@ -76,7 +77,7 @@ func (c *Cron) sendDunningStage(ctx context.Context, conn *sql.Conn, siteID int,
 	if contact != nil {
 		contactEmail = contact.Email
 	}
-	to := notifyEmail(ctx, c.store, site.OwnerUserID, contactEmail)
+	to := notifyEmail(ctx, c.store, ownerID, contactEmail)
 	if to == "" {
 		return
 	}
@@ -97,40 +98,36 @@ func (c *Cron) sendDunningStage(ctx context.Context, conn *sql.Conn, siteID int,
 		slog.Error("dunning cron: send reminder", "slug", site.Slug, "kind", kind, "error", sendErr)
 		return
 	}
-	if err := postgres.MarkDunningReminderSent(ctx, conn, siteID, kind); err != nil {
+	if err := postgres.MarkDunningReminderSent(ctx, conn, ownerID, kind); err != nil {
 		slog.Error("dunning cron: mark sent", "slug", site.Slug, "kind", kind, "error", err)
 		return
 	}
 	slog.Info("dunning reminder sent", "slug", site.Slug, "kind", kind)
 }
 
-// cancelOverdueDunningSites cancels the subscription for any site that's
-// still past due a full day after its final warning — the customer had the
-// entire escalating sequence (day 1, day 3, day 7, plus this extra day) to
-// fix payment and didn't. Cancellation goes through Billing.CancelSubscription
+// cancelOverdueDunningSites cancels the subscription for any account still
+// past due a full day after its final warning — the customer had the entire
+// escalating sequence (day 1, day 3, day 7, plus this extra day) to fix
+// payment and didn't. Cancellation goes through Billing.CancelSubscription
 // so it's identical to a self-serve cancel: Stripe's own
-// customer.subscription.deleted webhook is what actually marks the site
-// cancelled/paused and sends the cancellation email
+// customer.subscription.deleted webhook is what actually marks the account
+// cancelled, pauses its sites and sends the cancellation email
 // (Billing.handleSubscriptionDeleted) — this just triggers it, rather than
 // duplicating that bookkeeping and risking a double-sent email.
 func (c *Cron) cancelOverdueDunningSites() {
 	ctx := context.Background()
 	c.withAdvisoryLock(ctx, advisoryLockDunningCron, func(conn *sql.Conn) {
-		ids, err := postgres.GetSiteIDsDueForDunningCancellation(ctx, conn, dunningCancelDelay)
+		ids, err := postgres.GetOwnerIDsDueForDunningCancellation(ctx, conn, dunningCancelDelay)
 		if err != nil {
-			slog.Error("dunning cron: list sites due for cancellation", "error", err)
+			slog.Error("dunning cron: list accounts due for cancellation", "error", err)
 			return
 		}
-		for _, id := range ids {
-			site, err := postgres.GetSiteByID(ctx, conn, id)
-			if err != nil || site == nil {
+		for _, ownerID := range ids {
+			if err := c.billing.CancelSubscription(ctx, ownerID); err != nil {
+				slog.Error("dunning cron: cancel overdue subscription", "owner_user_id", ownerID, "error", err)
 				continue
 			}
-			if err := c.billing.CancelSubscription(ctx, id); err != nil {
-				slog.Error("dunning cron: cancel overdue subscription", "slug", site.Slug, "error", err)
-				continue
-			}
-			slog.Info("dunning cron: cancelled overdue subscription", "slug", site.Slug)
+			slog.Info("dunning cron: cancelled overdue subscription", "owner_user_id", ownerID)
 		}
 	})
 }

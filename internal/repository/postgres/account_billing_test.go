@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
 )
 
 func newMockDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
@@ -19,10 +20,10 @@ func newMockDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	return db, mock
 }
 
-func TestGetSitesDueForTrialReminder_UnknownKind_ReturnsErrorWithoutQuerying(t *testing.T) {
+func TestGetAccountsDueForTrialReminder_UnknownKind_ReturnsErrorWithoutQuerying(t *testing.T) {
 	db, mock := newMockDB(t)
 
-	_, err := GetSitesDueForTrialReminder(context.Background(), db, "bogus")
+	_, err := GetAccountsDueForTrialReminder(context.Background(), db, "bogus")
 	if err == nil {
 		t.Fatal("expected an error for an unknown reminder kind")
 	}
@@ -31,12 +32,12 @@ func TestGetSitesDueForTrialReminder_UnknownKind_ReturnsErrorWithoutQuerying(t *
 	}
 }
 
-// TestGetSitesDueForTrialReminder_KindSelectsCorrectColumnAndWindow checks
+// TestGetAccountsDueForTrialReminder_KindSelectsCorrectColumnAndWindow checks
 // that each reminder kind checks its own sent-at column (so "first" and
 // "final" are independent, per-stage flags rather than a shared one — see
 // #198) and its own due window, and that both kinds still exclude sites
 // that are already paid or cancelled.
-func TestGetSitesDueForTrialReminder_KindSelectsCorrectColumnAndWindow(t *testing.T) {
+func TestGetAccountsDueForTrialReminder_KindSelectsCorrectColumnAndWindow(t *testing.T) {
 	tests := []struct {
 		kind       string
 		wantColumn string
@@ -44,22 +45,23 @@ func TestGetSitesDueForTrialReminder_KindSelectsCorrectColumnAndWindow(t *testin
 	}{
 		{"first", "trial_reminder_sent_at", "INTERVAL '3 days'"},
 		{"final", "trial_final_reminder_sent_at", "INTERVAL '1 day'"},
-		{"report", "sb.trial_report_sent_at", "INTERVAL '2 days'"},
+		{"report", "ab.trial_report_sent_at", "INTERVAL '2 days'"},
 		{"report_early", "trial_early_report_sent_at", "INTERVAL '4 days'"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.kind, func(t *testing.T) {
 			db, mock := newMockDB(t)
+			ownerID := uuid.New()
 			trialEndsAt := time.Now().UTC().Add(20 * time.Hour)
 
 			mock.ExpectQuery(tt.wantColumn + " IS NULL").
-				WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "trial_ends_at", "timezone", "notify_email"}).
-					AddRow(1, "acme", "Acme Co", trialEndsAt, "Europe/London", "owner@acme.test"))
+				WillReturnRows(sqlmock.NewRows([]string{"owner_user_id", "id", "slug", "business_name", "trial_ends_at", "timezone", "notify_email"}).
+					AddRow(ownerID, 1, "acme", "Acme Co", trialEndsAt, "Europe/London", "owner@acme.test"))
 
-			due, err := GetSitesDueForTrialReminder(context.Background(), db, tt.kind)
+			due, err := GetAccountsDueForTrialReminder(context.Background(), db, tt.kind)
 			if err != nil {
-				t.Fatalf("GetSitesDueForTrialReminder: %v", err)
+				t.Fatalf("GetAccountsDueForTrialReminder: %v", err)
 			}
 			if len(due) != 1 || due[0].SiteID != 1 || due[0].Slug != "acme" || due[0].NotifyEmail != "owner@acme.test" {
 				t.Fatalf("due = %+v", due)
@@ -74,17 +76,17 @@ func TestGetSitesDueForTrialReminder_KindSelectsCorrectColumnAndWindow(t *testin
 	}
 }
 
-func TestGetSitesDueForTrialReminder_ExcludesPaidAndCancelled(t *testing.T) {
+func TestGetAccountsDueForTrialReminder_ExcludesPaidAndCancelled(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	// Assert the query text itself carries the payment_status exclusion —
 	// a paid or cancelled site must never be selected as due, regardless of
 	// trial_ends_at.
 	mock.ExpectQuery(`payment_status NOT IN \('paid', 'cancelled'\)`).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "trial_ends_at", "notify_email"}))
+		WillReturnRows(sqlmock.NewRows([]string{"owner_user_id", "id", "slug", "business_name", "trial_ends_at", "timezone", "notify_email"}))
 
-	if _, err := GetSitesDueForTrialReminder(context.Background(), db, "first"); err != nil {
-		t.Fatalf("GetSitesDueForTrialReminder: %v", err)
+	if _, err := GetAccountsDueForTrialReminder(context.Background(), db, "first"); err != nil {
+		t.Fatalf("GetAccountsDueForTrialReminder: %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)
@@ -92,16 +94,18 @@ func TestGetSitesDueForTrialReminder_ExcludesPaidAndCancelled(t *testing.T) {
 }
 
 // TestGetSitesDueForTrialPause_FiltersLiveAndUnpaid checks that the pause
-// query's WHERE clause excludes paid sites and non-live sites — a paid site
-// or one that's already draft/paused must never come back as due for pause.
+// query's WHERE clause excludes accounts that are paid and sites that aren't
+// live — a paid account's site, or one that's already draft/paused, must
+// never come back as due for pause.
 func TestGetSitesDueForTrialPause_FiltersLiveAndUnpaid(t *testing.T) {
 	db, mock := newMockDB(t)
+	ownerID := uuid.New()
 	cutoff := time.Now().UTC()
 
 	mock.ExpectQuery(`payment_status != 'paid'[\s\S]*s\.status = 'live'`).
 		WithArgs(cutoff).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "notify_email"}).
-			AddRow(2, "beta", "Beta Co", "owner@beta.test"))
+		WillReturnRows(sqlmock.NewRows([]string{"owner_user_id", "id", "slug", "business_name", "notify_email"}).
+			AddRow(ownerID, 2, "beta", "Beta Co", "owner@beta.test"))
 
 	due, err := GetSitesDueForTrialPause(context.Background(), db, cutoff)
 	if err != nil {
@@ -118,7 +122,7 @@ func TestGetSitesDueForTrialPause_FiltersLiveAndUnpaid(t *testing.T) {
 func TestMarkTrialReminderSent_UnknownKind_ReturnsErrorWithoutQuerying(t *testing.T) {
 	db, mock := newMockDB(t)
 
-	if err := MarkTrialReminderSent(context.Background(), db, 1, "bogus"); err == nil {
+	if err := MarkTrialReminderSent(context.Background(), db, uuid.New(), "bogus"); err == nil {
 		t.Fatal("expected an error for an unknown reminder kind")
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -133,17 +137,20 @@ func TestMarkTrialReminderSent_UpdatesColumnPerKind(t *testing.T) {
 	}{
 		{"first", "trial_reminder_sent_at"},
 		{"final", "trial_final_reminder_sent_at"},
+		{"report_early", "trial_early_report_sent_at"},
+		{"report", "trial_report_sent_at"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.kind, func(t *testing.T) {
 			db, mock := newMockDB(t)
+			ownerID := uuid.New()
 
-			mock.ExpectExec("UPDATE site_billing SET " + tt.wantColumn).
-				WithArgs(5).
+			mock.ExpectExec("UPDATE account_billing SET " + tt.wantColumn).
+				WithArgs(ownerID).
 				WillReturnResult(sqlmock.NewResult(0, 1))
 
-			if err := MarkTrialReminderSent(context.Background(), db, 5, tt.kind); err != nil {
+			if err := MarkTrialReminderSent(context.Background(), db, ownerID, tt.kind); err != nil {
 				t.Fatalf("MarkTrialReminderSent: %v", err)
 			}
 			if err := mock.ExpectationsWereMet(); err != nil {

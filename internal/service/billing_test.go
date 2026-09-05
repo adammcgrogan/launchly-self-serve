@@ -95,29 +95,37 @@ func contactRows(email string) *sqlmock.Rows {
 		AddRow("", email, "", "", "", "")
 }
 
-func billingRows(siteID int, plan domain.Plan) *sqlmock.Rows {
+func billingRows(ownerID uuid.UUID, plan domain.Plan) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
-		"site_id", "plan", "payment_status", "stripe_customer_id", "stripe_session_id", "stripe_subscription_id",
+		"owner_user_id", "plan", "payment_status", "stripe_customer_id", "stripe_session_id", "stripe_subscription_id",
 		"paid_at", "trial_ends_at", "trial_reminder_sent_at", "trial_final_reminder_sent_at",
 		"payment_failed_at", "dunning_reminder_1_sent_at", "dunning_reminder_2_sent_at", "dunning_final_warning_sent_at",
-	}).AddRow(siteID, string(plan), "pending", "", "sess1", "", nil, nil, nil, nil, nil, nil, nil, nil)
+	}).AddRow(ownerID, string(plan), "pending", "", "sess1", "", nil, nil, nil, nil, nil, nil, nil, nil)
 }
 
-func TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSiteAndNotifies(t *testing.T) {
+// TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSitesAndNotifies
+// covers #338: one subscription covers the whole account, so paying brings
+// back every site the account had paused for non-payment — the reactivation
+// is keyed on owner_user_id, not on one site id.
+func TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSitesAndNotifies(t *testing.T) {
 	b, mock, mailer := newTestBilling(t)
 	ownerID := uuid.New()
 
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'paid'").
 		WithArgs(sqlmock.AnyArg(), "sub1", "sess1", "cus1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectQuery("FROM site_billing WHERE stripe_session_id").
+	mock.ExpectQuery("FROM account_billing WHERE stripe_session_id").
 		WithArgs("sess1").
-		WillReturnRows(billingRows(42, domain.PlanStarter))
-	mock.ExpectQuery("FROM sites WHERE id").
-		WithArgs(42).
+		WillReturnRows(billingRows(ownerID, domain.PlanStarter))
+	// Two sites come back live off one payment.
+	mock.ExpectExec("UPDATE sites SET status = 'live'").
+		WithArgs(ownerID).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectQuery("FROM sites WHERE owner_user_id").
+		WithArgs(ownerID).
 		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusPaused))
 	mock.ExpectQuery("FROM site_contact WHERE site_id").
 		WithArgs(42).
@@ -125,9 +133,6 @@ func TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSiteAndNotifies(t
 	mock.ExpectQuery("FROM profiles").
 		WithArgs(ownerID).
 		WillReturnError(sql.ErrNoRows)
-	mock.ExpectExec("UPDATE sites SET status = 'live'").
-		WithArgs(42).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	event := &payment.WebhookEvent{ID: "evt1", Type: "checkout.session.completed", SessionID: "sess1", SubscriptionID: "sub1", CustomerID: "cus1"}
 	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
@@ -148,9 +153,9 @@ func TestHandleWebhookEvent_CheckoutCompleted_RepeatDelivery_NoDoubleNotify(t *t
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	// SetSitePaid affects 0 rows: the site was already marked paid by an
-	// earlier delivery of this same event.
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
+	// SetAccountPaid affects 0 rows: the account was already marked paid by
+	// an earlier delivery of this same event.
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'paid'").
 		WithArgs(sqlmock.AnyArg(), "sub1", "sess1", "cus1").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -191,21 +196,28 @@ func TestHandleWebhookEvent_DuplicateDeliveryAlreadyProcessed_IsNoop(t *testing.
 	}
 }
 
-func TestHandleWebhookEvent_SubscriptionDeleted_PausesLiveSiteAndNotifies(t *testing.T) {
+// TestHandleWebhookEvent_SubscriptionDeleted_PausesAllSitesAndNotifies covers
+// #338: the subscription is the account's, so losing it pauses every live
+// site together rather than one.
+func TestHandleWebhookEvent_SubscriptionDeleted_PausesAllSitesAndNotifies(t *testing.T) {
 	b, mock, mailer := newTestBilling(t)
 	ownerID := uuid.New()
 
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt2").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
+	mock.ExpectQuery("FROM account_billing WHERE stripe_subscription_id").
 		WithArgs("sub1").
-		WillReturnRows(billingRows(42, domain.PlanPro))
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'cancelled'").
+		WillReturnRows(billingRows(ownerID, domain.PlanPro))
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'cancelled'").
 		WithArgs("sub1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery("FROM sites WHERE id").
-		WithArgs(42).
+	// Three sites go down on the one cancellation.
+	mock.ExpectExec("UPDATE sites SET status = 'paused'").
+		WithArgs(ownerID).
+		WillReturnResult(sqlmock.NewResult(0, 3))
+	mock.ExpectQuery("FROM sites WHERE owner_user_id").
+		WithArgs(ownerID).
 		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusLive))
 	mock.ExpectQuery("FROM site_contact WHERE site_id").
 		WithArgs(42).
@@ -213,9 +225,6 @@ func TestHandleWebhookEvent_SubscriptionDeleted_PausesLiveSiteAndNotifies(t *tes
 	mock.ExpectQuery("FROM profiles").
 		WithArgs(ownerID).
 		WillReturnError(sql.ErrNoRows)
-	mock.ExpectExec("UPDATE sites SET status = 'paused'").
-		WithArgs(42).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	event := &payment.WebhookEvent{ID: "evt2", Type: "customer.subscription.deleted", SubscriptionID: "sub1"}
 	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
@@ -240,14 +249,14 @@ func TestHandleWebhookEvent_PaymentFailed_NotifiesOwnerAndAdmin(t *testing.T) {
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt3").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
+	mock.ExpectQuery("FROM account_billing WHERE stripe_subscription_id").
 		WithArgs("sub1").
-		WillReturnRows(billingRows(42, domain.PlanPro))
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'past_due'").
+		WillReturnRows(billingRows(ownerID, domain.PlanPro))
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'past_due'").
 		WithArgs("sub1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery("FROM sites WHERE id").
-		WithArgs(42).
+	mock.ExpectQuery("FROM sites WHERE owner_user_id").
+		WithArgs(ownerID).
 		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusLive))
 	mock.ExpectQuery("FROM site_contact WHERE site_id").
 		WithArgs(42).
@@ -275,21 +284,21 @@ func TestHandleWebhookEvent_PaymentFailed_NotifiesOwnerAndAdmin(t *testing.T) {
 	}
 }
 
-func TestHandleWebhookEvent_PaymentSucceeded_RecoversPastDueSiteAndNotifies(t *testing.T) {
+func TestHandleWebhookEvent_PaymentSucceeded_RecoversPastDueAccountAndNotifies(t *testing.T) {
 	b, mock, mailer := newTestBilling(t)
 	ownerID := uuid.New()
 
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt5").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'paid'").
 		WithArgs("sub1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
+	mock.ExpectQuery("FROM account_billing WHERE stripe_subscription_id").
 		WithArgs("sub1").
-		WillReturnRows(billingRows(42, domain.PlanPro))
-	mock.ExpectQuery("FROM sites WHERE id").
-		WithArgs(42).
+		WillReturnRows(billingRows(ownerID, domain.PlanPro))
+	mock.ExpectQuery("FROM sites WHERE owner_user_id").
+		WithArgs(ownerID).
 		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusLive))
 	mock.ExpectQuery("FROM site_contact WHERE site_id").
 		WithArgs(42).
@@ -317,9 +326,9 @@ func TestHandleWebhookEvent_PaymentSucceeded_NotPastDue_NoopNoNotify(t *testing.
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt6").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	// SetSitePaymentRecovered affects 0 rows: the site wasn't 'past_due', so
-	// this is a routine renewal invoice, not a recovery.
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
+	// SetAccountPaymentRecovered affects 0 rows: the account wasn't
+	// 'past_due', so this is a routine renewal invoice, not a recovery.
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'paid'").
 		WithArgs("sub1").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -362,14 +371,15 @@ func TestHandleWebhookEvent_UnknownEventType_ClaimsButDoesNothing(t *testing.T) 
 
 func TestHandleWebhookEvent_ProcessingFailure_ReleasesClaimForRetry(t *testing.T) {
 	b, mock, _ := newTestBilling(t)
+	ownerID := uuid.New()
 
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt4").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
+	mock.ExpectQuery("FROM account_billing WHERE stripe_subscription_id").
 		WithArgs("sub1").
-		WillReturnRows(billingRows(42, domain.PlanPro))
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'cancelled'").
+		WillReturnRows(billingRows(ownerID, domain.PlanPro))
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'cancelled'").
 		WithArgs("sub1").
 		WillReturnError(sql.ErrConnDone)
 	// The claim taken above must be released so Stripe's automatic retry
@@ -388,18 +398,19 @@ func TestHandleWebhookEvent_ProcessingFailure_ReleasesClaimForRetry(t *testing.T
 	}
 }
 
-func TestSetSitePlanAfterStripeChange_SucceedsOnRetry(t *testing.T) {
+func TestSetAccountPlanAfterStripeChange_SucceedsOnRetry(t *testing.T) {
 	b, mock, mailer := newTestBilling(t)
+	ownerID := uuid.New()
 
-	mock.ExpectExec("UPDATE site_billing SET plan").
-		WithArgs("pro", 42).
+	mock.ExpectExec("UPDATE account_billing SET plan").
+		WithArgs("pro", ownerID).
 		WillReturnError(sql.ErrConnDone)
-	mock.ExpectExec("UPDATE site_billing SET plan").
-		WithArgs("pro", 42).
+	mock.ExpectExec("UPDATE account_billing SET plan").
+		WithArgs("pro", ownerID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	if err := b.setSitePlanAfterStripeChange(context.Background(), 42, domain.PlanPro, "sub1"); err != nil {
-		t.Fatalf("setSitePlanAfterStripeChange: %v", err)
+	if err := b.setAccountPlanAfterStripeChange(context.Background(), ownerID, domain.PlanPro, "sub1"); err != nil {
+		t.Fatalf("setAccountPlanAfterStripeChange: %v", err)
 	}
 	if len(mailer.adminAlerts) != 0 {
 		t.Errorf("expected no alert when a retry succeeds, got %v", mailer.adminAlerts)
@@ -409,16 +420,17 @@ func TestSetSitePlanAfterStripeChange_SucceedsOnRetry(t *testing.T) {
 	}
 }
 
-func TestSetSitePlanAfterStripeChange_AlertsAfterExhaustingRetries(t *testing.T) {
+func TestSetAccountPlanAfterStripeChange_AlertsAfterExhaustingRetries(t *testing.T) {
 	b, mock, mailer := newTestBilling(t)
+	ownerID := uuid.New()
 
 	for i := 0; i < 3; i++ {
-		mock.ExpectExec("UPDATE site_billing SET plan").
-			WithArgs("pro", 42).
+		mock.ExpectExec("UPDATE account_billing SET plan").
+			WithArgs("pro", ownerID).
 			WillReturnError(sql.ErrConnDone)
 	}
 
-	err := b.setSitePlanAfterStripeChange(context.Background(), 42, domain.PlanPro, "sub1")
+	err := b.setAccountPlanAfterStripeChange(context.Background(), ownerID, domain.PlanPro, "sub1")
 	if err == nil {
 		t.Fatal("expected an error after exhausting all retries")
 	}
@@ -431,9 +443,9 @@ func TestSetSitePlanAfterStripeChange_AlertsAfterExhaustingRetries(t *testing.T)
 }
 
 // TestHandleWebhookEvent_PaymentFailed_RecordsStripeCustomer covers #316: a
-// past-due site is the one that most needs the billing portal, so the
+// past-due account is the one that most needs the billing portal, so the
 // customer the portal opens against is recorded off the failure event when
-// site_billing doesn't already have one.
+// account_billing doesn't already have one.
 func TestHandleWebhookEvent_PaymentFailed_RecordsStripeCustomer(t *testing.T) {
 	b, mock, _ := newTestBilling(t)
 	ownerID := uuid.New()
@@ -441,17 +453,17 @@ func TestHandleWebhookEvent_PaymentFailed_RecordsStripeCustomer(t *testing.T) {
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt-cus").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
+	mock.ExpectQuery("FROM account_billing WHERE stripe_subscription_id").
 		WithArgs("sub1").
-		WillReturnRows(billingRows(42, domain.PlanPro))
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'past_due'").
+		WillReturnRows(billingRows(ownerID, domain.PlanPro))
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'past_due'").
 		WithArgs("sub1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec("UPDATE site_billing SET stripe_customer_id").
-		WithArgs("cus1", 42).
+	mock.ExpectExec("UPDATE account_billing SET stripe_customer_id").
+		WithArgs("cus1", ownerID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery("FROM sites WHERE id").
-		WithArgs(42).
+	mock.ExpectQuery("FROM sites WHERE owner_user_id").
+		WithArgs(ownerID).
 		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusLive))
 	mock.ExpectQuery("FROM site_contact WHERE site_id").
 		WithArgs(42).
@@ -476,12 +488,13 @@ func TestHandleWebhookEvent_PaymentFailed_RecordsStripeCustomer(t *testing.T) {
 // Stripe at all.
 func TestCreateBillingPortalSession_NoCustomer_ReturnsSentinel(t *testing.T) {
 	b, mock, _ := newTestBilling(t)
+	ownerID := uuid.New()
 
-	mock.ExpectQuery("FROM site_billing WHERE site_id").
-		WithArgs(42).
-		WillReturnRows(billingRows(42, domain.PlanStarter))
+	mock.ExpectQuery("FROM account_billing WHERE owner_user_id").
+		WithArgs(ownerID).
+		WillReturnRows(billingRows(ownerID, domain.PlanStarter))
 
-	_, err := b.CreateBillingPortalSession(context.Background(), 42, "test-site")
+	_, err := b.CreateBillingPortalSession(context.Background(), ownerID, "test-site")
 	if !errors.Is(err, ErrNoBillingCustomer) {
 		t.Errorf("err = %v, want ErrNoBillingCustomer", err)
 	}

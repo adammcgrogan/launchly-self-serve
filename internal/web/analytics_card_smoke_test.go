@@ -55,6 +55,7 @@ func TestSiteSectionsRender(t *testing.T) {
 			"ChartPoints": []dailyViewPoint{{Label: "Mon", Date: "1 Jan", Count: 3, HeightPx: 40}},
 			"Checklist":   nil, "Design": siteTemplates[0],
 		},
+		"billing": {"SiteCount": 1, "MaxProSites": domain.MaxProSites},
 		"content": {"UploadsAvailable": true},
 		"design":  {"Design": siteTemplates[0], "Templates": siteTemplates, "Palettes": siteTemplates[0].Palettes},
 		"domain":  {"Domain": "launchly.ltd", "DomainData": map[string]any{"IsPro": false, "FallbackOrigin": "origin.launchly.ltd"}},

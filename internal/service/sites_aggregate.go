@@ -39,7 +39,7 @@ func (s *Sites) loadSiteAggregate(ctx context.Context, id int) (*domain.SiteAggr
 
 	var (
 		contact        *domain.SiteContact
-		billing        *domain.SiteBilling
+		billing        *domain.AccountBilling
 		analytics      *domain.SiteAnalyticsSettings
 		notify         *domain.SiteNotifySettings
 		announcement   *domain.SiteAnnouncement
@@ -58,7 +58,7 @@ func (s *Sites) loadSiteAggregate(ctx context.Context, id int) (*domain.SiteAggr
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() (err error) { contact, err = postgres.GetSiteContact(gctx, q, id); return })
-	g.Go(func() (err error) { billing, err = postgres.GetSiteBilling(gctx, q, id); return })
+	g.Go(func() (err error) { billing, err = postgres.GetAccountBillingBySiteID(gctx, q, id); return })
 	g.Go(func() (err error) { analytics, err = postgres.GetSiteAnalyticsSettings(gctx, q, id); return })
 	g.Go(func() (err error) { notify, err = postgres.GetSiteNotifySettings(gctx, q, id); return })
 	g.Go(func() (err error) { announcement, err = postgres.GetSiteAnnouncement(gctx, q, id); return })
@@ -78,7 +78,7 @@ func (s *Sites) loadSiteAggregate(ctx context.Context, id int) (*domain.SiteAggr
 	}
 
 	if billing == nil {
-		billing = &domain.SiteBilling{SiteID: id}
+		billing = &domain.AccountBilling{OwnerUserID: site.OwnerUserID}
 	}
 
 	return &domain.SiteAggregate{

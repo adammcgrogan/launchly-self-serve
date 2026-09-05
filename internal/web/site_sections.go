@@ -44,7 +44,7 @@ var siteSections = []siteSection{
 		Icon: "M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8M10 21h4"},
 	{Key: "access", Label: "Access", Hint: "Teammates who can see leads and edit this site.", OwnerOnly: true,
 		Icon: "M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 4a3 3 0 100 6 3 3 0 000-6M22 20v-2a4 4 0 00-3-3.87M17 4.13a4 4 0 010 7.75"},
-	{Key: "billing", Label: "Billing & Plan", Hint: "Your plan and subscription.", OwnerOnly: true,
+	{Key: "billing", Label: "Billing & Plan", Hint: "Your account plan, covering every site you own.", OwnerOnly: true,
 		Icon: "M2 6h20v12H2zM2 10h20M6 15h3"},
 }
 
@@ -376,13 +376,22 @@ func (h *Handler) SiteAccess(w http.ResponseWriter, r *http.Request) {
 	h.renderSection(w, r, site, "access", map[string]any{"Members": members})
 }
 
-// SiteBilling renders the plan and subscription controls.
+// SiteBilling renders the account plan and subscription controls. The plan
+// covers every site the account owns (#338); this page is reached through a
+// site only because that is where the dashboard nav lives.
 func (h *Handler) SiteBilling(w http.ResponseWriter, r *http.Request) {
 	site := middleware.SiteFromContext(r)
 	if !h.requireSiteOwnerRole(w, r, site) {
 		return
 	}
-	h.renderSection(w, r, site, "billing", nil)
+	// One plan covers every site the account owns (#338), so the page says
+	// how many that is — the count is what makes "this is account-wide, and
+	// cancelling takes them all down" concrete rather than fine print.
+	siteCount := 1
+	if sites, err := h.sites.ListSitesByOwner(r.Context(), site.OwnerUserID); err == nil {
+		siteCount = len(sites)
+	}
+	h.renderSection(w, r, site, "billing", map[string]any{"SiteCount": siteCount, "MaxProSites": domain.MaxProSites})
 }
 
 // SiteUpgraded is the dedicated thank-you page Stripe Checkout redirects to

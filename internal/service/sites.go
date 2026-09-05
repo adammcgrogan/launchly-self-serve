@@ -28,7 +28,7 @@ type Sites struct {
 
 // siteAggregateCacheTTL bounds how stale a cached SiteAggregate can be. It's
 // short enough that an unexpected miss on invalidation (e.g. a billing
-// webhook updating SiteBilling outside the Sites service) self-heals within
+// webhook updating AccountBilling outside the Sites service) self-heals within
 // seconds, while still absorbing crawler/burst traffic on the public site
 // render path (see #215).
 const siteAggregateCacheTTL = 15 * time.Second

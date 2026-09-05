@@ -121,6 +121,38 @@ func LockOwnerForSiteCreate(ctx context.Context, q querier, ownerID uuid.UUID) e
 	return err
 }
 
+// GetPrimarySiteByOwner returns an account's oldest site — the representative
+// one for account-level messaging (billing emails, trial reminders), where
+// there is one account but possibly several sites (#338). Returns nil, nil
+// if the account has no sites.
+func GetPrimarySiteByOwner(ctx context.Context, q querier, ownerID uuid.UUID) (*domain.Site, error) {
+	site, err := scanSite(q.QueryRowContext(ctx,
+		`SELECT `+siteColumns+` FROM sites WHERE owner_user_id = $1 ORDER BY created_at LIMIT 1`, ownerID))
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return site, err
+}
+
+// ListSiteIDsByOwner returns every site ID an account owns, for the
+// account-wide cache invalidation that follows a billing change.
+func ListSiteIDsByOwner(ctx context.Context, q querier, ownerID uuid.UUID) ([]int, error) {
+	rows, err := q.QueryContext(ctx, `SELECT id FROM sites WHERE owner_user_id = $1`, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func ListSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) ([]domain.Site, error) {
 	rows, err := q.QueryContext(ctx, `SELECT `+siteColumns+` FROM sites WHERE owner_user_id = $1 ORDER BY created_at DESC`, ownerID)
 	if err != nil {
@@ -144,9 +176,9 @@ type SiteFilter struct {
 	Offset int
 }
 
-// scanSiteWithBillingRowsWithCount is scanSiteRowsWithCount plus the site's
-// billing snapshot (nullable via the LEFT JOIN — a site should always have a
-// 1:1 billing row, but this doesn't assume it).
+// scanSiteWithBillingRowsWithCount is scanSiteRowsWithCount plus the owning
+// account's billing snapshot (nullable via the LEFT JOIN — an account should
+// always have a billing row once it has a site, but this doesn't assume it).
 func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, int, error) {
 	var sb domain.SiteWithBilling
 	var customDomain, customDomainCFID sql.NullString
@@ -170,8 +202,8 @@ func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, 
 	}
 	sb.CustomDomain = customDomain.String
 	sb.CustomDomainCFID = customDomainCFID.String
-	sb.Billing = domain.SiteBilling{
-		SiteID:               sb.ID,
+	sb.Billing = domain.AccountBilling{
+		OwnerUserID:          sb.OwnerUserID,
 		Plan:                 domain.Plan(plan.String),
 		PaymentStatus:        domain.PaymentStatus(paymentStatus.String),
 		StripeCustomerID:     stripeCustomerID.String,
@@ -206,9 +238,10 @@ func scanSiteWithBillingRowsWithCount(rows *sql.Rows) (*domain.SiteWithBilling, 
 }
 
 // ListAllSitesFiltered lists a page of sites, newest first, along with the
-// total count of sites (for pagination) and each site's billing snapshot
-// (trial/payment status), computed in the same query via COUNT(*) OVER() and
-// a LEFT JOIN. Used by the superadmin dashboard.
+// total count of sites (for pagination) and each site's owning account's
+// billing snapshot (trial/payment status), computed in the same query via
+// COUNT(*) OVER() and a LEFT JOIN. Sites sharing an owner therefore share a
+// billing snapshot (#338). Used by the superadmin dashboard.
 func ListAllSitesFiltered(ctx context.Context, q querier, filter SiteFilter) ([]domain.SiteWithBilling, int, error) {
 	limit := filter.Limit
 	if limit <= 0 {
@@ -216,9 +249,9 @@ func ListAllSitesFiltered(ctx context.Context, q querier, filter SiteFilter) ([]
 	}
 
 	rows, err := q.QueryContext(ctx, `
-		SELECT `+siteColumns+`, `+siteBillingColumns+`, COUNT(*) OVER() AS total_count
+		SELECT `+siteColumns+`, `+accountBillingColumns+`, COUNT(*) OVER() AS total_count
 		FROM sites
-		LEFT JOIN site_billing b ON b.site_id = sites.id
+		LEFT JOIN account_billing b ON b.owner_user_id = sites.owner_user_id
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`, limit, filter.Offset)
@@ -241,7 +274,9 @@ func ListAllSitesFiltered(ctx context.Context, q querier, filter SiteFilter) ([]
 }
 
 // GetPlatformStats returns platform-wide site/plan counts, for the
-// superadmin dashboard's stats view.
+// superadmin dashboard's stats view. Plans are per-account (#338), so the
+// plan counters count distinct accounts — a Pro account with four sites is
+// one Pro subscription, not four.
 func GetPlatformStats(ctx context.Context, q querier) (domain.PlatformStats, error) {
 	var s domain.PlatformStats
 	err := q.QueryRowContext(ctx, `
@@ -250,13 +285,13 @@ func GetPlatformStats(ctx context.Context, q querier) (domain.PlatformStats, err
 			COUNT(*) FILTER (WHERE s.status = 'live'),
 			COUNT(*) FILTER (WHERE s.status = 'draft'),
 			COUNT(*) FILTER (WHERE s.status = 'paused'),
-			COUNT(*) FILTER (WHERE b.plan = 'starter'),
-			COUNT(*) FILTER (WHERE b.plan = 'pro' AND b.payment_status = 'paid'),
-			COUNT(*) FILTER (WHERE b.payment_status = 'trialing'),
+			COUNT(DISTINCT s.owner_user_id) FILTER (WHERE b.plan = 'starter'),
+			COUNT(DISTINCT s.owner_user_id) FILTER (WHERE b.plan = 'pro' AND b.payment_status = 'paid'),
+			COUNT(DISTINCT s.owner_user_id) FILTER (WHERE b.payment_status = 'trialing'),
 			COUNT(*) FILTER (WHERE s.created_at >= now() - interval '7 days'),
 			COUNT(*) FILTER (WHERE s.created_at >= now() - interval '30 days')
 		FROM sites s
-		LEFT JOIN site_billing b ON b.site_id = s.id
+		LEFT JOIN account_billing b ON b.owner_user_id = s.owner_user_id
 		WHERE NOT s.is_demo
 	`).Scan(
 		&s.TotalSites, &s.LiveSites, &s.DraftSites, &s.PausedSites,
@@ -346,6 +381,26 @@ func SetSiteStatus(ctx context.Context, q querier, id int, status domain.SiteSta
 
 // SetSitesPaused pauses every given site ID in one round trip, for the
 // trial-pause cron sweep — see GetSitesDueForTrialPause (#218).
+// SetSitesPausedByOwner pauses every live site an account owns. Plans are
+// per-account (#338), so a trial expiring or a subscription ending takes the
+// whole account offline together rather than one site at a time.
+func SetSitesPausedByOwner(ctx context.Context, q querier, ownerID uuid.UUID) error {
+	_, err := q.ExecContext(ctx,
+		`UPDATE sites SET status = 'paused', updated_at = now()
+		 WHERE owner_user_id = $1 AND status = 'live'`, ownerID)
+	return err
+}
+
+// ReactivateSitesByOwner brings every site an account paused for non-payment
+// back online when they pay. It deliberately only touches 'paused' sites, so
+// a site the owner themselves unpublished stays a draft.
+func ReactivateSitesByOwner(ctx context.Context, q querier, ownerID uuid.UUID) error {
+	_, err := q.ExecContext(ctx,
+		`UPDATE sites SET status = 'live', updated_at = now()
+		 WHERE owner_user_id = $1 AND status = 'paused'`, ownerID)
+	return err
+}
+
 func SetSitesPaused(ctx context.Context, q querier, ids []int) error {
 	if len(ids) == 0 {
 		return nil

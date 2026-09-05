@@ -26,6 +26,13 @@ const (
 	PlanPro     Plan = "pro"
 )
 
+// MaxProSites bounds how many sites one Pro account can create. Pro is sold
+// as unlimited sites and behaves that way in practice — this exists only as
+// a backstop against a runaway script or abuse on a single subscription, not
+// as a plan limit anyone is expected to reach (#338). Starter and trialing
+// accounts are capped at 1 site by canCreateSite.
+const MaxProSites = 50
+
 type CustomDomainStatus string
 
 const (
@@ -260,9 +267,13 @@ type SiteContact struct {
 	MapEmbedURL string
 }
 
-// SiteBilling holds a site's plan, trial, and Stripe state. 1:1 with Site.
-type SiteBilling struct {
-	SiteID                   int
+// AccountBilling holds an account's plan, trial, and Stripe state. 1:1 with
+// a profile, not with a site: one subscription covers every site the account
+// owns (#338). Pro's "unlimited sites" is only true if the plan is what's
+// paid for — when it was per-site, each extra site started its own trial and
+// went dark on day 7 despite the account being paid.
+type AccountBilling struct {
+	OwnerUserID              uuid.UUID
 	Plan                     Plan
 	PaymentStatus            PaymentStatus
 	StripeCustomerID         string
@@ -291,11 +302,11 @@ type BillingRisk struct {
 	Severity string // "danger", "warning", or "" (no risk)
 }
 
-// Risk reports whether this site's billing state needs a superadmin's
+// Risk reports whether this account's billing state needs a superadmin's
 // attention — a trial ending soon or already past due, or a payment that
 // failed/was cancelled — so at-risk sites are visible from the dashboard's
 // site list without opening each one individually.
-func (b SiteBilling) Risk() BillingRisk {
+func (b AccountBilling) Risk() BillingRisk {
 	switch b.PaymentStatus {
 	case PaymentStatusCancelled:
 		return BillingRisk{Label: "Payment cancelled", Severity: "danger"}
@@ -323,19 +334,21 @@ func (b SiteBilling) Risk() BillingRisk {
 	}
 }
 
-// SiteWithBilling pairs a Site with its billing snapshot, for list views
-// (like the superadmin dashboard) that need trial/payment risk signals
-// without loading the full SiteAggregate.
+// SiteWithBilling pairs a Site with its owning account's billing snapshot,
+// for list views (like the superadmin dashboard) that need trial/payment
+// risk signals without loading the full SiteAggregate. Sites owned by the
+// same account all carry the same billing snapshot (#338).
 type SiteWithBilling struct {
 	Site
-	Billing SiteBilling
+	Billing AccountBilling
 }
 
-// IsPro reports whether a site currently has active, paid-for Pro access.
+// IsPro reports whether an account currently has active, paid-for Pro
+// access. Every site the account owns inherits it.
 // Plan flips to "pro" as soon as a Stripe Checkout session is created, before
 // payment completes, so Pro-gated features must check PaymentStatus too —
 // otherwise an abandoned or cancelled checkout leaves permanent free access.
-func (b SiteBilling) IsPro() bool {
+func (b AccountBilling) IsPro() bool {
 	return b.Plan == PlanPro && b.PaymentStatus == PaymentStatusPaid
 }
 
@@ -543,7 +556,7 @@ func (h SpecialHours) FriendlyDate() string {
 type SiteAggregate struct {
 	Site
 	Contact        SiteContact
-	Billing        SiteBilling
+	Billing        AccountBilling
 	Analytics      SiteAnalyticsSettings
 	Notify         SiteNotifySettings
 	Announcement   SiteAnnouncement

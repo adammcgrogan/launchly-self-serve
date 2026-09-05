@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
+	"github.com/google/uuid"
 )
 
 // fakeCronMailer records every call instead of hitting Resend, so tests can
@@ -103,12 +104,14 @@ func expectAdvisoryLockRelease(mock sqlmock.Sqlmock, key int64) {
 }
 
 func trialReminderColumns() []string {
-	return []string{"id", "slug", "business_name", "trial_ends_at", "timezone", "notify_email"}
+	return []string{"owner_user_id", "id", "slug", "business_name", "trial_ends_at", "timezone", "notify_email"}
 }
 
-func trialReminderRows(siteID int, slug, businessName string, trialEndsAt time.Time, notifyEmail string) *sqlmock.Rows {
+// trialReminderRows builds a due row for one account. Trials are per-account
+// (#338), so the sweep keys everything — dedupe, mark-sent — on the owner.
+func trialReminderRows(ownerID uuid.UUID, siteID int, slug, businessName string, trialEndsAt time.Time, notifyEmail string) *sqlmock.Rows {
 	return sqlmock.NewRows(trialReminderColumns()).
-		AddRow(siteID, slug, businessName, trialEndsAt, "Europe/London", notifyEmail)
+		AddRow(ownerID, siteID, slug, businessName, trialEndsAt, "Europe/London", notifyEmail)
 }
 
 func emptyTrialReminderRows() *sqlmock.Rows {
@@ -121,7 +124,7 @@ func emptyTrialReminderRows() *sqlmock.Rows {
 // "final"/"first" expectations — sqlmock is ordered, and the sweep runs the
 // reports last.
 func expectNoReportsDue(mock sqlmock.Sqlmock) {
-	mock.ExpectQuery("sb.trial_report_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
+	mock.ExpectQuery("ab.trial_report_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
 	mock.ExpectQuery("trial_early_report_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
 }
 
@@ -131,19 +134,20 @@ func expectNoReportsDue(mock sqlmock.Sqlmock) {
 // "final" reminder, not both back-to-back.
 func TestSendDueTrialReminders_DueForBothKindsInOneSweep_SendsOnlyFinal(t *testing.T) {
 	c, mock, mailer := newTestCron(t)
+	ownerID := uuid.New()
 	trialEndsAt := time.Now().UTC().Add(20 * time.Hour)
 
 	expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
 	// "final" is checked first.
 	mock.ExpectQuery("trial_final_reminder_sent_at IS NULL").
-		WillReturnRows(trialReminderRows(42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
-	mock.ExpectExec("UPDATE site_billing SET trial_final_reminder_sent_at").
-		WithArgs(42).
+		WillReturnRows(trialReminderRows(ownerID, 42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
+	mock.ExpectExec("UPDATE account_billing SET trial_final_reminder_sent_at").
+		WithArgs(ownerID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	// The same site is also (falsely) due for "first" in this sweep; it must
-	// be skipped since it already got a reminder this pass.
-	mock.ExpectQuery("sb.trial_reminder_sent_at IS NULL").
-		WillReturnRows(trialReminderRows(42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
+	// The same account is also (falsely) due for "first" in this sweep; it
+	// must be skipped since it already got a reminder this pass.
+	mock.ExpectQuery("ab.trial_reminder_sent_at IS NULL").
+		WillReturnRows(trialReminderRows(ownerID, 42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
 	expectNoReportsDue(mock)
 	expectAdvisoryLockRelease(mock, advisoryLockTrialCron)
 
@@ -175,15 +179,16 @@ func TestSendDueTrialReminders_DaysLeftFromTrialEndsAt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c, mock, mailer := newTestCron(t)
+			ownerID := uuid.New()
 			trialEndsAt := time.Now().UTC().Add(tt.offset)
 
 			expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
 			mock.ExpectQuery("trial_final_reminder_sent_at IS NULL").
 				WillReturnRows(emptyTrialReminderRows())
-			mock.ExpectQuery("sb.trial_reminder_sent_at IS NULL").
-				WillReturnRows(trialReminderRows(1, "site1", "Site One", trialEndsAt, "owner@site1.test"))
-			mock.ExpectExec("UPDATE site_billing SET trial_reminder_sent_at").
-				WithArgs(1).
+			mock.ExpectQuery("ab.trial_reminder_sent_at IS NULL").
+				WillReturnRows(trialReminderRows(ownerID, 1, "site1", "Site One", trialEndsAt, "owner@site1.test"))
+			mock.ExpectExec("UPDATE account_billing SET trial_reminder_sent_at").
+				WithArgs(ownerID).
 				WillReturnResult(sqlmock.NewResult(0, 1))
 			expectNoReportsDue(mock)
 			expectAdvisoryLockRelease(mock, advisoryLockTrialCron)
@@ -210,8 +215,8 @@ func TestSendDueTrialReminders_NoNotifyEmail_SkipsSiteEntirely(t *testing.T) {
 
 	expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
 	mock.ExpectQuery("trial_final_reminder_sent_at IS NULL").
-		WillReturnRows(trialReminderRows(7, "no-email", "No Email Co", trialEndsAt, ""))
-	mock.ExpectQuery("sb.trial_reminder_sent_at IS NULL").
+		WillReturnRows(trialReminderRows(uuid.New(), 7, "no-email", "No Email Co", trialEndsAt, ""))
+	mock.ExpectQuery("ab.trial_reminder_sent_at IS NULL").
 		WillReturnRows(emptyTrialReminderRows())
 	expectNoReportsDue(mock)
 	expectAdvisoryLockRelease(mock, advisoryLockTrialCron)
@@ -235,8 +240,8 @@ func TestSendDueTrialReminders_SendFailure_DoesNotMarkSent(t *testing.T) {
 
 	expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
 	mock.ExpectQuery("trial_final_reminder_sent_at IS NULL").
-		WillReturnRows(trialReminderRows(9, "fails-to-send", "Fails Co", trialEndsAt, "owner@fails.test"))
-	mock.ExpectQuery("sb.trial_reminder_sent_at IS NULL").
+		WillReturnRows(trialReminderRows(uuid.New(), 9, "fails-to-send", "Fails Co", trialEndsAt, "owner@fails.test"))
+	mock.ExpectQuery("ab.trial_reminder_sent_at IS NULL").
 		WillReturnRows(emptyTrialReminderRows())
 	// No UPDATE ... trial_final_reminder_sent_at exec is expected: since the
 	// send failed, the site must not be marked as reminded (or it would
@@ -253,12 +258,13 @@ func TestSendDueTrialReminders_SendFailure_DoesNotMarkSent(t *testing.T) {
 
 func TestPauseDueSites_PausesAndNotifiesOnlySitesWithNotifyEmail(t *testing.T) {
 	c, mock, mailer := newTestCron(t)
+	ownerA, ownerB := uuid.New(), uuid.New()
 
 	expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
-	mock.ExpectQuery("FROM site_billing sb").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "notify_email"}).
-			AddRow(11, "acme", "Acme Co", "owner@acme.test").
-			AddRow(12, "beta", "Beta Co", ""))
+	mock.ExpectQuery("FROM account_billing ab").
+		WillReturnRows(sqlmock.NewRows([]string{"owner_user_id", "id", "slug", "business_name", "notify_email"}).
+			AddRow(ownerA, 11, "acme", "Acme Co", "owner@acme.test").
+			AddRow(ownerB, 12, "beta", "Beta Co", ""))
 	mock.ExpectExec("UPDATE sites SET status = 'paused'").
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(0, 2))
@@ -278,8 +284,8 @@ func TestPauseDueSites_NoDueSites_NoPauseOrNotify(t *testing.T) {
 	c, mock, mailer := newTestCron(t)
 
 	expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
-	mock.ExpectQuery("FROM site_billing sb").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "notify_email"}))
+	mock.ExpectQuery("FROM account_billing ab").
+		WillReturnRows(sqlmock.NewRows([]string{"owner_user_id", "id", "slug", "business_name", "notify_email"}))
 	// No UPDATE sites ... 'paused' exec is expected: with zero due sites,
 	// pauseDueSites must return early rather than issue a no-op pause.
 	expectAdvisoryLockRelease(mock, advisoryLockTrialCron)
@@ -298,9 +304,9 @@ func TestPauseDueSites_PauseExecFails_NoNotificationsSent(t *testing.T) {
 	c, mock, mailer := newTestCron(t)
 
 	expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
-	mock.ExpectQuery("FROM site_billing sb").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "business_name", "notify_email"}).
-			AddRow(11, "acme", "Acme Co", "owner@acme.test"))
+	mock.ExpectQuery("FROM account_billing ab").
+		WillReturnRows(sqlmock.NewRows([]string{"owner_user_id", "id", "slug", "business_name", "notify_email"}).
+			AddRow(uuid.New(), 11, "acme", "Acme Co", "owner@acme.test"))
 	mock.ExpectExec("UPDATE sites SET status = 'paused'").
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnError(sql.ErrConnDone)
@@ -336,25 +342,26 @@ func TestSendDueTrialReminders_SendsValueReports(t *testing.T) {
 		earlyLen int
 		weekLen  int
 	}{
-		{"day 5 week report", "sb.trial_report_sent_at IS NULL", "UPDATE site_billing SET trial_report_sent_at", 0, 1},
-		{"day 3 early report", "trial_early_report_sent_at IS NULL", "UPDATE site_billing SET trial_early_report_sent_at", 1, 0},
+		{"day 5 week report", "ab.trial_report_sent_at IS NULL", "UPDATE account_billing SET trial_report_sent_at", 0, 1},
+		{"day 3 early report", "trial_early_report_sent_at IS NULL", "UPDATE account_billing SET trial_early_report_sent_at", 1, 0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c, mock, mailer := newTestCron(t)
+			ownerID := uuid.New()
 			trialEndsAt := time.Now().UTC().Add(48 * time.Hour)
 
 			expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
 			mock.ExpectQuery("trial_final_reminder_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
-			mock.ExpectQuery("sb.trial_reminder_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
+			mock.ExpectQuery("ab.trial_reminder_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
 			if tt.weekLen == 0 {
-				mock.ExpectQuery("sb.trial_report_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
+				mock.ExpectQuery("ab.trial_report_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
 			}
 			mock.ExpectQuery(tt.query).
-				WillReturnRows(trialReminderRows(5, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
+				WillReturnRows(trialReminderRows(ownerID, 5, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
 			mock.ExpectQuery("FROM page_views").WillReturnRows(siteStatsRows(12, 9))
-			mock.ExpectExec(tt.markCol).WithArgs(5).WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectExec(tt.markCol).WithArgs(ownerID).WillReturnResult(sqlmock.NewResult(0, 1))
 			if tt.earlyLen == 0 {
 				mock.ExpectQuery("trial_early_report_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
 			}
@@ -382,19 +389,20 @@ func TestSendDueTrialReminders_SendsValueReports(t *testing.T) {
 // urgent thing to say, and sentThisSweep stops the pair going out together.
 func TestSendDueTrialReminders_ReportYieldsToFinalWarning(t *testing.T) {
 	c, mock, mailer := newTestCron(t)
+	ownerID := uuid.New()
 	trialEndsAt := time.Now().UTC().Add(20 * time.Hour)
 
 	expectAdvisoryLockAcquire(mock, advisoryLockTrialCron)
 	mock.ExpectQuery("trial_final_reminder_sent_at IS NULL").
-		WillReturnRows(trialReminderRows(42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
-	mock.ExpectExec("UPDATE site_billing SET trial_final_reminder_sent_at").
-		WithArgs(42).
+		WillReturnRows(trialReminderRows(ownerID, 42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
+	mock.ExpectExec("UPDATE account_billing SET trial_final_reminder_sent_at").
+		WithArgs(ownerID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery("sb.trial_reminder_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
-	// The same site is also due for the day-5 report; it must be skipped, so
-	// no stats query and no mark-sent exec follow.
-	mock.ExpectQuery("sb.trial_report_sent_at IS NULL").
-		WillReturnRows(trialReminderRows(42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
+	mock.ExpectQuery("ab.trial_reminder_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
+	// The same account is also due for the day-5 report; it must be skipped,
+	// so no stats query and no mark-sent exec follow.
+	mock.ExpectQuery("ab.trial_report_sent_at IS NULL").
+		WillReturnRows(trialReminderRows(ownerID, 42, "acme", "Acme Co", trialEndsAt, "owner@acme.test"))
 	mock.ExpectQuery("trial_early_report_sent_at IS NULL").WillReturnRows(emptyTrialReminderRows())
 	expectAdvisoryLockRelease(mock, advisoryLockTrialCron)
 

@@ -163,7 +163,7 @@ func (l *Leads) sendSMSAlert(ctx context.Context, site *domain.Site, visitorName
 	if !l.sms.Configured() {
 		return
 	}
-	billing, err := postgres.GetSiteBilling(ctx, l.store.DB(), site.ID)
+	billing, err := postgres.GetAccountBillingBySiteID(ctx, l.store.DB(), site.ID)
 	if err != nil || billing == nil || billing.Plan != domain.PlanPro {
 		return
 	}

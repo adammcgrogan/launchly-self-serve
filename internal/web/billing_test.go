@@ -105,7 +105,7 @@ func TestStripeWebhook_CheckoutSessionCompleted_NoSessionID_IsNoopReturns200(t *
 	h, mock := newTestBillingHandler(t)
 	// No "id" on the checkout session object: handleCheckoutCompleted treats
 	// an empty SessionID as a no-op, so this exercises the routing to that
-	// handler without needing a full site_billing round trip.
+	// handler without needing a full account_billing round trip.
 	payload, sig := signedWebhookPayload(t, "evt-checkout", "checkout.session.completed", `{}`)
 
 	mock.ExpectExec("INSERT INTO stripe_events").
@@ -133,9 +133,9 @@ func TestStripeWebhook_HandlerError_Returns500(t *testing.T) {
 	mock.ExpectExec("INSERT INTO stripe_events").
 		WithArgs("evt-fail").
 		WillReturnResult(sqlmock.NewResult(1, 1))
-	// SetSitePaid failing surfaces immediately as an error from
+	// SetAccountPaid failing surfaces immediately as an error from
 	// handleCheckoutCompleted, with no further DB or mailer calls.
-	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
+	mock.ExpectExec("UPDATE account_billing SET payment_status = 'paid'").
 		WithArgs(sqlmock.AnyArg(), "", "cs_fail", "").
 		WillReturnError(sqlmock.ErrCancelled)
 	// The claim taken above must be released so Stripe's automatic retry

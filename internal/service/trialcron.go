@@ -11,6 +11,7 @@ import (
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
 	"github.com/adammcgrogan/launchly-self-serve/internal/email"
 	"github.com/adammcgrogan/launchly-self-serve/internal/repository/postgres"
+	"github.com/google/uuid"
 )
 
 // Postgres advisory lock keys used to serialize cron passes across server
@@ -29,8 +30,8 @@ const (
 // trial_ends_at) so a future policy change only needs to touch this line.
 const trialGracePeriod = 0 * time.Hour
 
-// trialLength mirrors the 7-day window CreateSiteBilling opens on every new
-// site. Used to derive when a trial started from its trial_ends_at, so the
+// trialLength mirrors the 7-day window EnsureAccountBilling opens on an
+// account's first site. Used to derive when a trial started from its trial_ends_at, so the
 // value reports (#330) cover the trial itself rather than a rolling window.
 const trialLength = 7 * 24 * time.Hour
 
@@ -138,7 +139,7 @@ func (c *Cron) sendDueTrialReminders() {
 		// emailed in this pass, so a sweep that's behind enough for a site to
 		// match both queries sends only the higher-priority "final" reminder
 		// instead of both back-to-back (#198).
-		sentThisSweep := make(map[int]bool)
+		sentThisSweep := make(map[uuid.UUID]bool)
 		// Ordered most-urgent first, and sentThisSweep tracks sites already
 		// emailed in this pass, so a sweep that's behind enough for a site to
 		// match several kinds sends only the highest-priority one instead of
@@ -146,13 +147,13 @@ func (c *Cron) sendDueTrialReminders() {
 		// billing warnings for that reason: if a lagging sweep has to pick
 		// one, the deadline is the more urgent thing to say.
 		for _, kind := range []string{"final", "first", "report", "report_early"} {
-			due, err := postgres.GetSitesDueForTrialReminder(ctx, conn, kind)
+			due, err := postgres.GetAccountsDueForTrialReminder(ctx, conn, kind)
 			if err != nil {
 				slog.Error("trial cron: list sites", "kind", kind, "error", err)
 				continue
 			}
 			for _, d := range due {
-				if sentThisSweep[d.SiteID] || d.NotifyEmail == "" {
+				if sentThisSweep[d.OwnerUserID] || d.NotifyEmail == "" {
 					continue
 				}
 				// Computed from trial_ends_at rather than assumed from kind, so a
@@ -168,11 +169,11 @@ func (c *Cron) sendDueTrialReminders() {
 					slog.Error("trial cron: send reminder", "slug", d.Slug, "kind", kind, "error", err)
 					continue
 				}
-				if err := postgres.MarkTrialReminderSent(ctx, conn, d.SiteID, kind); err != nil {
+				if err := postgres.MarkTrialReminderSent(ctx, conn, d.OwnerUserID, kind); err != nil {
 					slog.Error("trial cron: mark sent", "slug", d.Slug, "kind", kind, "error", err)
 				} else {
 					slog.Info("trial reminder sent", "slug", d.Slug, "kind", kind)
-					sentThisSweep[d.SiteID] = true
+					sentThisSweep[d.OwnerUserID] = true
 				}
 			}
 		}
@@ -203,7 +204,7 @@ func (c *Cron) sendTrialEmail(ctx context.Context, kind string, d postgres.DueTr
 	return c.mailer.SendTrialWeekReport(d.NotifyEmail, d.BusinessName, dashboardURL, stats, daysLeft)
 }
 
-// pauseDueSites pauses live sites whose trial ended more than
+// pauseDueSites pauses live sites whose account's trial ended more than
 // trialGracePeriod ago with no paid subscription — nothing else ever
 // unpublishes a trial that ran out, so without this every trial site stays
 // live free forever.
@@ -227,11 +228,16 @@ func (c *Cron) pauseDueSites() {
 			slog.Error("trial cron: pause sites", "error", err)
 			return
 		}
+		// One expired trial can pause several sites (a Pro account that
+		// lapsed), but the trial is the account's — so the owner gets one
+		// email, not one per site.
+		notified := make(map[uuid.UUID]bool)
 		for _, d := range due {
 			slog.Info("trial site paused", "slug", d.Slug)
-			if d.NotifyEmail == "" {
+			if d.NotifyEmail == "" || notified[d.OwnerUserID] {
 				continue
 			}
+			notified[d.OwnerUserID] = true
 			dashboardURL := fmt.Sprintf("%s/dashboard/sites/%s", c.baseURL, d.Slug)
 			if err := c.mailer.SendSitePaused(d.NotifyEmail, d.BusinessName, dashboardURL); err != nil {
 				slog.Error("trial cron: send paused email", "slug", d.Slug, "error", err)

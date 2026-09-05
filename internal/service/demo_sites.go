@@ -413,7 +413,7 @@ func (s *Sites) createDemoSiteIfMissing(ctx context.Context, ownerID uuid.UUID, 
 	if err != nil {
 		return false, fmt.Errorf("create site: %w", err)
 	}
-	if err := postgres.CreateDemoSiteBilling(ctx, tx, siteID); err != nil {
+	if err := postgres.EnsureDemoAccountBilling(ctx, tx, ownerID); err != nil {
 		return false, fmt.Errorf("create billing: %w", err)
 	}
 	if err := postgres.UpsertSiteAnalyticsSettings(ctx, tx, &domain.SiteAnalyticsSettings{SiteID: siteID, AnalyticsFrequency: "off"}); err != nil {

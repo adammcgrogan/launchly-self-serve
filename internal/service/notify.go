@@ -41,3 +41,28 @@ func resolveNotifyTarget(ctx context.Context, store *postgres.Store, siteID int)
 	}
 	return site, notifyEmail(ctx, store, site.OwnerUserID, contactEmail), nil
 }
+
+// resolveAccountNotifyTarget is resolveNotifyTarget for an account rather
+// than a single site: billing is per-account (#338), so a payment email is
+// about the whole account, not one of its sites. It returns the account's
+// oldest site as the representative one — the name to put in the email and
+// the site to link to — since that's the business the customer first signed
+// up to build. Returns a nil site (and empty email) without error if the
+// account has no sites at all.
+func resolveAccountNotifyTarget(ctx context.Context, store *postgres.Store, ownerID uuid.UUID) (site *domain.Site, notifyTo string, err error) {
+	site, err = postgres.GetPrimarySiteByOwner(ctx, store.DB(), ownerID)
+	if err != nil || site == nil {
+		// Still resolve the owner's login email: an account can lose its last
+		// site and still have a subscription to email about.
+		return site, notifyEmail(ctx, store, ownerID, ""), err
+	}
+	contact, err := postgres.GetSiteContact(ctx, store.DB(), site.ID)
+	if err != nil {
+		return site, "", err
+	}
+	contactEmail := ""
+	if contact != nil {
+		contactEmail = contact.Email
+	}
+	return site, notifyEmail(ctx, store, ownerID, contactEmail), nil
+}

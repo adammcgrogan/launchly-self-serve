@@ -103,7 +103,7 @@ func (d *Domains) SetCustomDomain(ctx context.Context, siteID int, rawDomain str
 	if site == nil {
 		return nil, fmt.Errorf("site %d not found", siteID)
 	}
-	billing, err := postgres.GetSiteBilling(ctx, tx, siteID)
+	billing, err := postgres.GetAccountBillingBySiteID(ctx, tx, siteID)
 	if err != nil {
 		return nil, fmt.Errorf("load billing: %w", err)
 	}
