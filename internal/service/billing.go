@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -19,7 +20,7 @@ import (
 type billingMailer interface {
 	SendPaymentConfirmation(to, businessName string, plan domain.Plan) error
 	SendCancellationConfirmation(to, businessName string) error
-	SendPaymentFailed(to, businessName string) error
+	SendPaymentFailed(to, businessName, billingURL string) error
 	SendAdminAlert(to, subject, message string) error
 }
 
@@ -55,6 +56,12 @@ func (b *Billing) invalidate(siteID int) {
 	}
 }
 
+// billingURL is the dashboard billing page for a site — where the billing
+// portal button lives, and so where every payment email points.
+func (b *Billing) billingURL(slug string) string {
+	return fmt.Sprintf("%s/dashboard/sites/%s/billing", b.baseURL, slug)
+}
+
 // CreateUpgradeCheckout starts a Stripe Checkout session for a site's plan
 // upgrade and records it as pending. If the site already has an active paid
 // subscription, there's nothing to check out — the existing subscription is
@@ -79,7 +86,11 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug st
 		return successURL, nil
 	}
 
-	sessionID, checkoutURL, err := b.pay.CreateCheckoutSession(plan, customerEmail, successURL, cancelURL)
+	existingCustomerID := ""
+	if billing != nil {
+		existingCustomerID = billing.StripeCustomerID
+	}
+	sessionID, checkoutURL, err := b.pay.CreateCheckoutSession(plan, existingCustomerID, customerEmail, successURL, cancelURL)
 	if err != nil {
 		return "", fmt.Errorf("create checkout session: %w", err)
 	}
@@ -88,6 +99,58 @@ func (b *Billing) CreateUpgradeCheckout(ctx context.Context, siteID int, slug st
 	}
 	b.invalidate(siteID)
 	return checkoutURL, nil
+}
+
+// ErrNoBillingCustomer means a site has no Stripe customer to open the
+// billing portal against — it never completed a checkout, so there is no
+// card or invoice history to manage yet. Callers surface this as "upgrade
+// first" rather than a server error.
+var ErrNoBillingCustomer = errors.New("site has no stripe customer")
+
+// CreateBillingPortalSession opens a Stripe Billing Portal session for a
+// site's owner and returns the URL to redirect to. This is the self-serve
+// path for updating a failing card (see #316) — before it existed, a
+// past-due customer's only options on the billing page were to email support
+// or cancel, so the dunning sequence ran to cancellation on customers who
+// wanted to keep paying.
+func (b *Billing) CreateBillingPortalSession(ctx context.Context, siteID int, slug string) (portalURL string, err error) {
+	customerID, err := b.stripeCustomerID(ctx, siteID)
+	if err != nil {
+		return "", err
+	}
+	returnURL := fmt.Sprintf("%s/dashboard/sites/%s/billing", b.baseURL, slug)
+	return b.pay.CreateBillingPortalSession(customerID, returnURL)
+}
+
+// stripeCustomerID resolves a site's Stripe customer, backfilling it from
+// the subscription if it was never recorded. site_billing.stripe_customer_id
+// has existed since the initial schema but nothing wrote to it until #316,
+// so every site that subscribed before then has an empty one — and those are
+// exactly the customers whose card may now be failing.
+func (b *Billing) stripeCustomerID(ctx context.Context, siteID int) (string, error) {
+	billing, err := postgres.GetSiteBilling(ctx, b.store.DB(), siteID)
+	if err != nil {
+		return "", fmt.Errorf("load site billing: %w", err)
+	}
+	if billing == nil {
+		return "", ErrNoBillingCustomer
+	}
+	if billing.StripeCustomerID != "" {
+		return billing.StripeCustomerID, nil
+	}
+	if billing.StripeSubscriptionID == "" {
+		return "", ErrNoBillingCustomer
+	}
+	customerID, err := b.pay.SubscriptionCustomerID(billing.StripeSubscriptionID)
+	if err != nil {
+		return "", fmt.Errorf("backfill stripe customer: %w", err)
+	}
+	// A failure to persist isn't fatal — the portal still opens, it just
+	// costs another Stripe lookup next time.
+	if err := postgres.SetStripeCustomerID(ctx, b.store.DB(), siteID, customerID); err != nil {
+		slog.Error("persist backfilled stripe customer", "site_id", siteID, "error", err)
+	}
+	return customerID, nil
 }
 
 // setSitePlanAfterStripeChange persists a plan change once Stripe has already
@@ -174,7 +237,7 @@ func (b *Billing) handleCheckoutCompleted(ctx context.Context, event *payment.We
 	if event.SessionID == "" {
 		return nil
 	}
-	first, err := postgres.SetSitePaid(ctx, b.store.DB(), event.SessionID, event.SubscriptionID)
+	first, err := postgres.SetSitePaid(ctx, b.store.DB(), event.SessionID, event.SubscriptionID, event.CustomerID)
 	if err != nil {
 		return fmt.Errorf("set site paid: %w", err)
 	}
@@ -282,12 +345,20 @@ func (b *Billing) handlePaymentFailed(ctx context.Context, event *payment.Webhoo
 		return nil
 	}
 	b.invalidate(billing.SiteID)
+	// A past-due site is the one that most needs the billing portal, so make
+	// sure the customer it opens against is on record before the dunning
+	// emails start pointing people at it.
+	if event.CustomerID != "" && billing.StripeCustomerID == "" {
+		if err := postgres.SetStripeCustomerID(ctx, b.store.DB(), billing.SiteID, event.CustomerID); err != nil {
+			slog.Error("record stripe customer on payment failure", "site_id", billing.SiteID, "error", err)
+		}
+	}
 	site, to, _ := resolveNotifyTarget(ctx, b.store, billing.SiteID)
 	if site == nil {
 		return nil
 	}
 	if to != "" {
-		if err := b.mailer.SendPaymentFailed(to, site.BusinessName); err != nil {
+		if err := b.mailer.SendPaymentFailed(to, site.BusinessName, b.billingURL(site.Slug)); err != nil {
 			slog.Error("send payment failed email", "error", err)
 		}
 	}

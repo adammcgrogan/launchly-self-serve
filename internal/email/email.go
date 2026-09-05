@@ -337,11 +337,17 @@ func (c *Client) SendCancellationConfirmation(to, businessName string) error {
 	return c.Send(to, fmt.Sprintf("Subscription cancelled - %s", businessName), wrap("Subscription cancelled", content))
 }
 
-func (c *Client) SendPaymentFailed(to, businessName string) error {
+// SendPaymentFailed is the first notice sent when a subscription payment
+// fails. billingURL points at the site's dashboard billing page, where the
+// Stripe billing portal button lets the owner replace the card themselves —
+// before that existed (#316) this email asked people to fix a payment with
+// no way to do it.
+func (c *Client) SendPaymentFailed(to, businessName, billingURL string) error {
 	content := h1("There was a problem with your payment") +
 		p(fmt.Sprintf("We weren't able to collect your subscription payment for <strong>%s</strong>.", businessName)) +
 		p("This can happen if a card has expired or has insufficient funds. Stripe will automatically retry the payment over the next few days.") +
-		p("To avoid any disruption to your site, please update your payment details from your dashboard.") +
+		p("To avoid any disruption to your site, update your card from your dashboard — it takes a minute.") +
+		button(billingURL, "Update payment details") +
 		divider() +
 		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)
 	return c.Send(to, fmt.Sprintf("Action needed - payment failed for %s", businessName), wrap("Action needed", content))
@@ -355,7 +361,7 @@ func (c *Client) SendPaymentFailed(to, businessName string) error {
 func (c *Client) SendDunningReminder(to, businessName, dashboardURL string, daysPastDue int) error {
 	content := h1("Your payment is still overdue") +
 		p(fmt.Sprintf("We still haven't been able to collect your subscription payment for <strong>%s</strong> — it's now %d days overdue.", businessName, daysPastDue)) +
-		p("Please update your payment details from your dashboard to keep your site online.") +
+		p("Update your card from your dashboard to keep your site online — you can do it yourself in a minute.") +
 		button(dashboardURL, "Update payment details") +
 		divider() +
 		p(`<span style="color:#94a3b8;font-size:13px;">Questions? Contact us at <a href="mailto:hello@launchly.ltd" style="color:#4F46E5;">hello@launchly.ltd</a></span>`)

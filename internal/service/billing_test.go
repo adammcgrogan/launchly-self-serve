@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 type fakeMailer struct {
 	paymentConfirmations []string // "to|businessName|plan"
 	cancellations        []string // "to|businessName"
-	paymentFailed        []string // "to|businessName"
+	paymentFailed        []string // "to|businessName|billingURL"
 	adminAlerts          []string // "subject|message"
 }
 
@@ -32,8 +33,8 @@ func (m *fakeMailer) SendCancellationConfirmation(to, businessName string) error
 	return nil
 }
 
-func (m *fakeMailer) SendPaymentFailed(to, businessName string) error {
-	m.paymentFailed = append(m.paymentFailed, to+"|"+businessName)
+func (m *fakeMailer) SendPaymentFailed(to, businessName, billingURL string) error {
+	m.paymentFailed = append(m.paymentFailed, to+"|"+businessName+"|"+billingURL)
 	return nil
 }
 
@@ -110,7 +111,7 @@ func TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSiteAndNotifies(t
 		WithArgs("evt1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
-		WithArgs(sqlmock.AnyArg(), "sub1", "sess1").
+		WithArgs(sqlmock.AnyArg(), "sub1", "sess1", "cus1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectQuery("FROM site_billing WHERE stripe_session_id").
 		WithArgs("sess1").
@@ -128,7 +129,7 @@ func TestHandleWebhookEvent_CheckoutCompleted_ReactivatesPausedSiteAndNotifies(t
 		WithArgs(42).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	event := &payment.WebhookEvent{ID: "evt1", Type: "checkout.session.completed", SessionID: "sess1", SubscriptionID: "sub1"}
+	event := &payment.WebhookEvent{ID: "evt1", Type: "checkout.session.completed", SessionID: "sess1", SubscriptionID: "sub1", CustomerID: "cus1"}
 	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
 		t.Fatalf("HandleWebhookEvent: %v", err)
 	}
@@ -150,10 +151,10 @@ func TestHandleWebhookEvent_CheckoutCompleted_RepeatDelivery_NoDoubleNotify(t *t
 	// SetSitePaid affects 0 rows: the site was already marked paid by an
 	// earlier delivery of this same event.
 	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
-		WithArgs(sqlmock.AnyArg(), "sub1", "sess1").
+		WithArgs(sqlmock.AnyArg(), "sub1", "sess1", "cus1").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	event := &payment.WebhookEvent{ID: "evt1", Type: "checkout.session.completed", SessionID: "sess1", SubscriptionID: "sub1"}
+	event := &payment.WebhookEvent{ID: "evt1", Type: "checkout.session.completed", SessionID: "sess1", SubscriptionID: "sub1", CustomerID: "cus1"}
 	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
 		t.Fatalf("HandleWebhookEvent: %v", err)
 	}
@@ -260,8 +261,11 @@ func TestHandleWebhookEvent_PaymentFailed_NotifiesOwnerAndAdmin(t *testing.T) {
 		t.Fatalf("HandleWebhookEvent: %v", err)
 	}
 
-	if len(mailer.paymentFailed) != 1 || mailer.paymentFailed[0] != "owner@acme.test|Acme Co" {
-		t.Errorf("paymentFailed = %v", mailer.paymentFailed)
+	// The email must carry a link to the billing page, where the Stripe
+	// portal button is — the whole point of #316.
+	want := "owner@acme.test|Acme Co|https://example.launchly.ltd/dashboard/sites/test-site/billing"
+	if len(mailer.paymentFailed) != 1 || mailer.paymentFailed[0] != want {
+		t.Errorf("paymentFailed = %v, want [%s]", mailer.paymentFailed, want)
 	}
 	if len(mailer.adminAlerts) != 1 {
 		t.Errorf("expected one admin alert, got %v", mailer.adminAlerts)
@@ -420,6 +424,66 @@ func TestSetSitePlanAfterStripeChange_AlertsAfterExhaustingRetries(t *testing.T)
 	}
 	if len(mailer.adminAlerts) != 1 {
 		t.Fatalf("expected exactly one admin alert after exhausting retries, got %v", mailer.adminAlerts)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
+// TestHandleWebhookEvent_PaymentFailed_RecordsStripeCustomer covers #316: a
+// past-due site is the one that most needs the billing portal, so the
+// customer the portal opens against is recorded off the failure event when
+// site_billing doesn't already have one.
+func TestHandleWebhookEvent_PaymentFailed_RecordsStripeCustomer(t *testing.T) {
+	b, mock, _ := newTestBilling(t)
+	ownerID := uuid.New()
+
+	mock.ExpectExec("INSERT INTO stripe_events").
+		WithArgs("evt-cus").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("FROM site_billing WHERE stripe_subscription_id").
+		WithArgs("sub1").
+		WillReturnRows(billingRows(42, domain.PlanPro))
+	mock.ExpectExec("UPDATE site_billing SET payment_status = 'past_due'").
+		WithArgs("sub1").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("UPDATE site_billing SET stripe_customer_id").
+		WithArgs("cus1", 42).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("FROM sites WHERE id").
+		WithArgs(42).
+		WillReturnRows(siteRows(42, ownerID, "Acme Co", domain.SiteStatusLive))
+	mock.ExpectQuery("FROM site_contact WHERE site_id").
+		WithArgs(42).
+		WillReturnRows(contactRows("owner@acme.test"))
+	mock.ExpectQuery("FROM profiles").
+		WithArgs(ownerID).
+		WillReturnError(sql.ErrNoRows)
+
+	event := &payment.WebhookEvent{ID: "evt-cus", Type: "invoice.payment_failed", SubscriptionID: "sub1", CustomerID: "cus1"}
+	if err := b.HandleWebhookEvent(context.Background(), event); err != nil {
+		t.Fatalf("HandleWebhookEvent: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}
+
+// TestCreateBillingPortalSession_NoCustomer_ReturnsSentinel covers the case
+// where a site never completed a checkout: there is no Stripe customer and
+// no subscription to backfill one from, so the handler must get a sentinel
+// it can turn into "upgrade first" rather than a 500 — and must not call
+// Stripe at all.
+func TestCreateBillingPortalSession_NoCustomer_ReturnsSentinel(t *testing.T) {
+	b, mock, _ := newTestBilling(t)
+
+	mock.ExpectQuery("FROM site_billing WHERE site_id").
+		WithArgs(42).
+		WillReturnRows(billingRows(42, domain.PlanStarter))
+
+	_, err := b.CreateBillingPortalSession(context.Background(), 42, "test-site")
+	if !errors.Is(err, ErrNoBillingCustomer) {
+		t.Errorf("err = %v, want ErrNoBillingCustomer", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("unmet expectations: %v", err)

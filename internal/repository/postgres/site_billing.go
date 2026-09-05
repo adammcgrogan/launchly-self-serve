@@ -110,19 +110,30 @@ func SetSitePending(ctx context.Context, q querier, siteID int, plan domain.Plan
 // (idempotent webhook retry). Also clears any in-flight dunning state, so a
 // site that was mid-checkout while past due (e.g. re-subscribing after
 // cancellation) doesn't carry stale payment-failure timestamps forward.
-func SetSitePaid(ctx context.Context, q querier, sessionID, subscriptionID string) (bool, error) {
+func SetSitePaid(ctx context.Context, q querier, sessionID, subscriptionID, customerID string) (bool, error) {
 	now := time.Now().UTC()
 	res, err := q.ExecContext(ctx, `
 		UPDATE site_billing SET payment_status = 'paid', paid_at = $1, stripe_subscription_id = $2,
+			stripe_customer_id = COALESCE(NULLIF($4, ''), stripe_customer_id),
 			payment_failed_at = NULL, dunning_reminder_1_sent_at = NULL,
 			dunning_reminder_2_sent_at = NULL, dunning_final_warning_sent_at = NULL
 		WHERE stripe_session_id = $3 AND payment_status != 'paid'
-	`, now, subscriptionID, sessionID)
+	`, now, subscriptionID, sessionID, customerID)
 	if err != nil {
 		return false, err
 	}
 	rows, _ := res.RowsAffected()
 	return rows > 0, nil
+}
+
+// SetStripeCustomerID records the Stripe customer for a site. Called both
+// from the webhook path (which learns the ID from the event) and from the
+// billing-portal backfill for sites that subscribed before the ID was
+// persisted — see service.Billing.stripeCustomerID.
+func SetStripeCustomerID(ctx context.Context, q querier, siteID int, customerID string) error {
+	_, err := q.ExecContext(ctx,
+		`UPDATE site_billing SET stripe_customer_id = $1 WHERE site_id = $2`, customerID, siteID)
+	return err
 }
 
 // SetSitePaymentFailed transitions a site into the past-due dunning sequence

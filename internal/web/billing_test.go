@@ -136,7 +136,7 @@ func TestStripeWebhook_HandlerError_Returns500(t *testing.T) {
 	// SetSitePaid failing surfaces immediately as an error from
 	// handleCheckoutCompleted, with no further DB or mailer calls.
 	mock.ExpectExec("UPDATE site_billing SET payment_status = 'paid'").
-		WithArgs(sqlmock.AnyArg(), "", "cs_fail").
+		WithArgs(sqlmock.AnyArg(), "", "cs_fail", "").
 		WillReturnError(sqlmock.ErrCancelled)
 	// The claim taken above must be released so Stripe's automatic retry
 	// isn't permanently skipped.

@@ -118,6 +118,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dashboard/sites/{slug}/notify-settings", owned(h.UpdateNotifySettings))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/send-analytics", owned(h.SendAnalyticsNow))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/upgrade", ownerOnly(h.UpgradeCheckout))
+	mux.HandleFunc("POST /dashboard/sites/{slug}/billing-portal", ownerOnly(h.BillingPortal))
 	mux.HandleFunc("POST /dashboard/sites/{slug}/cancel-subscription", ownerOnly(h.CancelSubscription))
 
 	// Superadmin — per-admin accounts + audit log (see #94), separate from customer auth.

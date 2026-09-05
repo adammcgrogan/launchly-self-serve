@@ -1,11 +1,13 @@
 package web
 
 import (
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/adammcgrogan/launchly-self-serve/internal/domain"
+	"github.com/adammcgrogan/launchly-self-serve/internal/service"
 	"github.com/adammcgrogan/launchly-self-serve/internal/web/middleware"
 )
 
@@ -44,6 +46,32 @@ func (h *Handler) UpgradeCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, checkoutURL, http.StatusSeeOther)
+}
+
+// BillingPortal redirects the owner into Stripe's billing portal, where they
+// can replace a failing card, see invoices and manage the subscription (see
+// #316). The portal URL is single-use and short-lived, so it's minted per
+// click here rather than rendered into the page or an email.
+func (h *Handler) BillingPortal(w http.ResponseWriter, r *http.Request) {
+	site := middleware.LightSiteFromContext(r)
+	if !h.checkCSRF(w, r, middleware.UserID(r).String(), h.auth.SessionNonce(r)) {
+		return
+	}
+	portalURL, err := h.billing.CreateBillingPortalSession(r.Context(), site.ID, site.Slug)
+	if err != nil {
+		// A site that never completed a checkout has no Stripe customer and
+		// so nothing to manage — that's a wrong turn, not a server error.
+		if errors.Is(err, service.ErrNoBillingCustomer) {
+			middleware.SetFlash(w, "There's no billing to manage yet — upgrade first.")
+			http.Redirect(w, r, "/dashboard/sites/"+site.Slug+"/billing", http.StatusSeeOther)
+			return
+		}
+		slog.Error("create billing portal session", "site_id", site.ID, "error", err)
+		middleware.SetFlash(w, "We couldn't open the billing portal. Please try again, or email hello@launchly.ltd.")
+		http.Redirect(w, r, "/dashboard/sites/"+site.Slug+"/billing", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, portalURL, http.StatusSeeOther)
 }
 
 func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
